@@ -1,6 +1,7 @@
 # คู่มือสถาปัตยกรรม Feature สำหรับ AI Code Generation
 
 ## ภาพรวม
+
 คู่มือนี้อธิบายรูปแบบสถาปัตยกรรมมาตรฐานที่ใช้ในไดเรกทอรี `src/features/` เพื่อให้ AI สามารถสร้างโค้ดที่สอดคล้องและบำรุงรักษาได้ง่ายสำหรับทุก feature ในแอปพลิเคชัน Infinitex
 
 ## โครงสร้างไดเรกทอรี
@@ -22,6 +23,7 @@ src/features/[feature-name]/
 **วัตถุประสงค์:** จัดการ HTTP requests จาก frontend ไปยัง API endpoints
 
 **รูปแบบ:**
+
 ```typescript
 // src/features/[feature-name]/api.ts
 import { api } from '@src/shared/lib/api-client'
@@ -31,13 +33,13 @@ import { featureService } from './services/server'
 export const [entity]Api = {
   getList: async (filters: any): ReturnType<typeof featureService.getList> => {
     const searchParams = new URLSearchParams()
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== '') {
         searchParams.append(key, value.toString())
       }
     })
-    
+
     return api.get(`/api/[entity]?${searchParams}`)
   },
 
@@ -64,6 +66,7 @@ export const [entity]Api = {
 ```
 
 **ข้อตกลงสำคัญ:**
+
 - Import shared API client จาก `@src/shared/lib/api-client`
 - Export object เดียวชื่อ `[entity]Api`
 - Standard CRUD operations: `getList`, `getById`, `create`, `update`, `delete`
@@ -75,6 +78,7 @@ export const [entity]Api = {
 **วัตถุประสงค์:** Custom hooks สำหรับดึงข้อมูล, caching, และ mutations โดยใช้ React Query
 
 **Pattern:**
+
 ```typescript
 // src/features/[feature-name]/hooks.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -130,6 +134,7 @@ export const useDelete[Entity] = () => {
 ```
 
 **ข้อตกลงสำคัญ:**
+
 - กำหนด query keys ในรูปแบบ object ที่มีโครงสร้าง (`[entity]Keys`)
 - ใช้การตั้งชื่อที่สอดคล้อง: `useGet[Entity]List`, `useToggle[Entity]Status`, `useDelete[Entity]`
 - จัดการ success/error states ด้วย toast notifications ภาษาไทย
@@ -141,6 +146,7 @@ export const useDelete[Entity] = () => {
 **วัตถุประสงค์:** กำหนด validation schemas สำหรับ forms และ API data
 
 **Pattern:**
+
 ```typescript
 // src/features/[feature-name]/validations.ts
 import { baseTableSchema } from '@src/shared/validations/pagination'
@@ -170,6 +176,7 @@ export type [Entity]UpdateSchema = z.infer<typeof [entity]UpdateSchema>
 ```
 
 **Key Conventions:**
+
 - Extend `baseTableSchema` for filter schemas
 - Use Thai error messages
 - Export both schema and TypeScript types
@@ -181,6 +188,7 @@ export type [Entity]UpdateSchema = z.infer<typeof [entity]UpdateSchema>
 **วัตถุประสงค์:** จัดการการดำเนินการกับฐานข้อมูลโดยใช้ Prisma ORM
 
 **Pattern:**
+
 ```typescript
 // src/features/[feature-name]/repositories/[entity]Repository.ts
 import { prisma } from '@src/shared/lib/db'
@@ -213,6 +221,7 @@ export const [entity]Repository = new [Entity]Repository()
 ```
 
 **Key Conventions:**
+
 - Extend `BaseRepository` for common operations
 - Export both class and instance
 - Add entity-specific methods as needed
@@ -223,6 +232,7 @@ export const [entity]Repository = new [Entity]Repository()
 **วัตถุประสงค์:** ประมวลผล business logic ฝั่ง server และประสานงานการทำงานของ repository
 
 **Pattern:**
+
 ```typescript
 // src/features/[feature-name]/services/server.ts
 import 'server-only'
@@ -255,7 +265,7 @@ export const [entity]Service = {
     // Add business logic validation
     // Handle duplicate checks
     // Log creation
-    
+
     return [entity]Repository.create({
       data: {
         ...data,
@@ -268,7 +278,7 @@ export const [entity]Service = {
     // Add business logic validation
     // Check existence
     // Log updates
-    
+
     return [entity]Repository.update({
       where: { id },
       data: {
@@ -293,13 +303,14 @@ export const [entity]Service = {
   async toggleStatus(id: number, updatedBy?: number) {
     const entity = await this.getById(id)
     const newStatus = entity.status === 'active' ? 'inactive' : 'active'
-    
+
     return this.update(id, { status: newStatus }, updatedBy)
   },
 }
 ```
 
 **Key Conventions:**
+
 - Use `'server-only'` directive at the top
 - Import repository and validation types
 - Implement business logic, not just CRUD operations
@@ -310,6 +321,7 @@ export const [entity]Service = {
 ## การเชื่อมต่อ API
 
 ### โครงสร้าง API Routes
+
 Features เชื่อมต่อกับ API routes ใน `src/app/api/`:
 
 ```
@@ -323,6 +335,7 @@ src/app/api/
 ```
 
 ### API Route Implementation Pattern
+
 ```typescript
 // src/app/api/[entity]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
@@ -332,7 +345,7 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const filters = Object.fromEntries(searchParams.entries())
-    
+
     const result = await [entity]Service.getList(filters)
     return NextResponse.json(result)
   } catch (error) {
@@ -354,6 +367,7 @@ export async function POST(request: NextRequest) {
 ## Component Architecture
 
 ### Component Organization
+
 ```
 src/features/[feature]/components/
 ├── [entity]-list.tsx      # List/table component
@@ -363,6 +377,7 @@ src/features/[feature]/components/
 ```
 
 ### Page Integration
+
 Pages in `src/app/(layout)/` import and use feature components:
 
 ```typescript
@@ -382,15 +397,18 @@ export default function [Entity]Page() {
 ## Naming Conventions
 
 ### Variables and Functions
+
 - **camelCase** for variables, functions, and properties
 - **PascalCase** for components, classes, types, and interfaces
 - **kebab-case** for file names and API routes
 
 ### Entity Naming
+
 - **Singular** form for entity names (e.g., `user`, `admin`, `loan`)
 - **Plural** form for collections and API endpoints (e.g., `users`, `admins`, `loans`)
 
 ### File Naming Examples
+
 - `userApi` → User API object
 - `useGetUserList` → Hook for fetching user list
 - `UserRepository` → Repository class
@@ -400,6 +418,7 @@ export default function [Entity]Page() {
 ## Error Handling
 
 ### Standard Error Patterns
+
 ```typescript
 // Service layer error handling
 if (!entity) {
@@ -420,6 +439,7 @@ catch (error) {
 ## TypeScript Integration
 
 ### Type Export Pattern
+
 ```typescript
 // From validations.ts
 export type [Entity]FiltersSchema = z.infer<typeof [entity]FiltersSchema>

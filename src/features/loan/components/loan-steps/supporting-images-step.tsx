@@ -76,12 +76,8 @@ export function SupportingImagesStep({
           <AlertDescription>
             <div className="space-y-1">
               <p className="font-medium">ข้อมูลจากโฉนดที่ดิน:</p>
-              <p className="text-sm">
-                ชื่อเจ้าของ: demo
-              </p>
-              <p className="text-sm">
-                เลขที่ดิน: demo
-              </p>
+              <p className="text-sm">ชื่อเจ้าของ: demo</p>
+              <p className="text-sm">เลขที่ดิน: demo</p>
               <p className="text-sm">เนื้อที่: demo</p>
               <p className="text-sm">ที่ตั้ง: demo</p>
               <hr />

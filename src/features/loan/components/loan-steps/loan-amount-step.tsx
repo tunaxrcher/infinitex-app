@@ -80,7 +80,7 @@ export function LoanAmountStep({
               </div>
             </AlertDescription>
           </Alert>
-<hr />
+          <hr />
           <div className="space-y-2">
             <Label htmlFor="requestedAmount" className="text-sm font-medium">
               ยอดเงินที่ต้องการ (บาท)
@@ -126,7 +126,10 @@ export function LoanAmountStep({
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button onClick={handleConfirm} disabled={!canProceed} className="flex-1">
+        <Button
+          onClick={handleConfirm}
+          disabled={!canProceed}
+          className="flex-1">
           ยืนยันและดำเนินการต่อ
         </Button>
       </div>

@@ -2,16 +2,17 @@
 
 import Link from 'next/link'
 
+import { useAuth } from '@src/shared/contexts/auth-context'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import { useAuth } from '@src/shared/contexts/auth-context'
 import { CheckCircle, Clock, Mail, Phone } from 'lucide-react'
 
 export function PendingStep() {
   const { user } = useAuth()
-  
+
   // Determine the correct URL based on user type
-  const myLoansUrl = user?.userType === 'AGENT' ? '/agent/customers' : '/customer/products'
+  const myLoansUrl =
+    user?.userType === 'AGENT' ? '/agent/customers' : '/customer/products'
   return (
     <div className="space-y-6 text-center">
       <div className="space-y-4">

@@ -169,7 +169,7 @@ export function LoginForm() {
                 <div className="text-xs space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <strong>ลูกค้า:</strong> 081-234-5678 | PIN: 1234
+                      <strong>ลูกค้า:</strong> 080-123-4567 | PIN: 1234
                     </div>
                     <Button
                       type="button"
@@ -177,14 +177,14 @@ export function LoginForm() {
                       size="sm"
                       className="h-6 px-2 text-xs"
                       onClick={() =>
-                        copyToClipboard('081-234-5678', 'เบอร์ลูกค้า')
+                        copyToClipboard('080-123-4567', 'เบอร์ลูกค้า')
                       }>
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                   <div className="flex items-center justify-between">
                     <div>
-                      <strong>เอเจนต์:</strong> 088-765-4321 | PIN: 1234
+                      <strong>เอเจนต์:</strong> 089-123-4567 | PIN: 9999
                     </div>
                     <Button
                       type="button"
@@ -192,7 +192,7 @@ export function LoginForm() {
                       size="sm"
                       className="h-6 px-2 text-xs"
                       onClick={() =>
-                        copyToClipboard('088-765-4321', 'เบอร์เอเจนต์')
+                        copyToClipboard('089-123-4567', 'เบอร์เอเจนต์')
                       }>
                       <Copy className="h-3 w-3" />
                     </Button>

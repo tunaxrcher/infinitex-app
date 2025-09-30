@@ -1,13 +1,14 @@
 'use client'
 
 import { Suspense } from 'react'
+
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
+import { LoadingSpinner } from '@src/shared/components/loading-spinner'
 import { Badge } from '@src/shared/ui/badge'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import { LoadingSpinner } from '@src/shared/components/loading-spinner'
 import {
   AlertCircle,
   Barcode,
