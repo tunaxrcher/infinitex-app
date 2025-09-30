@@ -93,9 +93,9 @@ export function LoanAmountStep({
               onChange={handleAmountChange}
               className="text-lg"
             />
-            <p className="text-xs text-muted-foreground">
+            {/* <p className="text-xs text-muted-foreground">
               สามารถขอได้สูงสุด {systemEvaluatedAmount.toLocaleString()} บาท
-            </p>
+            </p> */}
             {!canProceed && (
               <p className="text-xs text-destructive">
                 * กรุณาระบุยอดเงินที่ต้องการก่อนดำเนินการต่อ
