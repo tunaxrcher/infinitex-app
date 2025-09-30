@@ -31,7 +31,7 @@ const existingCustomers = [
     name: 'นางสมหญิง สวยดี',
     phoneNumber: '082-345-6789',
     loanCount: 1,
-    status: 'เกินกำหนด',
+    status: 'ไม่ผ่าน',
   },
   {
     id: 'customer-3',
@@ -108,7 +108,7 @@ export function AgentCustomerSelectionStep({
     switch (status) {
       case 'ปกติ':
         return 'default'
-      case 'เกินกำหนด':
+      case 'ไม่ผ่าน':
         return 'destructive'
       case 'รออนุมัติ':
         return 'outline'
@@ -169,11 +169,11 @@ export function AgentCustomerSelectionStep({
                       สินเชื่อ: {customer.loanCount} รายการ
                     </p>
                   </div>
-                  <Badge
+                  {/* <Badge
                     variant={getBadgeVariant(customer.status)}
                     className={getBadgeClassName(customer.status)}>
                     {customer.status}
-                  </Badge>
+                  </Badge> */}
                 </div>
               </div>
             ))}
@@ -235,12 +235,10 @@ export function AgentCustomerSelectionStep({
           {/* Selected Customer Display */}
           {selectedCustomer && data.customerName && (
             <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
-              <p className="text-sm font-medium text-success-foreground">
+              <p className="text-sm font-medium ">
                 ✓ เลือกลูกค้า: {data.customerName}
               </p>
-              <p className="text-xs text-success-foreground/70">
-                เบอร์: {data.customerPhone}
-              </p>
+              <p className="text-xs ">เบอร์: {data.customerPhone}</p>
             </div>
           )}
         </CardContent>

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 import { type UserType, useAuth } from '@src/shared/contexts/auth-context'
@@ -53,7 +54,23 @@ export function RouteGuard({
 
   // Show loading while checking authentication
   if (isLoading) {
-    return <FullPageLoader text="กำลังตรวจสอบสิทธิ์..." />
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/20">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-20 h-20 animate-pulse">
+            <Image
+              src="/images/logo.png"
+              alt="InfiniteX Logo"
+              width={80}
+              height={80}
+              className="w-full h-full object-contain"
+              priority
+            />
+          </div>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    )
   }
 
   // Show nothing while redirecting

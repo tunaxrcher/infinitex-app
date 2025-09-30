@@ -71,7 +71,7 @@ const agentCustomers = [
         monthlyPayment: 1500.0,
         remainingBalance: 51000.0,
         dueDate: '28 ก.ย. 68',
-        status: 'เกินกำหนด',
+        status: 'ไม่ผ่าน',
         statusColor: 'destructive',
         nextPaymentDays: -2,
       },
