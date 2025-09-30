@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 
 import { type UserType, useAuth } from '@src/shared/contexts/auth-context'
 import { Button } from '@src/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -93,9 +92,9 @@ export function LoginForm() {
   return (
     <>
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-accent/20">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center space-y-2">
-            <div className="w-20 h-10 mx-auto mb-4">
+        <div className="w-full max-w-md space-y-6">
+          <div className="text-center space-y-4">
+            <div className="w-20 h-10 mx-auto">
               <Image
                 src="/images/logo.png"
                 alt="InfiniteX Logo"
@@ -105,12 +104,13 @@ export function LoginForm() {
                 priority
               />
             </div>
-            <CardTitle className="text-2xl font-bold text-foreground">
+            <hr className="border-border" />
+            <h1 className="text-2xl font-bold text-foreground">
               เข้าสู่ระบบ (Demo)
-            </CardTitle>
-          </CardHeader>
+            </h1>
+          </div>
 
-          <CardContent>
+          <div className="space-y-6">
             <form onSubmit={handlePhoneSubmit} className="space-y-4">
               {/* Phone Number Input */}
               <div className="space-y-2">
@@ -174,8 +174,8 @@ export function LoginForm() {
                 ถัดไป
               </Button>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* PIN Modal */}
