@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+
 import { getToken } from 'next-auth/jwt'
 
 // Define route patterns
 const customerRoutes = ['/customer']
 const agentRoutes = ['/agent']
-const sharedRoutes = ['/notifications', '/more', '/bills', '/payment']
-const publicRoutes = ['/login', '/', '/about', '/contact']
+const sharedRoutes = ['/', '/notifications', '/more', '/bills', '/payment']
+const publicRoutes = ['/login', '/about', '/contact']
 
 function isRouteMatch(pathname: string, routes: string[]): boolean {
   return routes.some((route) => pathname.startsWith(route))
 }
 
-export async function authMiddleware(request: NextRequest): Promise<NextResponse> {
+export async function authMiddleware(
+  request: NextRequest
+): Promise<NextResponse> {
   const { pathname } = request.nextUrl
 
   // Skip middleware for static files
@@ -28,9 +31,9 @@ export async function authMiddleware(request: NextRequest): Promise<NextResponse
   }
 
   // Get token from NextAuth
-  const token = await getToken({ 
-    req: request, 
-    secret: process.env.NEXTAUTH_SECRET 
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
   })
 
   // Redirect to login if not authenticated

@@ -23,7 +23,7 @@ export function LoginForm() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [pin, setPin] = useState('')
   const [showPin, setShowPin] = useState(false)
-  const [userType, setUserType] = useState<UserType>('CUSTOMER')
+  const [userType, setUserType] = useState<UserType>('AGENT')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPinModal, setShowPinModal] = useState(false)
@@ -49,15 +49,14 @@ export function LoginForm() {
       if (success) {
         setShowPinModal(false)
         toast.success('เข้าสู่ระบบสำเร็จ!')
-        
-        // Redirect to intended page or default dashboard
+
+        // Redirect to intended page or homepage
         const redirectTo = searchParams.get('redirect')
         if (redirectTo) {
           router.push(redirectTo)
         } else {
-          // Default redirect based on user type
-          const defaultRoute = userType === 'AGENT' ? '/agent/customers' : '/customer/products'
-          router.push(defaultRoute)
+          // Always redirect to homepage after login
+          router.push('/')
         }
       } else {
         setError('เบอร์โทรศัพท์, PIN หรือประเภทผู้ใช้ไม่ถูกต้อง')

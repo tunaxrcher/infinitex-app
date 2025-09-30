@@ -27,7 +27,7 @@ export const config = {
      * - favicon.ico (favicon file)
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*|sw\\.js).*)',
-    
+
     // Alternative approach with explicit routes
     '/auth/login',
     '/api/:path*',

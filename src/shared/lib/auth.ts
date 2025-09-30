@@ -23,24 +23,26 @@ export const authOptions: NextAuthOptions = {
         try {
           // Clean phone number (remove formatting)
           const cleanPhoneNumber = credentials.phoneNumber.replace(/\D/g, '')
-          
+
           // Rate limiting based on phone number
           const rateLimit = checkRateLimit(cleanPhoneNumber)
           if (!rateLimit.allowed) {
             console.log('Rate limit exceeded for:', cleanPhoneNumber)
-            throw new Error(`Too many attempts. Try again after ${rateLimit.blockedUntil?.toLocaleTimeString()}`)
+            throw new Error(
+              `Too many attempts. Try again after ${rateLimit.blockedUntil?.toLocaleTimeString()}`
+            )
           }
-          
+
           if (process.env.NODE_ENV === 'development') {
             console.log('Auth attempt:', {
               providedPhone: credentials.phoneNumber,
               cleanPhone: cleanPhoneNumber,
               userType: credentials.userType,
               pin: credentials.pin.substring(0, 2) + '**', // Hide full PIN in logs
-              remainingAttempts: rateLimit.remainingAttempts
+              remainingAttempts: rateLimit.remainingAttempts,
             })
           }
-          
+
           // Find user by phone number and user type
           // Try exact match first, then try with different formatting
           let user = await prisma.user.findFirst({
@@ -58,7 +60,7 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             // Try with contains for last 9 digits (most flexible)
             const lastNineDigits = cleanPhoneNumber.slice(-9)
-            
+
             user = await prisma.user.findFirst({
               where: {
                 phoneNumber: {
@@ -93,7 +95,7 @@ export const authOptions: NextAuthOptions = {
 
           // Verify PIN
           const isValidPin = await bcrypt.compare(credentials.pin, user.pin)
-          
+
           if (!isValidPin) {
             return null
           }
