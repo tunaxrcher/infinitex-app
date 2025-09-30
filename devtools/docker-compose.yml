@@ -1,0 +1,24 @@
+version: '3.9'
+services:
+  db:
+    image: 'mysql:8.0'
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - '9151:3306'
+    environment:
+      - MYSQL_ROOT_PASSWORD=mypassword
+      - MYSQL_DATABASE=myapp
+      - TZ=Asia/Bangkok
+    volumes:
+      - ./mysql_data_infinitex:/var/lib/mysql
+  redis:
+    image: 'redis:alpine'
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./redis_data_infinitex:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  mysql_data_infinitex:
+  redis_data_infinitex:
