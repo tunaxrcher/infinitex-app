@@ -13,7 +13,7 @@ export function PendingStep() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-foreground mb-2">
-            ส่งคำขอสำเร็จ!
+            ส่งคำขอสำเร็จ !
           </h2>
           <p className="text-sm text-muted-foreground">
             คำขอสินเชื่อของคุณได้รับการส่งเรียบร้อยแล้ว

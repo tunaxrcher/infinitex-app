@@ -29,12 +29,18 @@ export function LoanAmountStep({
   )
 
   const handleConfirm = () => {
-    onUpdate({
-      loanAmount: systemEvaluatedAmount,
-      requestedLoanAmount: Number(requestedAmount) || 0,
-    })
-    onNext()
+    const amount = Number(requestedAmount) || 0
+    if (amount > 0) {
+      onUpdate({
+        loanAmount: systemEvaluatedAmount,
+        requestedLoanAmount: amount,
+      })
+      onNext()
+    }
   }
+
+  // Check if user has entered a valid amount
+  const canProceed = requestedAmount && Number(requestedAmount) > 0
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9]/g, '')
@@ -87,9 +93,14 @@ export function LoanAmountStep({
               onChange={handleAmountChange}
               className="text-lg"
             />
-            {/* <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               สามารถขอได้สูงสุด {systemEvaluatedAmount.toLocaleString()} บาท
-            </p> */}
+            </p>
+            {!canProceed && (
+              <p className="text-xs text-destructive">
+                * กรุณาระบุยอดเงินที่ต้องการก่อนดำเนินการต่อ
+              </p>
+            )}
           </div>
 
           {/* {data.titleDeedData && (
@@ -115,7 +126,7 @@ export function LoanAmountStep({
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button onClick={handleConfirm} className="flex-1">
+        <Button onClick={handleConfirm} disabled={!canProceed} className="flex-1">
           ยืนยันและดำเนินการต่อ
         </Button>
       </div>
