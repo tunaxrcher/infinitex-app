@@ -127,9 +127,9 @@ export function AgentLoanApplicationFlow() {
       case 1:
         return 'เลือกลูกค้า'
       case 2:
-        return 'อัพโหลดโฉนดที่ดิน'
+        return 'อัพโหลด | โฉนดที่ดิน'
       case 3:
-        return 'อัพโหลดรูปประกอบ'
+        return 'อัพโหลด | รูปประกอบ (หากมี)'
       case 4:
         return 'อัพโหลดบัตรประชาชน'
       case 5:

@@ -77,13 +77,15 @@ export function SupportingImagesStep({
             <div className="space-y-1">
               <p className="font-medium">ข้อมูลจากโฉนดที่ดิน:</p>
               <p className="text-sm">
-                ชื่อเจ้าของ: {data.titleDeedData.ownerName}
+                ชื่อเจ้าของ: demo
               </p>
               <p className="text-sm">
-                เลขที่ดิน: {data.titleDeedData.landNumber}
+                เลขที่ดิน: demo
               </p>
-              <p className="text-sm">เนื้อที่: {data.titleDeedData.area}</p>
-              <p className="text-sm">ที่ตั้ง: {data.titleDeedData.location}</p>
+              <p className="text-sm">เนื้อที่: demo</p>
+              <p className="text-sm">ที่ตั้ง: demo</p>
+              <hr />
+              <p className="text-sm">ราคา: demo</p>
             </div>
           </AlertDescription>
         </Alert>
@@ -93,12 +95,12 @@ export function SupportingImagesStep({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <ImageIcon className="h-5 w-5 text-primary" />
-            อัพโหลดภาพประกอบ
+            อัพโหลดรูปประกอบ (หากมี)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            อัพโหลดภาพประกอบเพิ่มเติม เช่น ภาพถ่ายที่ดิน ภาพบ้าน หรือเอกสารอื่นๆ
+            อัพโหลดภาพประกอบเพิ่มเติม เช่น ภาพบ้าน มุมต่าง ๆ หรือเอกสารอื่นๆ
             (ไม่บังคับ)
           </p>
 

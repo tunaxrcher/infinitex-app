@@ -5,7 +5,8 @@ import { useState } from 'react'
 
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import { Camera, FileText, Upload, X } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@src/shared/ui/tooltip'
+import { Camera, FileText, Info, Upload, X } from 'lucide-react'
 
 interface TitleDeedUploadStepProps {
   data: any
@@ -77,6 +78,16 @@ export function TitleDeedUploadStep({
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             อัพโหลดโฉนดที่ดิน
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground hover:text-primary cursor-help transition-colors" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <p className="text-center">
+                  หลังจากยืนยันระบบจะตรวจสอบโฉนด และประเมินข้อมูลเบื้องต้น
+                </p>
+              </TooltipContent>
+            </Tooltip>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

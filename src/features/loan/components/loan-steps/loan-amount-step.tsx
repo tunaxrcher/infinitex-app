@@ -51,7 +51,7 @@ export function LoanAmountStep({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
-            วงเงินที่ระบบประเมินให้
+            วงเงินที่ระบบประเมินให้ (จาก AI)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -68,31 +68,31 @@ export function LoanAmountStep({
                 <div className="pt-2 border-t">
                   <p className="text-xs text-muted-foreground">
                     * วงเงินและเงื่อนไขนี้เป็นการประเมินเบื้องต้น
-                    อาจมีการปรับเปลี่ยนหลังจากการตรวจสอบเอกสารครบถ้วน
+                    อาจมีการปรับเปลี่ยนหลังจากการตรวจสอบจริงอีกครั้ง
                   </p>
                 </div>
               </div>
             </AlertDescription>
           </Alert>
-
+<hr />
           <div className="space-y-2">
             <Label htmlFor="requestedAmount" className="text-sm font-medium">
-              ยอดเงินที่ต้องการขอ (บาท)
+              ยอดเงินที่ต้องการ (บาท)
             </Label>
             <Input
               id="requestedAmount"
               type="text"
-              placeholder="กรอกยอดเงินที่ต้องการขอ"
+              placeholder="กรอกยอดเงินที่ต้องการ"
               value={requestedAmount ? formatNumber(requestedAmount) : ''}
               onChange={handleAmountChange}
               className="text-lg"
             />
-            <p className="text-xs text-muted-foreground">
+            {/* <p className="text-xs text-muted-foreground">
               สามารถขอได้สูงสุด {systemEvaluatedAmount.toLocaleString()} บาท
-            </p>
+            </p> */}
           </div>
 
-          {data.titleDeedData && (
+          {/* {data.titleDeedData && (
             <div className="bg-muted/50 rounded-lg p-4">
               <p className="text-sm font-medium mb-2">
                 ข้อมูลหลักทรัพย์ที่ใช้ประกอบการพิจารณา:
@@ -103,7 +103,7 @@ export function LoanAmountStep({
                 <p>ที่ตั้ง: {data.titleDeedData.location}</p>
               </div>
             </div>
-          )}
+          )} */}
         </CardContent>
       </Card>
 
