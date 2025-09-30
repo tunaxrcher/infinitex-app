@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 
-const prisma = new PrismaClient()
+import { prisma } from './db'
+import { checkRateLimit } from './rate-limit'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -24,12 +24,20 @@ export const authOptions: NextAuthOptions = {
           // Clean phone number (remove formatting)
           const cleanPhoneNumber = credentials.phoneNumber.replace(/\D/g, '')
           
+          // Rate limiting based on phone number
+          const rateLimit = checkRateLimit(cleanPhoneNumber)
+          if (!rateLimit.allowed) {
+            console.log('Rate limit exceeded for:', cleanPhoneNumber)
+            throw new Error(`Too many attempts. Try again after ${rateLimit.blockedUntil?.toLocaleTimeString()}`)
+          }
+          
           if (process.env.NODE_ENV === 'development') {
             console.log('Auth attempt:', {
               providedPhone: credentials.phoneNumber,
               cleanPhone: cleanPhoneNumber,
               userType: credentials.userType,
-              pin: credentials.pin.substring(0, 2) + '**' // Hide full PIN in logs
+              pin: credentials.pin.substring(0, 2) + '**', // Hide full PIN in logs
+              remainingAttempts: rateLimit.remainingAttempts
             })
           }
           
@@ -118,10 +126,11 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 8 * 60 * 60, // 8 hours (more secure for financial app)
+    updateAge: 2 * 60 * 60, // Update session every 2 hours
   },
   jwt: {
-    maxAge: 24 * 60 * 60, // 24 hours
+    maxAge: 8 * 60 * 60, // 8 hours
   },
   callbacks: {
     async jwt({ token, user }) {

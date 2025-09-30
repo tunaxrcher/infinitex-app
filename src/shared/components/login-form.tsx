@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { type UserType, useAuth } from '@src/shared/contexts/auth-context'
 import { Button } from '@src/shared/ui/button'
@@ -23,13 +23,14 @@ export function LoginForm() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [pin, setPin] = useState('')
   const [showPin, setShowPin] = useState(false)
-  const [userType, setUserType] = useState<UserType>('AGENT')
+  const [userType, setUserType] = useState<UserType>('CUSTOMER')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPinModal, setShowPinModal] = useState(false)
 
   const { login } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,12 +48,27 @@ export function LoginForm() {
       const success = await login(phoneNumber, pin, userType)
       if (success) {
         setShowPinModal(false)
-        router.push('/')
+        toast.success('เข้าสู่ระบบสำเร็จ!')
+        
+        // Redirect to intended page or default dashboard
+        const redirectTo = searchParams.get('redirect')
+        if (redirectTo) {
+          router.push(redirectTo)
+        } else {
+          // Default redirect based on user type
+          const defaultRoute = userType === 'AGENT' ? '/agent/customers' : '/customer/products'
+          router.push(defaultRoute)
+        }
       } else {
         setError('เบอร์โทรศัพท์, PIN หรือประเภทผู้ใช้ไม่ถูกต้อง')
       }
-    } catch (error) {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } catch (error: any) {
+      // Better error handling based on error type
+      if (error.message?.includes('Too many attempts')) {
+        setError(error.message)
+      } else {
+        setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+      }
     } finally {
       setIsLoading(false)
     }
