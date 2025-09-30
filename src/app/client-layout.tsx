@@ -9,6 +9,7 @@ import ErrorBoundary from '@src/shared/components/error-boundary'
 import { FullPageLoader } from '@src/shared/components/loading-spinner'
 import { ThemeProvider } from '@src/shared/components/theme-provider'
 import { AuthProvider } from '@src/shared/contexts/auth-context'
+import { Toaster } from 'react-hot-toast'
 
 export default function ClientLayout({
   children,
@@ -28,6 +29,17 @@ export default function ClientLayout({
               enableSystem
               disableTransitionOnChange>
               <div className="mobile-container">{children}</div>
+              <Toaster
+                position="top-center"
+                toastOptions={{
+                  duration: 3000,
+                  style: {
+                    background: 'hsl(var(--background))',
+                    color: 'hsl(var(--foreground))',
+                    border: '1px solid hsl(var(--border))',
+                  },
+                }}
+              />
             </ThemeProvider>
           </AuthProvider>
         </Suspense>

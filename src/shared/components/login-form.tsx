@@ -16,13 +16,14 @@ import {
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
 import { RadioGroup, RadioGroupItem } from '@src/shared/ui/radio-group'
-import { Eye, EyeOff, Phone } from 'lucide-react'
+import { Copy, Eye, EyeOff, Phone } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export function LoginForm() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [pin, setPin] = useState('')
   const [showPin, setShowPin] = useState(false)
-  const [userType, setUserType] = useState<UserType>('CUSTOMER')
+  const [userType, setUserType] = useState<UserType>('AGENT')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPinModal, setShowPinModal] = useState(false)
@@ -89,6 +90,15 @@ export function LoginForm() {
     setPin(value)
   }
 
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`คัดลอก${label}แล้ว: ${text}`)
+    } catch (err) {
+      toast.error('ไม่สามารถคัดลอกได้')
+    }
+  }
+
   return (
     <>
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-accent/20">
@@ -153,16 +163,40 @@ export function LoginForm() {
 
               {/* Demo Info */}
               <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                <p className="text-xs text-muted-foreground font-medium mb-1">
+                <p className="text-xs text-muted-foreground font-medium mb-2">
                   สำหรับทดสอบระบบ:
                 </p>
-                <div className="text-xs space-y-1">
-                  <p>
-                    <strong>ลูกค้า:</strong> 081-234-5678 | PIN: 1234
-                  </p>
-                  <p>
-                    <strong>เอเจนต์:</strong> 088-765-4321 | PIN: 1234
-                  </p>
+                <div className="text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong>ลูกค้า:</strong> 081-234-5678 | PIN: 1234
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() =>
+                        copyToClipboard('081-234-5678', 'เบอร์ลูกค้า')
+                      }>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <strong>เอเจนต์:</strong> 088-765-4321 | PIN: 1234
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs"
+                      onClick={() =>
+                        copyToClipboard('088-765-4321', 'เบอร์เอเจนต์')
+                      }>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -174,6 +208,18 @@ export function LoginForm() {
                 ถัดไป
               </Button>
             </form>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-xs text-gray-500">
+              <a href="#" className="hover:underline">
+                Terms of Use
+              </a>
+              {' | '}
+              <a href="#" className="hover:underline">
+                Privacy Policy
+              </a>
+            </p>
           </div>
         </div>
       </div>
