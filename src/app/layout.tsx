@@ -1,6 +1,6 @@
 import type React from 'react'
 
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Kanit } from 'next/font/google'
 
 import ClientLayout from './client-layout'
@@ -16,14 +16,19 @@ export const metadata: Metadata = {
   title: 'InfiniteX - สินเชื่อจำนองบ้านและโฉนดที่ดิน',
   description: 'แอปพลิเคชันสินเชื่อจำนองบ้านและโฉนดที่ดิน ใช้งานง่าย ปลอดภัย',
   generator: 'InfiniteX',
-  viewport:
-    'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
-  themeColor: '#955be8',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'InfiniteX',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#955be8',
 }
 
 export default function RootLayout({

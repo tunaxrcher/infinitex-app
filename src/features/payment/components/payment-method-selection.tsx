@@ -1,11 +1,13 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 
 import { Badge } from '@src/shared/ui/badge'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
+import { LoadingSpinner } from '@src/shared/components/loading-spinner'
 import {
   AlertCircle,
   Barcode,
@@ -67,7 +69,7 @@ const paymentMethods = [
   },
 ]
 
-export function PaymentMethodSelection() {
+function PaymentMethodSelectionContent() {
   const searchParams = useSearchParams()
   const loanId = searchParams.get('loanId')
 
@@ -233,5 +235,13 @@ export function PaymentMethodSelection() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export function PaymentMethodSelection() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <PaymentMethodSelectionContent />
+    </Suspense>
   )
 }

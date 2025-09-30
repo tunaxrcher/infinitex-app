@@ -3,8 +3,6 @@
 import type React from 'react'
 import { Suspense } from 'react'
 
-import { useSearchParams } from 'next/navigation'
-
 import ErrorBoundary from '@src/shared/components/error-boundary'
 import { FullPageLoader } from '@src/shared/components/loading-spinner'
 import { ThemeProvider } from '@src/shared/components/theme-provider'
@@ -16,8 +14,6 @@ export default function ClientLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const searchParams = useSearchParams()
-
   return (
     <>
       <ErrorBoundary>
