@@ -24,12 +24,14 @@ export const authOptions: NextAuthOptions = {
           // Clean phone number (remove formatting)
           const cleanPhoneNumber = credentials.phoneNumber.replace(/\D/g, '')
           
-          console.log('Auth attempt:', {
-            providedPhone: credentials.phoneNumber,
-            cleanPhone: cleanPhoneNumber,
-            userType: credentials.userType,
-            pin: credentials.pin.substring(0, 2) + '**' // Hide full PIN in logs
-          })
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Auth attempt:', {
+              providedPhone: credentials.phoneNumber,
+              cleanPhone: cleanPhoneNumber,
+              userType: credentials.userType,
+              pin: credentials.pin.substring(0, 2) + '**' // Hide full PIN in logs
+            })
+          }
           
           // Find user by phone number and user type
           // Try exact match first, then try with different formatting
@@ -46,10 +48,8 @@ export const authOptions: NextAuthOptions = {
 
           // If not found, try alternative phone number format searches
           if (!user) {
-            console.log('Exact match failed, trying contains search...')
             // Try with contains for last 9 digits (most flexible)
             const lastNineDigits = cleanPhoneNumber.slice(-9)
-            console.log('Searching with last 9 digits:', lastNineDigits)
             
             user = await prisma.user.findFirst({
               where: {
@@ -65,9 +65,8 @@ export const authOptions: NextAuthOptions = {
             })
           }
 
-          // If still not found, let's see what users actually exist
-          if (!user) {
-            console.log('Still no user found, checking all users in DB...')
+          if (process.env.NODE_ENV === 'development' && !user) {
+            // Debug information only in development
             const allUsers = await prisma.user.findMany({
               select: {
                 id: true,
@@ -75,29 +74,19 @@ export const authOptions: NextAuthOptions = {
                 userType: true,
                 isActive: true,
               },
-              take: 10, // Limit to avoid spam
+              take: 10,
             })
             console.log('Available users:', allUsers)
           }
 
-          console.log('Found user:', user ? {
-            id: user.id,
-            phone: user.phoneNumber,
-            userType: user.userType,
-            hasPin: !!user.pin
-          } : 'No user found')
-
           if (!user || !user.pin) {
-            console.log('Auth failed: No user found or no PIN')
             return null
           }
 
           // Verify PIN
           const isValidPin = await bcrypt.compare(credentials.pin, user.pin)
-          console.log('PIN validation:', isValidPin)
           
           if (!isValidPin) {
-            console.log('Auth failed: Invalid PIN')
             return null
           }
 
