@@ -34,30 +34,38 @@ const mockLoans = [
     principalAmount: 24000.0,
     nextPaymentDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     status: 'ACTIVE',
+    type: 'LOAN',
+    displayStatus: 'ACTIVE',
   },
   {
     id: '2',
-    loanNumber: 'LN001234568',
+    loanNumber: 'APP-12345678',
     loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 18,
-    totalInstallments: 24,
-    monthlyPayment: 3500.0,
-    remainingBalance: 21000.0,
-    principalAmount: 84000.0,
-    nextPaymentDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
-    status: 'ACTIVE',
+    currentInstallment: 0,
+    totalInstallments: 0,
+    monthlyPayment: 0,
+    remainingBalance: 380000.0,
+    principalAmount: 380000.0,
+    nextPaymentDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    status: 'UNDER_REVIEW',
+    type: 'APPLICATION',
+    displayStatus: 'UNDER_REVIEW',
+    reviewNotes: null,
   },
   {
     id: '3',
-    loanNumber: 'LN001234569',
+    loanNumber: 'APP-87654321',
     loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 2,
-    totalInstallments: 36,
-    monthlyPayment: 1500.0,
-    remainingBalance: 51000.0,
-    principalAmount: 54000.0,
-    nextPaymentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    status: 'ACTIVE',
+    currentInstallment: 0,
+    totalInstallments: 0,
+    monthlyPayment: 0,
+    remainingBalance: 450000.0,
+    principalAmount: 450000.0,
+    nextPaymentDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    status: 'REJECTED',
+    type: 'APPLICATION',
+    displayStatus: 'REJECTED',
+    reviewNotes: 'รายได้ไม่เพียงพอตามเกณฑ์ที่กำหนด และเอกสารหลักฐานไม่ครบถ้วน',
   },
 ]
 
@@ -112,15 +120,15 @@ const getStatusInfo = (status: string, type?: string) => {
   if (type === 'LOAN') {
     switch (status) {
       case 'ACTIVE':
-        return { text: 'ปกติ', color: 'success' }
+        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
       case 'COMPLETED':
-        return { text: 'เสร็จสิ้น', color: 'success' }
+        return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
       case 'DEFAULTED':
-        return { text: 'ค้างชำระ', color: 'destructive' }
+        return { text: 'ค้างชำระ', color: 'destructive', showBadge: true }
       case 'CANCELLED':
-        return { text: 'ยกเลิก', color: 'destructive' }
+        return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
       default:
-        return { text: 'ปกติ', color: 'success' }
+        return { text: '', color: 'success', showBadge: false }
     }
   }
   
@@ -128,34 +136,34 @@ const getStatusInfo = (status: string, type?: string) => {
   if (type === 'APPLICATION') {
     switch (status) {
       case 'DRAFT':
-        return { text: 'ร่าง', color: 'secondary' }
+        return { text: 'ร่าง', color: 'secondary', showBadge: true }
       case 'SUBMITTED':
-        return { text: 'ส่งใบสมัครแล้ว', color: 'warning' }
+        return { text: 'รอตรวจสอบ', color: 'warning', showBadge: true }
       case 'UNDER_REVIEW':
-        return { text: 'รออนุมัติ', color: 'warning' }
+        return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
       case 'APPROVED':
-        return { text: 'อนุมัติแล้ว', color: 'success' }
+        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
       case 'REJECTED':
-        return { text: 'ไม่อนุมัติ', color: 'destructive' }
+        return { text: 'ไม่อนุมัติ', color: 'destructive', showBadge: true }
       case 'CANCELLED':
-        return { text: 'ยกเลิก', color: 'destructive' }
+        return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
       default:
-        return { text: 'รออนุมัติ', color: 'warning' }
+        return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
     }
   }
 
   // Fallback for backward compatibility
   switch (status) {
     case 'ACTIVE':
-      return { text: 'ปกติ', color: 'success' }
+      return { text: '', color: 'success', showBadge: false }
     case 'COMPLETED':
-      return { text: 'เสร็จสิ้น', color: 'success' }
+      return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
     case 'DEFAULTED':
-      return { text: 'ค้างชำระ', color: 'destructive' }
+      return { text: 'ค้างชำระ', color: 'destructive', showBadge: true }
     case 'CANCELLED':
-      return { text: 'ยกเลิก', color: 'destructive' }
+      return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
     default:
-      return { text: 'รออนุมัติ', color: 'warning' }
+      return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
   }
 }
 
@@ -218,7 +226,7 @@ const getBadgeVariant = (statusColor: string) => {
 
           return (
             <Card key={loan.id} className="hover:shadow-md transition-shadow">
-              {statusInfo.text === 'ปกติ' && !isApplication ? (
+              {!statusInfo.showBadge && !isApplication ? (
                 <>
                   <Link href={`/products/${loan.id}`} className="block">
                     <CardHeader className="pb-3">
@@ -231,11 +239,13 @@ const getBadgeVariant = (statusColor: string) => {
                             เลขที่สัญญา: {loan.loanNumber}
                           </p>
                         </div>
-                        <Badge
-                          variant={getBadgeVariant(statusInfo.color)}
-                          className={getBadgeClassName(statusInfo.color)}>
-                          {statusInfo.text}
-                        </Badge>
+                        {statusInfo.showBadge && (
+                          <Badge
+                            variant={getBadgeVariant(statusInfo.color)}
+                            className={getBadgeClassName(statusInfo.color)}>
+                            {statusInfo.text}
+                          </Badge>
+                        )}
                       </div>
                     </CardHeader>
                   </Link>
@@ -274,16 +284,18 @@ const getBadgeVariant = (statusColor: string) => {
                         เลขที่สัญญา: {loan.loanNumber}
                       </p>
                     </div>
-                    <Badge
-                      variant={getBadgeVariant(statusInfo.color)}
-                      className={getBadgeClassName(statusInfo.color)}>
-                      {statusInfo.text}
-                    </Badge>
+                    {statusInfo.showBadge && (
+                      <Badge
+                        variant={getBadgeVariant(statusInfo.color)}
+                        className={getBadgeClassName(statusInfo.color)}>
+                        {statusInfo.text}
+                      </Badge>
+                    )}
                   </div>
                 </CardHeader>
               )}
 
-              {(statusInfo.text !== 'ปกติ' || isApplication) && (
+              {(statusInfo.showBadge || isApplication) && (
                 <div className="px-6 pb-4">
                   <Button
                     variant="ghost"
@@ -305,14 +317,14 @@ const getBadgeVariant = (statusColor: string) => {
                 </div>
               )}
 
-              {(statusInfo.text !== 'ปกติ' || isApplication) && isExpanded && (
+              {(statusInfo.showBadge || isApplication) && isExpanded && (
                 <CardContent className="space-y-4 pt-0">
-                  {statusInfo.text === 'รออนุมัติ' || statusInfo.text === 'ส่งใบสมัครแล้ว' ? (
+                  {statusInfo.text === 'รออนุมัติ' || statusInfo.text === 'รอตรวจสอบ' ? (
                     <div className="flex items-center gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />
                       <div>
                         <p className="text-sm font-medium text-yellow-800">
-                          {statusInfo.text === 'รออนุมัติ' ? 'กำลังตรวจสอบ' : 'ส่งใบสมัครแล้ว'}
+                          {statusInfo.text === 'รออนุมัติ' ? 'กำลังตรวจสอบ' : 'รอตรวจสอบ'}
                         </p>
                         <p className="text-xs text-yellow-600">
                           {statusInfo.text === 'รออนุมัติ' 
@@ -474,7 +486,7 @@ const getBadgeVariant = (statusColor: string) => {
                 </CardContent>
               )}
 
-              {statusInfo.text === 'ปกติ' && isExpanded && (
+              {!statusInfo.showBadge && !isApplication && isExpanded && (
                 <CardContent className="space-y-4 pt-0">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">

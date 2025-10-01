@@ -39,6 +39,8 @@ const mockCustomerLoans = [
     principalAmount: 24000.0,
     nextPaymentDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
     status: 'ACTIVE',
+    type: 'LOAN',
+    displayStatus: 'ACTIVE',
     customer: {
       id: '1',
       phoneNumber: '081-234-5678',
@@ -59,6 +61,8 @@ const mockCustomerLoans = [
     principalAmount: 84000.0,
     nextPaymentDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
     status: 'ACTIVE',
+    type: 'LOAN',
+    displayStatus: 'ACTIVE',
     customer: {
       id: '1',
       phoneNumber: '081-234-5678',
@@ -79,6 +83,8 @@ const mockCustomerLoans = [
     principalAmount: 54000.0,
     nextPaymentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     status: 'DEFAULTED',
+    type: 'LOAN',
+    displayStatus: 'DEFAULTED',
     customer: {
       id: '2',
       phoneNumber: '082-345-6789',
@@ -90,21 +96,69 @@ const mockCustomerLoans = [
   },
   {
     id: '4',
-    loanNumber: 'LN001234570',
+    loanNumber: 'APP-12345678',
     loanType: 'HOUSE_LAND_MORTGAGE',
     currentInstallment: 0,
-    totalInstallments: 12,
-    monthlyPayment: 2500.0,
-    remainingBalance: 30000.0,
-    principalAmount: 30000.0,
-    nextPaymentDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-    status: 'ACTIVE',
+    totalInstallments: 0,
+    monthlyPayment: 0,
+    remainingBalance: 380000.0,
+    principalAmount: 380000.0,
+    nextPaymentDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    status: 'UNDER_REVIEW',
+    type: 'APPLICATION',
+    displayStatus: 'UNDER_REVIEW',
+    reviewNotes: null,
     customer: {
       id: '3',
       phoneNumber: '083-456-7890',
       profile: {
         firstName: 'ประชา',
         lastName: 'ดีมาก',
+      },
+    },
+  },
+  {
+    id: '5',
+    loanNumber: 'APP-87654321',
+    loanType: 'HOUSE_LAND_MORTGAGE',
+    currentInstallment: 0,
+    totalInstallments: 0,
+    monthlyPayment: 0,
+    remainingBalance: 450000.0,
+    principalAmount: 450000.0,
+    nextPaymentDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    status: 'REJECTED',
+    type: 'APPLICATION',
+    displayStatus: 'REJECTED',
+    reviewNotes: 'รายได้ไม่เพียงพอตามเกณฑ์ที่กำหนด',
+    customer: {
+      id: '4',
+      phoneNumber: '084-567-8901',
+      profile: {
+        firstName: 'นภัสสร',
+        lastName: 'จันทร์เพ็ญ',
+      },
+    },
+  },
+  {
+    id: '6',
+    loanNumber: 'FX-2023-000001',
+    loanType: 'HOUSE_LAND_MORTGAGE',
+    currentInstallment: 12,
+    totalInstallments: 12,
+    monthlyPayment: 24800.0,
+    remainingBalance: 0,
+    principalAmount: 280000.0,
+    nextPaymentDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    status: 'COMPLETED',
+    type: 'LOAN',
+    displayStatus: 'COMPLETED',
+    customer: {
+      id: '5',
+      phoneNumber: '085-678-9012',
+      profile: {
+        firstName: 'ประยุทธ',
+        lastName: 'มั่นคง',
       },
     },
   },
@@ -150,15 +204,15 @@ const getStatusInfo = (status: string, type?: string) => {
   if (type === 'LOAN') {
     switch (status) {
       case 'ACTIVE':
-        return { text: 'ปกติ', color: 'success' }
+        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
       case 'COMPLETED':
-        return { text: 'เสร็จสิ้น', color: 'success' }
+        return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
       case 'DEFAULTED':
-        return { text: 'ค้างชำระ', color: 'destructive' }
+        return { text: 'ค้างชำระ', color: 'destructive', showBadge: true }
       case 'CANCELLED':
-        return { text: 'ยกเลิก', color: 'destructive' }
+        return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
       default:
-        return { text: 'ปกติ', color: 'success' }
+        return { text: '', color: 'success', showBadge: false }
     }
   }
   
@@ -166,34 +220,34 @@ const getStatusInfo = (status: string, type?: string) => {
   if (type === 'APPLICATION') {
     switch (status) {
       case 'DRAFT':
-        return { text: 'ร่าง', color: 'secondary' }
+        return { text: 'ร่าง', color: 'secondary', showBadge: true }
       case 'SUBMITTED':
-        return { text: 'ส่งใบสมัครแล้ว', color: 'warning' }
+        return { text: 'รอตรวจสอบ', color: 'warning', showBadge: true }
       case 'UNDER_REVIEW':
-        return { text: 'รออนุมัติ', color: 'warning' }
+        return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
       case 'APPROVED':
-        return { text: 'อนุมัติแล้ว', color: 'success' }
+        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
       case 'REJECTED':
-        return { text: 'ไม่อนุมัติ', color: 'destructive' }
+        return { text: 'ไม่อนุมัติ', color: 'destructive', showBadge: true }
       case 'CANCELLED':
-        return { text: 'ยกเลิก', color: 'destructive' }
+        return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
       default:
-        return { text: 'รออนุมัติ', color: 'warning' }
+        return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
     }
   }
 
   // Fallback for backward compatibility
   switch (status) {
     case 'ACTIVE':
-      return { text: 'ปกติ', color: 'success' }
+      return { text: '', color: 'success', showBadge: false }
     case 'COMPLETED':
-      return { text: 'เสร็จสิ้น', color: 'success' }
+      return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
     case 'DEFAULTED':
-      return { text: 'ค้างชำระ', color: 'destructive' }
+      return { text: 'ค้างชำระ', color: 'destructive', showBadge: true }
     case 'CANCELLED':
-      return { text: 'ยกเลิก', color: 'destructive' }
+      return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
     default:
-      return { text: 'รออนุมัติ', color: 'warning' }
+      return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
   }
 }
 
@@ -251,7 +305,10 @@ export function AgentCustomersList() {
 
       const customer = customerMap.get(customerId)
       customer.loans.push(loan)
-      customer.totalBalance += loan.remainingBalance
+      // Only add to balance if it's an actual loan (not application)
+      if (loan.type === 'LOAN') {
+        customer.totalBalance += loan.remainingBalance
+      }
       customer.loanCount += 1
     })
 
@@ -319,11 +376,21 @@ export function AgentCustomersList() {
         {customersWithLoans.map((customer) => {
           const isExpanded = expandedCards[customer.id] || false
           const hasOverdueLoans = customer.loans.some((loan) => {
+            if (loan.type !== 'LOAN') return false
             const days = getDaysUntilPayment(loan.nextPaymentDate)
-            return days < 0
+            return days < 0 && loan.status === 'DEFAULTED'
           })
           const hasActiveLoans = customer.loans.some(
-            (loan) => loan.status === 'ACTIVE'
+            (loan) => loan.type === 'LOAN' && loan.status === 'ACTIVE'
+          )
+          const hasCompletedLoans = customer.loans.some(
+            (loan) => loan.type === 'LOAN' && loan.status === 'COMPLETED'
+          )
+          const hasPendingApplications = customer.loans.some(
+            (loan) => loan.type === 'APPLICATION' && ['UNDER_REVIEW', 'SUBMITTED'].includes(loan.status)
+          )
+          const hasRejectedApplications = customer.loans.some(
+            (loan) => loan.type === 'APPLICATION' && loan.status === 'REJECTED'
           )
 
           return (
@@ -356,12 +423,28 @@ export function AgentCustomersList() {
                     </p>
                   </div>
                   <div className="flex flex-col gap-1">
+                    {/* Priority order: Overdue > Rejected > Pending > Completed > Active */}
                     {hasOverdueLoans && (
                       <Badge variant="destructive" className="text-xs">
                         ค้างชำระ
                       </Badge>
                     )}
-                    {hasActiveLoans && (
+                    {!hasOverdueLoans && hasRejectedApplications && (
+                      <Badge variant="destructive" className="text-xs">
+                        ไม่อนุมัติ
+                      </Badge>
+                    )}
+                    {!hasOverdueLoans && !hasRejectedApplications && hasPendingApplications && (
+                      <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200">
+                        รออนุมัติ
+                      </Badge>
+                    )}
+                    {!hasOverdueLoans && !hasRejectedApplications && !hasPendingApplications && hasCompletedLoans && (
+                      <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200">
+                        ชำระครบแล้ว
+                      </Badge>
+                    )}
+                    {!hasOverdueLoans && !hasRejectedApplications && !hasPendingApplications && !hasCompletedLoans && hasActiveLoans && (
                       <Badge variant="default" className="text-xs">
                         มีสินเชื่อ
                       </Badge>
@@ -394,12 +477,13 @@ export function AgentCustomersList() {
                 <CardContent className="space-y-4 pt-0">
                   <div className="space-y-3">
                     {customer.loans.map((loan) => {
-                      const progress =
-                        (loan.currentInstallment / loan.totalInstallments) * 100
+                      const progress = loan.totalInstallments > 0 
+                        ? (loan.currentInstallment / loan.totalInstallments) * 100 
+                        : 0
                       const nextPaymentDays = getDaysUntilPayment(
                         loan.nextPaymentDate
                       )
-                      const isOverdue = nextPaymentDays < 0
+                      const isOverdue = nextPaymentDays < 0 && loan.type === 'LOAN'
                       const statusInfo = getStatusInfo(loan.displayStatus || loan.status, loan.type)
                       const loanTypeName = getLoanTypeName(loan.loanType)
                       const isApplication = loan.type === 'APPLICATION'
@@ -417,72 +501,112 @@ export function AgentCustomersList() {
                                 เลขที่สัญญา: {loan.loanNumber}
                               </p>
                             </div>
-                            <Badge
-                              variant={getBadgeVariant(statusInfo.color)}
-                              className={getBadgeClassName(statusInfo.color)}>
-                              {statusInfo.text}
-                            </Badge>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-muted-foreground">
-                                ความคืบหน้า
-                              </span>
-                              <span className="font-medium text-foreground">
-                                งวดที่ {loan.currentInstallment}/
-                                {loan.totalInstallments}
-                              </span>
-                            </div>
-                            <Progress value={progress} className="h-2" />
-                            <p className="text-xs text-muted-foreground">
-                              {progress.toFixed(1)}% เสร็จสิ้น
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <p className="text-muted-foreground mb-1">
-                                ยอดชำระรายเดือน
-                              </p>
-                              <p className="font-semibold text-foreground">
-                                {loan.monthlyPayment.toLocaleString('th-TH', {
-                                  minimumFractionDigits: 2,
-                                })}{' '}
-                                บาท
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground mb-1">
-                                ยอดคงเหลือ
-                              </p>
-                              <p className="font-semibold text-foreground">
-                                {loan.remainingBalance.toLocaleString('th-TH', {
-                                  minimumFractionDigits: 2,
-                                })}{' '}
-                                บาท
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                            {isOverdue ? (
-                              <AlertCircle className="h-4 w-4 text-destructive" />
-                            ) : (
-                              <Calendar className="h-4 w-4 text-primary" />
+                            {statusInfo.showBadge && (
+                              <Badge
+                                variant={getBadgeVariant(statusInfo.color)}
+                                className={getBadgeClassName(statusInfo.color)}>
+                                {statusInfo.text}
+                              </Badge>
                             )}
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-foreground">
-                                {isOverdue ? 'เกินกำหนดชำระ' : 'ครบกำหนดชำระ'}
+                          </div>
+
+                          {!isApplication && (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  ความคืบหน้า
+                                </span>
+                                <span className="font-medium text-foreground">
+                                  งวดที่ {loan.currentInstallment}/
+                                  {loan.totalInstallments}
+                                </span>
+                              </div>
+                              <Progress value={progress} className="h-2" />
+                              <p className="text-xs text-muted-foreground">
+                                {progress.toFixed(1)}% เสร็จสิ้น
+                              </p>
+                            </div>
+                          )}
+
+                          {isApplication && (
+                            <div className="p-3 bg-muted/30 rounded-lg">
+                              <p className="text-sm font-medium text-foreground mb-1">
+                                ใบสมัครสินเชื่อ
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {formatDate(loan.nextPaymentDate)}
-                                {isOverdue
-                                  ? ` (เกิน ${Math.abs(nextPaymentDays)} วัน)`
-                                  : ` (อีก ${nextPaymentDays} วัน)`}
+                                จำนวนเงินที่ขอ: {loan.principalAmount.toLocaleString('th-TH', {
+                                  minimumFractionDigits: 2,
+                                })} บาท
                               </p>
+                              {loan.reviewNotes && (
+                                <p className="text-xs text-red-600 mt-1">
+                                  หมายเหตุ: {loan.reviewNotes}
+                                </p>
+                              )}
                             </div>
-                          </div>
+                          )}
+
+                          {!isApplication && (
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <p className="text-muted-foreground mb-1">
+                                  ยอดชำระรายเดือน
+                                </p>
+                                <p className="font-semibold text-foreground">
+                                  {loan.monthlyPayment.toLocaleString('th-TH', {
+                                    minimumFractionDigits: 2,
+                                  })}{' '}
+                                  บาท
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground mb-1">
+                                  ยอดคงเหลือ
+                                </p>
+                                <p className="font-semibold text-foreground">
+                                  {loan.remainingBalance.toLocaleString('th-TH', {
+                                    minimumFractionDigits: 2,
+                                  })}{' '}
+                                  บาท
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {!isApplication && (
+                            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                              {isOverdue ? (
+                                <AlertCircle className="h-4 w-4 text-destructive" />
+                              ) : (
+                                <Calendar className="h-4 w-4 text-primary" />
+                              )}
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-foreground">
+                                  {isOverdue ? 'เกินกำหนดชำระ' : 'ครบกำหนดชำระ'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDate(loan.nextPaymentDate)}
+                                  {isOverdue
+                                    ? ` (เกิน ${Math.abs(nextPaymentDays)} วัน)`
+                                    : ` (อีก ${nextPaymentDays} วัน)`}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {isApplication && (
+                            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <Calendar className="h-4 w-4 text-blue-600" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-blue-800">
+                                  วันที่ส่งใบสมัคร
+                                </p>
+                                <p className="text-xs text-blue-600">
+                                  {formatDate(loan.nextPaymentDate)}
+                                </p>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="flex gap-2">
                             <Button
@@ -490,13 +614,21 @@ export function AgentCustomersList() {
                               className="flex-1"
                               variant={isOverdue ? 'default' : 'outline'}>
                               <Link
-                                href={`/agent/customers/${customer.id}/loans/${loan.id}`}>
-                                {isOverdue ? 'ติดตามการชำระ' : 'ดูรายละเอียด'}
+                                href={isApplication 
+                                  ? `/agent/customers/${customer.id}/applications/${loan.id}`
+                                  : `/agent/customers/${customer.id}/loans/${loan.id}`
+                                }>
+                                {isApplication 
+                                  ? 'ดูใบสมัคร'
+                                  : isOverdue 
+                                    ? 'ติดตามการชำระ' 
+                                    : 'ดูรายละเอียด'
+                                }
                               </Link>
                             </Button>
                             <Button variant="ghost" size="icon" asChild>
                               <Link href={`/agent/customers/${customer.id}`}>
-                                <TrendingUp className="h-4 w-4" />
+                                <User className="h-4 w-4" />
                               </Link>
                             </Button>
                           </div>
