@@ -115,7 +115,7 @@ export abstract class BaseRepository<TModel extends Record<string, any>> {
       : ({} as ExtractCountArgs<TModel>)
 
     const [data, total] = await Promise.all([
-      this.model.findAll(findArgs),
+      this.model.findMany(findArgs),
       this.model.count(countArgs),
     ])
 

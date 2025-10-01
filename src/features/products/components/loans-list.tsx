@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 
 import Link from 'next/link'
 
@@ -15,63 +16,119 @@ import {
   ChevronUp,
   CreditCard,
   TrendingUp,
+  Loader2,
 } from 'lucide-react'
 
-const loans = [
+import { useGetLoansByCustomerId } from '../hooks'
+
+// Mock data for fallback
+const mockLoans = [
   {
-    id: 1,
-    name: 'สินเชื่อจำนองบ้านและโฉนดที่ดิน',
+    id: '1',
     loanNumber: 'LN001234567',
+    loanType: 'HOUSE_LAND_MORTGAGE',
     currentInstallment: 6,
     totalInstallments: 12,
     monthlyPayment: 2000.5,
     remainingBalance: 12000.0,
-    totalAmount: 24000.0,
-    dueDate: '30 ก.ย. 68',
-    status: 'ปกติ',
-    statusColor: 'success',
-    nextPaymentDays: 5,
+    principalAmount: 24000.0,
+    nextPaymentDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+    status: 'ACTIVE',
   },
   {
-    id: 2,
-    name: 'สินเชื่อจำนองบ้านและโฉนดที่ดิน',
+    id: '2',
     loanNumber: 'LN001234568',
+    loanType: 'HOUSE_LAND_MORTGAGE',
     currentInstallment: 18,
     totalInstallments: 24,
     monthlyPayment: 3500.0,
     remainingBalance: 21000.0,
-    totalAmount: 84000.0,
-    dueDate: '15 ต.ค. 68',
-    status: 'รออนุมัติ',
-    statusColor: 'warning',
-    nextPaymentDays: 20,
+    principalAmount: 84000.0,
+    nextPaymentDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
+    status: 'ACTIVE',
   },
   {
-    id: 3,
-    name: 'สินเชื่อจำนองบ้านและโฉนดที่ดิน',
+    id: '3',
     loanNumber: 'LN001234569',
+    loanType: 'HOUSE_LAND_MORTGAGE',
     currentInstallment: 2,
     totalInstallments: 36,
     monthlyPayment: 1500.0,
     remainingBalance: 51000.0,
-    totalAmount: 54000.0,
-    dueDate: '28 ก.ย. 68',
-    status: 'ไม่อนุมัติ',
-    statusColor: 'destructive',
-    nextPaymentDays: -2,
+    principalAmount: 54000.0,
+    nextPaymentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+    status: 'ACTIVE',
   },
 ]
 
 export function LoansList() {
-  const [expandedCards, setExpandedCards] = useState<Record<number, boolean>>(
-    {}
-  )
+  const { data: session } = useSession()
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
 
-  const toggleCard = (loanId: number) => {
+  // Use real data if available, fallback to mock data
+  const { data: loansData, isLoading } = useGetLoansByCustomerId(
+    session?.user?.id || ''
+  )
+  const loans = loansData?.data || mockLoans
+
+  const toggleCard = (loanId: string) => {
     setExpandedCards((prev) => ({
       ...prev,
       [loanId]: !prev[loanId],
     }))
+  }
+
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date)
+    return d.toLocaleDateString('th-TH', {
+      day: 'numeric',
+      month: 'short',
+      year: '2-digit',
+    })
+  }
+
+  const getDaysUntilPayment = (date: Date | string) => {
+    const paymentDate = new Date(date)
+    const today = new Date()
+    const diffTime = paymentDate.getTime() - today.getTime()
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  const getLoanTypeName = (loanType: string) => {
+    switch (loanType) {
+      case 'HOUSE_LAND_MORTGAGE':
+        return 'สินเชื่อจำนองบ้านและโฉนดที่ดิน'
+      case 'PERSONAL_LOAN':
+        return 'สินเชื่อส่วนบุคคล'
+      case 'BUSINESS_LOAN':
+        return 'สินเชื่อธุรกิจ'
+      default:
+        return 'สินเชื่อ'
+    }
+  }
+
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return { text: 'ปกติ', color: 'success' }
+      case 'COMPLETED':
+        return { text: 'เสร็จสิ้น', color: 'success' }
+      case 'DEFAULTED':
+        return { text: 'ค้างชำระ', color: 'destructive' }
+      case 'CANCELLED':
+        return { text: 'ยกเลิก', color: 'destructive' }
+      default:
+        return { text: 'รออนุมัติ', color: 'warning' }
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-4 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+        <span className="ml-2">กำลังโหลด...</span>
+      </div>
+    )
   }
 
   const getBadgeVariant = (statusColor: string) => {
@@ -112,28 +169,31 @@ export function LoansList() {
         {loans.map((loan) => {
           const progress =
             (loan.currentInstallment / loan.totalInstallments) * 100
-          const isOverdue = loan.nextPaymentDays < 0
+          const nextPaymentDays = getDaysUntilPayment(loan.nextPaymentDate)
+          const isOverdue = nextPaymentDays < 0
           const isExpanded = expandedCards[loan.id] || false
+          const statusInfo = getStatusInfo(loan.status)
+          const loanTypeName = getLoanTypeName(loan.loanType)
 
           return (
             <Card key={loan.id} className="hover:shadow-md transition-shadow">
-              {loan.status === 'ปกติ' ? (
+              {statusInfo.text === 'ปกติ' ? (
                 <>
                   <Link href={`/products/${loan.id}`} className="block">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-base text-foreground mb-1">
-                            {loan.name}
+                            {loanTypeName}
                           </CardTitle>
                           <p className="text-xs text-muted-foreground">
                             เลขที่สัญญา: {loan.loanNumber}
                           </p>
                         </div>
                         <Badge
-                          variant={getBadgeVariant(loan.statusColor)}
-                          className={getBadgeClassName(loan.statusColor)}>
-                          {loan.status}
+                          variant={getBadgeVariant(statusInfo.color)}
+                          className={getBadgeClassName(statusInfo.color)}>
+                          {statusInfo.text}
                         </Badge>
                       </div>
                     </CardHeader>
@@ -167,22 +227,22 @@ export function LoansList() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <CardTitle className="text-base text-foreground mb-1">
-                        {loan.name}
+                        {loanTypeName}
                       </CardTitle>
                       <p className="text-xs text-muted-foreground">
                         เลขที่สัญญา: {loan.loanNumber}
                       </p>
                     </div>
                     <Badge
-                      variant={getBadgeVariant(loan.statusColor)}
-                      className={getBadgeClassName(loan.statusColor)}>
-                      {loan.status}
+                      variant={getBadgeVariant(statusInfo.color)}
+                      className={getBadgeClassName(statusInfo.color)}>
+                      {statusInfo.text}
                     </Badge>
                   </div>
                 </CardHeader>
               )}
 
-              {loan.status !== 'ปกติ' && (
+              {statusInfo.text !== 'ปกติ' && (
                 <div className="px-6 pb-4">
                   <Button
                     variant="ghost"
@@ -204,9 +264,9 @@ export function LoansList() {
                 </div>
               )}
 
-              {loan.status !== 'ปกติ' && isExpanded && (
+              {statusInfo.text !== 'ปกติ' && isExpanded && (
                 <CardContent className="space-y-4 pt-0">
-                  {loan.status === 'รออนุมัติ' ? (
+                  {statusInfo.text === 'รออนุมัติ' ? (
                     <div className="flex items-center gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />
                       <div>
@@ -218,7 +278,7 @@ export function LoansList() {
                         </p>
                       </div>
                     </div>
-                  ) : loan.status === 'ไม่อนุมัติ' ? (
+                  ) : statusInfo.text === 'ยกเลิก' || statusInfo.text === 'ค้างชำระ' ? (
                     <div className="space-y-3">
                       <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
                         <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
@@ -292,10 +352,10 @@ export function LoansList() {
                             {isOverdue ? 'เกินกำหนดชำระ' : 'ครบกำหนดชำระ'}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {loan.dueDate}
+                            {formatDate(loan.nextPaymentDate)}
                             {isOverdue
-                              ? ` (เกิน ${Math.abs(loan.nextPaymentDays)} วัน)`
-                              : ` (อีก ${loan.nextPaymentDays} วัน)`}
+                              ? ` (เกิน ${Math.abs(nextPaymentDays)} วัน)`
+                              : ` (อีก ${nextPaymentDays} วัน)`}
                           </p>
                         </div>
                       </div>
@@ -320,7 +380,7 @@ export function LoansList() {
                 </CardContent>
               )}
 
-              {loan.status === 'ปกติ' && isExpanded && (
+              {statusInfo.text === 'ปกติ' && isExpanded && (
                 <CardContent className="space-y-4 pt-0">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
@@ -367,12 +427,12 @@ export function LoansList() {
                     )}
                     <div className="flex-1">
                       <p className="text-sm font-medium text-red-500">
-                        วันครบกำหนดชำระ {loan.dueDate}
+                        วันครบกำหนดชำระ {formatDate(loan.nextPaymentDate)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {isOverdue
-                          ? `เกิน ${Math.abs(loan.nextPaymentDays)} วัน`
-                          : `อีก ${loan.nextPaymentDays} วัน`}
+                          ? `เกิน ${Math.abs(nextPaymentDays)} วัน`
+                          : `อีก ${nextPaymentDays} วัน`}
                       </p>
                     </div>
                   </div>
