@@ -858,6 +858,132 @@ async function main() {
   })
   loans.push(loan2)
 
+  // Loan 3: สมหญิง (customer2) - สินเชื่อค้างชำระ
+  const loan3 = await prisma.loan.create({
+    data: {
+      loanNumber: 'FX-2024-000003',
+      customerId: customer2.id,
+      agentId: agent2.id,
+      applicationId: loanApp2.id,
+      loanType: 'HOUSE_LAND_MORTGAGE',
+      status: 'DEFAULTED', // ค้างชำระ
+      principalAmount: 320000,
+      interestRate: 13.5,
+      termMonths: 24,
+      monthlyPayment: 15200,
+      currentInstallment: 8,
+      totalInstallments: 24,
+      remainingBalance: 240000,
+      nextPaymentDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days overdue
+      contractDate: new Date(Date.now() - 8 * 30 * 24 * 60 * 60 * 1000), // 8 months ago
+      expiryDate: new Date(Date.now() + (24 - 8) * 30 * 24 * 60 * 60 * 1000),
+      titleDeedNumber: 'นส.3ข/67890',
+      collateralValue: 650000,
+      collateralDetails: {
+        type: 'ทาวน์เฮ้าส์',
+        area: '40 ตารางวา',
+        location: 'ตำบลบางบัวทอง อำเภอบางบัวทอง จังหวัดนนทบุรี',
+        estimatedValue: 650000,
+      },
+    },
+  })
+  loans.push(loan3)
+
+  // Loan 4: ประยุทธ (customer5) - สินเชื่อเสร็จสิ้นแล้ว
+  const loan4 = await prisma.loan.create({
+    data: {
+      loanNumber: 'FX-2023-000001',
+      customerId: customer5.id,
+      agentId: agent3.id,
+      applicationId: loanApp5.id,
+      loanType: 'HOUSE_LAND_MORTGAGE',
+      status: 'COMPLETED', // เสร็จสิ้นแล้ว
+      principalAmount: 280000,
+      interestRate: 11.0,
+      termMonths: 12,
+      monthlyPayment: 24800,
+      currentInstallment: 12,
+      totalInstallments: 12,
+      remainingBalance: 0,
+      nextPaymentDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last payment was 30 days ago
+      contractDate: new Date(Date.now() - 13 * 30 * 24 * 60 * 60 * 1000), // 13 months ago
+      expiryDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Expired 30 days ago
+      titleDeedNumber: 'นส.5ฟ/11111',
+      collateralValue: 500000,
+      collateralDetails: {
+        type: 'บ้านแฝด',
+        area: '35 ตารางวา',
+        location: 'ตำบลบางพลี อำเภอบางพลี จังหวัดสมุทรปราการ',
+        estimatedValue: 500000,
+      },
+    },
+  })
+  loans.push(loan4)
+
+  // เพิ่ม LoanApplication ที่รออนุมัติ (PENDING)
+  const loanApp8 = await prisma.loanApplication.create({
+    data: {
+      customerId: customer6.id,
+      agentId: agent1.id,
+      loanType: 'HOUSE_LAND_MORTGAGE',
+      status: 'UNDER_REVIEW', // รออนุมัติ
+      currentStep: 4,
+      completedSteps: [1, 2, 3, 4],
+      isNewUser: false,
+      submittedByAgent: true,
+      titleDeedImage: '/uploads/title-deed-8.jpg',
+      titleDeedData: {
+        landNumber: 'นส.6ก/55555',
+        ownerName: 'นายสุรชัย ดีเด่น',
+        area: '45 ตารางวา',
+        location: 'ตำบลลาดพร้าว อำเภอลาดพร้าว กรุงเทพมหานคร',
+      },
+      supportingImages: ['/uploads/support-9.jpg'],
+      requestedAmount: 380000,
+      maxApprovedAmount: 420000,
+      propertyType: 'บ้านเดี่ยว',
+      propertyValue: 580000,
+      propertyArea: '45 ตารางวา',
+      propertyLocation: 'ตำบลลาดพร้าว อำเภอลาดพร้าว กรุงเทพมหานคร',
+      landNumber: 'นส.6ก/55555',
+      ownerName: 'นายสุรชัย ดีเด่น',
+      submittedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    },
+  })
+  loanApplications.push(loanApp8)
+
+  // เพิ่ม LoanApplication อีกใบที่รออนุมัติ
+  const loanApp9 = await prisma.loanApplication.create({
+    data: {
+      customerId: customer8.id,
+      agentId: agent2.id,
+      loanType: 'HOUSE_LAND_MORTGAGE',
+      status: 'UNDER_REVIEW', // รออนุมัติ
+      currentStep: 4,
+      completedSteps: [1, 2, 3, 4],
+      isNewUser: true,
+      submittedByAgent: true,
+      titleDeedImage: '/uploads/title-deed-9.jpg',
+      titleDeedData: {
+        landNumber: 'นส.8ข/66666',
+        ownerName: 'นางสาวพิมพ์ใจ สวยงาม',
+        area: '55 ตารางวา',
+        location: 'ตำบลบางกะปิ อำเภอห้วยขวาง กรุงเทพมหานคร',
+      },
+      supportingImages: ['/uploads/support-10.jpg', '/uploads/support-11.jpg'],
+      requestedAmount: 450000,
+      maxApprovedAmount: 500000,
+      propertyType: 'ทาวน์โฮม',
+      propertyValue: 720000,
+      propertyArea: '55 ตารางวา',
+      propertyLocation: 'ตำบลบางกะปิ อำเภอห้วยขวาง กรุงเทพมหานคร',
+      landNumber: 'นส.8ข/66666',
+      ownerName: 'นางสาวพิมพ์ใจ สวยงาม',
+      submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+    },
+  })
+  loanApplications.push(loanApp9)
+
   // ============================================
   // 7. Create Loan Installments
   // ============================================
@@ -935,6 +1061,64 @@ async function main() {
     })
   }
 
+  // Installments for Loan 3 (สมหญิง - 24 months, DEFAULTED, paid 7 installments, overdue on 8th)
+  const startDate3 = new Date(loan3.contractDate)
+  for (let i = 1; i <= 24; i++) {
+    const dueDate = new Date(startDate3)
+    dueDate.setMonth(dueDate.getMonth() + i)
+
+    const principalAmount = i === 24 ? 240000 : 10000 // Last payment covers remaining
+    const interestAmount = i === 24 ? 5200 - (240000 - 10000) : 5200
+    const totalAmount = principalAmount + interestAmount
+
+    const isPaid = i <= 7 // First 7 installments are paid, 8th is overdue
+
+    await prisma.loanInstallment.create({
+      data: {
+        loanId: loan3.id,
+        installmentNumber: i,
+        dueDate,
+        principalAmount,
+        interestAmount,
+        totalAmount,
+        isPaid,
+        paidDate: isPaid
+          ? new Date(dueDate.getTime() - Math.floor(Math.random() * 3) * 24 * 60 * 60 * 1000)
+          : null,
+        paidAmount: isPaid ? totalAmount : null,
+        isLate: false,
+      },
+    })
+  }
+
+  // Installments for Loan 4 (ประยุทธ - 12 months, COMPLETED, all paid)
+  const startDate4 = new Date(loan4.contractDate)
+  for (let i = 1; i <= 12; i++) {
+    const dueDate = new Date(startDate4)
+    dueDate.setMonth(dueDate.getMonth() + i)
+
+    const principalAmount = i === 12 ? 0 : 23333 // All principal paid
+    const interestAmount = i === 12 ? 24800 : 1467
+    const totalAmount = principalAmount + interestAmount
+
+    const isPaid = true // All installments are paid (completed loan)
+
+    await prisma.loanInstallment.create({
+      data: {
+        loanId: loan4.id,
+        installmentNumber: i,
+        dueDate,
+        principalAmount,
+        interestAmount,
+        totalAmount,
+        isPaid,
+        paidDate: new Date(dueDate.getTime() - Math.floor(Math.random() * 5) * 24 * 60 * 60 * 1000),
+        paidAmount: totalAmount,
+        isLate: false,
+      },
+    })
+  }
+
   // ============================================
   // 8. Create Payment Records
   // ============================================
@@ -957,7 +1141,12 @@ async function main() {
   for (let i = 0; i < paidInstallments.length; i++) {
     const installment = paidInstallments[i]
     const loan = loans.find((l) => l.id === installment.loanId)!
-    const customer = installment.loanId === loan1.id ? customer1 : customer3
+    let customer
+    if (installment.loanId === loan1.id) customer = customer1
+    else if (installment.loanId === loan2.id) customer = customer3
+    else if (installment.loanId === loan3.id) customer = customer2
+    else if (installment.loanId === loan4.id) customer = customer5
+    else continue
 
     await prisma.payment.create({
       data: {

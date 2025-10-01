@@ -107,7 +107,9 @@ export function LoansList() {
     }
   }
 
-  const getStatusInfo = (status: string) => {
+const getStatusInfo = (status: string, type?: string) => {
+  // Handle Loan statuses
+  if (type === 'LOAN') {
     switch (status) {
       case 'ACTIVE':
         return { text: 'ปกติ', color: 'success' }
@@ -118,9 +120,44 @@ export function LoansList() {
       case 'CANCELLED':
         return { text: 'ยกเลิก', color: 'destructive' }
       default:
+        return { text: 'ปกติ', color: 'success' }
+    }
+  }
+  
+  // Handle LoanApplication statuses
+  if (type === 'APPLICATION') {
+    switch (status) {
+      case 'DRAFT':
+        return { text: 'ร่าง', color: 'secondary' }
+      case 'SUBMITTED':
+        return { text: 'ส่งใบสมัครแล้ว', color: 'warning' }
+      case 'UNDER_REVIEW':
+        return { text: 'รออนุมัติ', color: 'warning' }
+      case 'APPROVED':
+        return { text: 'อนุมัติแล้ว', color: 'success' }
+      case 'REJECTED':
+        return { text: 'ไม่อนุมัติ', color: 'destructive' }
+      case 'CANCELLED':
+        return { text: 'ยกเลิก', color: 'destructive' }
+      default:
         return { text: 'รออนุมัติ', color: 'warning' }
     }
   }
+
+  // Fallback for backward compatibility
+  switch (status) {
+    case 'ACTIVE':
+      return { text: 'ปกติ', color: 'success' }
+    case 'COMPLETED':
+      return { text: 'เสร็จสิ้น', color: 'success' }
+    case 'DEFAULTED':
+      return { text: 'ค้างชำระ', color: 'destructive' }
+    case 'CANCELLED':
+      return { text: 'ยกเลิก', color: 'destructive' }
+    default:
+      return { text: 'รออนุมัติ', color: 'warning' }
+  }
+}
 
   if (isLoading) {
     return (
@@ -131,18 +168,20 @@ export function LoansList() {
     )
   }
 
-  const getBadgeVariant = (statusColor: string) => {
-    switch (statusColor) {
-      case 'success':
-        return 'default'
-      case 'warning':
-        return 'outline'
-      case 'destructive':
-        return 'destructive'
-      default:
-        return 'default'
-    }
+const getBadgeVariant = (statusColor: string) => {
+  switch (statusColor) {
+    case 'success':
+      return 'default'
+    case 'warning':
+      return 'outline'
+    case 'destructive':
+      return 'destructive'
+    case 'secondary':
+      return 'secondary'
+    default:
+      return 'default'
   }
+}
 
   const getBadgeClassName = (statusColor: string) => {
     if (statusColor === 'warning') {
@@ -167,17 +206,19 @@ export function LoansList() {
 
       <div className="space-y-4">
         {loans.map((loan) => {
-          const progress =
-            (loan.currentInstallment / loan.totalInstallments) * 100
+          const progress = loan.totalInstallments > 0 
+            ? (loan.currentInstallment / loan.totalInstallments) * 100 
+            : 0
           const nextPaymentDays = getDaysUntilPayment(loan.nextPaymentDate)
-          const isOverdue = nextPaymentDays < 0
+          const isOverdue = nextPaymentDays < 0 && loan.type === 'LOAN'
           const isExpanded = expandedCards[loan.id] || false
-          const statusInfo = getStatusInfo(loan.status)
+          const statusInfo = getStatusInfo(loan.displayStatus || loan.status, loan.type)
           const loanTypeName = getLoanTypeName(loan.loanType)
+          const isApplication = loan.type === 'APPLICATION'
 
           return (
             <Card key={loan.id} className="hover:shadow-md transition-shadow">
-              {statusInfo.text === 'ปกติ' ? (
+              {statusInfo.text === 'ปกติ' && !isApplication ? (
                 <>
                   <Link href={`/products/${loan.id}`} className="block">
                     <CardHeader className="pb-3">
@@ -242,7 +283,7 @@ export function LoansList() {
                 </CardHeader>
               )}
 
-              {statusInfo.text !== 'ปกติ' && (
+              {(statusInfo.text !== 'ปกติ' || isApplication) && (
                 <div className="px-6 pb-4">
                   <Button
                     variant="ghost"
@@ -264,17 +305,70 @@ export function LoansList() {
                 </div>
               )}
 
-              {statusInfo.text !== 'ปกติ' && isExpanded && (
+              {(statusInfo.text !== 'ปกติ' || isApplication) && isExpanded && (
                 <CardContent className="space-y-4 pt-0">
-                  {statusInfo.text === 'รออนุมัติ' ? (
+                  {statusInfo.text === 'รออนุมัติ' || statusInfo.text === 'ส่งใบสมัครแล้ว' ? (
                     <div className="flex items-center gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />
                       <div>
                         <p className="text-sm font-medium text-yellow-800">
-                          กำลังตรวจสอบ
+                          {statusInfo.text === 'รออนุมัติ' ? 'กำลังตรวจสอบ' : 'ส่งใบสมัครแล้ว'}
                         </p>
                         <p className="text-xs text-yellow-600">
-                          เอกสารของคุณอยู่ระหว่างการพิจารณา กรุณารอผลการอนุมัติ
+                          {statusInfo.text === 'รออนุมัติ' 
+                            ? 'เอกสารของคุณอยู่ระหว่างการพิจารณา กรุณารอผลการอนุมัติ'
+                            : 'ใบสมัครของคุณได้รับการส่งแล้ว รอการตรวจสอบจากเจ้าหน้าที่'
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  ) : statusInfo.text === 'ไม่อนุมัติ' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-red-800 mb-1">
+                            เหตุผลที่ไม่อนุมัติ
+                          </p>
+                          <p className="text-xs text-red-600">
+                            {loan.reviewNotes || 'รายได้ไม่เพียงพอตามเกณฑ์ที่กำหนด และเอกสารหลักฐานไม่ครบถ้วน'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        className="w-full bg-transparent"
+                        variant="outline">
+                        ยื่นใหม่
+                      </Button>
+                    </div>
+                  ) : statusInfo.text === 'ร่าง' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <AlertCircle className="h-5 w-5 text-gray-600" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">
+                            ใบสมัครยังไม่สมบูรณ์
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            กรุณาเติมข้อมูลให้ครบถ้วนและส่งใบสมัคร
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        className="w-full"
+                        variant="default">
+                        ดำเนินการต่อ
+                      </Button>
+                    </div>
+                  ) : statusInfo.text === 'อนุมัติแล้ว' ? (
+                    <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium text-green-800">
+                          อนุมัติแล้ว
+                        </p>
+                        <p className="text-xs text-green-600">
+                          ใบสมัครของคุณได้รับการอนุมัติแล้ว กำลังดำเนินการสร้างสัญญา
                         </p>
                       </div>
                     </div>

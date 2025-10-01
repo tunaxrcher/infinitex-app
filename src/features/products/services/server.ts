@@ -1,6 +1,7 @@
 // src/features/products/services/server.ts
 import 'server-only'
 
+import { prisma } from '@src/shared/lib/db'
 import { loanRepository } from '../repositories/loanRepository'
 import { type LoanCreateSchema, type LoanUpdateSchema } from '../validations'
 
@@ -94,11 +95,109 @@ export const loanService = {
   },
 
   async getByCustomerId(customerId: string) {
-    return loanRepository.findByCustomerId(customerId)
+    // Get both loans and loan applications for the customer
+    const [loans, applications] = await Promise.all([
+      loanRepository.findByCustomerId(customerId),
+      prisma.loanApplication.findMany({
+        where: { customerId },
+        include: {
+          customer: {
+            include: {
+              profile: true,
+            },
+          },
+          agent: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
+
+    // Combine and format the data
+    const combinedData = [
+      // Add loans with type indicator
+      ...loans.map((loan) => ({
+        ...loan,
+        type: 'LOAN' as const,
+        displayStatus: loan.status,
+      })),
+      // Add applications with type indicator
+      ...applications.map((app) => ({
+        ...app,
+        type: 'APPLICATION' as const,
+        displayStatus: app.status,
+        // Map application fields to loan-like structure for consistency
+        loanNumber: `APP-${app.id.slice(-8)}`,
+        loanType: app.loanType,
+        principalAmount: app.requestedAmount,
+        monthlyPayment: 0,
+        remainingBalance: app.requestedAmount,
+        currentInstallment: 0,
+        totalInstallments: 0,
+        nextPaymentDate: app.submittedAt || app.createdAt,
+      })),
+    ]
+
+    // Sort by creation date (newest first)
+    return combinedData.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
   },
 
   async getByAgentId(agentId: string) {
-    return loanRepository.findByAgentId(agentId)
+    // Get both loans and loan applications for the agent
+    const [loans, applications] = await Promise.all([
+      loanRepository.findByAgentId(agentId),
+      prisma.loanApplication.findMany({
+        where: { agentId },
+        include: {
+          customer: {
+            include: {
+              profile: true,
+            },
+          },
+          agent: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
+
+    // Combine and format the data
+    const combinedData = [
+      // Add loans with type indicator
+      ...loans.map((loan) => ({
+        ...loan,
+        type: 'LOAN' as const,
+        displayStatus: loan.status,
+      })),
+      // Add applications with type indicator
+      ...applications.map((app) => ({
+        ...app,
+        type: 'APPLICATION' as const,
+        displayStatus: app.status,
+        // Map application fields to loan-like structure for consistency
+        loanNumber: `APP-${app.id.slice(-8)}`,
+        loanType: app.loanType,
+        principalAmount: app.requestedAmount,
+        monthlyPayment: 0,
+        remainingBalance: app.requestedAmount,
+        currentInstallment: 0,
+        totalInstallments: 0,
+        nextPaymentDate: app.submittedAt || app.createdAt,
+      })),
+    ]
+
+    // Sort by creation date (newest first)
+    return combinedData.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
   },
 
   async create(data: LoanCreateSchema, createdBy?: string) {

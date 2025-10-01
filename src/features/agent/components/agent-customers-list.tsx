@@ -145,7 +145,44 @@ const getLoanTypeName = (loanType: string) => {
   }
 }
 
-const getStatusInfo = (status: string) => {
+const getStatusInfo = (status: string, type?: string) => {
+  // Handle Loan statuses
+  if (type === 'LOAN') {
+    switch (status) {
+      case 'ACTIVE':
+        return { text: 'ปกติ', color: 'success' }
+      case 'COMPLETED':
+        return { text: 'เสร็จสิ้น', color: 'success' }
+      case 'DEFAULTED':
+        return { text: 'ค้างชำระ', color: 'destructive' }
+      case 'CANCELLED':
+        return { text: 'ยกเลิก', color: 'destructive' }
+      default:
+        return { text: 'ปกติ', color: 'success' }
+    }
+  }
+  
+  // Handle LoanApplication statuses
+  if (type === 'APPLICATION') {
+    switch (status) {
+      case 'DRAFT':
+        return { text: 'ร่าง', color: 'secondary' }
+      case 'SUBMITTED':
+        return { text: 'ส่งใบสมัครแล้ว', color: 'warning' }
+      case 'UNDER_REVIEW':
+        return { text: 'รออนุมัติ', color: 'warning' }
+      case 'APPROVED':
+        return { text: 'อนุมัติแล้ว', color: 'success' }
+      case 'REJECTED':
+        return { text: 'ไม่อนุมัติ', color: 'destructive' }
+      case 'CANCELLED':
+        return { text: 'ยกเลิก', color: 'destructive' }
+      default:
+        return { text: 'รออนุมัติ', color: 'warning' }
+    }
+  }
+
+  // Fallback for backward compatibility
   switch (status) {
     case 'ACTIVE':
       return { text: 'ปกติ', color: 'success' }
@@ -168,6 +205,8 @@ const getBadgeVariant = (statusColor: string) => {
       return 'outline'
     case 'destructive':
       return 'destructive'
+    case 'secondary':
+      return 'secondary'
     default:
       return 'default'
   }
@@ -361,8 +400,9 @@ export function AgentCustomersList() {
                         loan.nextPaymentDate
                       )
                       const isOverdue = nextPaymentDays < 0
-                      const statusInfo = getStatusInfo(loan.status)
+                      const statusInfo = getStatusInfo(loan.displayStatus || loan.status, loan.type)
                       const loanTypeName = getLoanTypeName(loan.loanType)
+                      const isApplication = loan.type === 'APPLICATION'
 
                       return (
                         <div
