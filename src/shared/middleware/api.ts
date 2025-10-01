@@ -10,14 +10,16 @@ const publicApiRoutes = [
 ]
 
 // API routes that require specific user types
-const customerApiRoutes = [
-  '/api/loans',
+const customerOnlyApiRoutes = [
   '/api/payments',
   '/api/notifications',
   '/api/profile',
 ]
 
-const agentApiRoutes = ['/api/agent', '/api/customers', '/api/applications']
+const agentOnlyApiRoutes = ['/api/agent', '/api/customers', '/api/applications']
+
+// API routes that both customer and agent can access
+const sharedApiRoutes = ['/api/loans']
 
 function isRouteMatch(pathname: string, routes: string[]): boolean {
   return routes.some((route) => pathname.startsWith(route))
@@ -49,7 +51,7 @@ export async function apiMiddleware(
 
   // Check user type permissions for specific API routes
   if (
-    isRouteMatch(pathname, customerApiRoutes) &&
+    isRouteMatch(pathname, customerOnlyApiRoutes) &&
     token.userType !== 'CUSTOMER'
   ) {
     return NextResponse.json(
@@ -58,9 +60,20 @@ export async function apiMiddleware(
     )
   }
 
-  if (isRouteMatch(pathname, agentApiRoutes) && token.userType !== 'AGENT') {
+  if (isRouteMatch(pathname, agentOnlyApiRoutes) && token.userType !== 'AGENT') {
     return NextResponse.json(
       { error: 'Forbidden', message: 'Agent access required' },
+      { status: 403 }
+    )
+  }
+
+  // For shared routes, allow both CUSTOMER and AGENT
+  if (
+    isRouteMatch(pathname, sharedApiRoutes) &&
+    !['CUSTOMER', 'AGENT'].includes(token.userType as string)
+  ) {
+    return NextResponse.json(
+      { error: 'Forbidden', message: 'Customer or Agent access required' },
       { status: 403 }
     )
   }

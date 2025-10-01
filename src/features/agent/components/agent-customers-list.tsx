@@ -279,10 +279,19 @@ export function AgentCustomersList() {
   const [searchTerm, setSearchTerm] = useState('')
 
   // Use real data if available, fallback to mock data
-  const { data: loansData, isLoading } = useGetLoansByAgentId(
-    session?.user?.id || ''
-  )
-  const allLoans = loansData?.data || mockCustomerLoans
+  const agentId = session?.user?.id
+  const { data: loansData, isLoading, error } = useGetLoansByAgentId(agentId || '')
+  
+  // Debug logging (remove in production)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Agent Session:', session?.user)
+    console.log('Agent ID:', agentId)
+    console.log('Loans Data:', loansData)
+    if (error) console.log('API Error:', error)
+  }
+  
+  // Use real data if we have it, otherwise use mock data
+  const allLoans = (loansData?.success && loansData?.data) ? loansData.data : mockCustomerLoans
 
   // Group loans by customer and filter by search term
   const customersWithLoans = useMemo(() => {
