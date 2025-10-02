@@ -3,11 +3,11 @@
 import type React from 'react'
 import { useState } from 'react'
 
-import { Badge } from '@src/shared/ui/badge'
+import { useCreateCustomer, useGetCustomerListByAgent } from '@src/features/customer/hooks'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import { Input } from '@src/shared/ui/input'
-import { Phone, Plus, Search, User } from 'lucide-react'
+import { Phone, Plus, Search, User, Loader2 } from 'lucide-react'
 
 interface AgentCustomerSelectionStepProps {
   data: any
@@ -17,30 +17,6 @@ interface AgentCustomerSelectionStepProps {
   isFirstStep: boolean
 }
 
-// Mock existing customers for this agent
-const existingCustomers = [
-  {
-    id: 'customer-1',
-    name: 'นายสมชาย ใจดี',
-    phoneNumber: '081-234-5678',
-    loanCount: 2,
-    status: 'ปกติ',
-  },
-  {
-    id: 'customer-2',
-    name: 'นางสมหญิง สวยดี',
-    phoneNumber: '082-345-6789',
-    loanCount: 1,
-    status: 'ไม่ผ่าน',
-  },
-  {
-    id: 'customer-3',
-    name: 'นายประชา ดีมาก',
-    phoneNumber: '083-456-7890',
-    loanCount: 1,
-    status: 'รออนุมัติ',
-  },
-]
 
 export function AgentCustomerSelectionStep({
   data,
@@ -57,11 +33,15 @@ export function AgentCustomerSelectionStep({
   const [newCustomerPhone, setNewCustomerPhone] = useState('')
   const [newCustomerName, setNewCustomerName] = useState('')
 
-  const filteredCustomers = existingCustomers.filter(
-    (customer) =>
-      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phoneNumber.includes(searchTerm)
-  )
+  // Fetch customers for current agent
+  const { data: customers = [], isLoading, error } = useGetCustomerListByAgent({
+    search: searchTerm.length >= 2 ? searchTerm : undefined
+  })
+
+  // Create customer mutation
+  const createCustomerMutation = useCreateCustomer()
+
+  const filteredCustomers = customers
 
   const handleSelectCustomer = (customer: any) => {
     setSelectedCustomer(customer.id)
@@ -72,16 +52,42 @@ export function AgentCustomerSelectionStep({
     })
   }
 
-  const handleNewCustomer = () => {
+  const handleNewCustomer = async () => {
     if (newCustomerName.trim() && newCustomerPhone.trim()) {
-      const newCustomerId = `new-customer-${Date.now()}`
-      setSelectedCustomer(newCustomerId)
-      onUpdate({
-        customerId: newCustomerId,
-        customerName: newCustomerName.trim(),
-        customerPhone: newCustomerPhone.trim(),
-      })
-      setShowNewCustomerForm(false)
+      try {
+        // Split name into first and last name
+        const nameParts = newCustomerName.trim().split(' ')
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.slice(1).join(' ') || undefined // ใช้ undefined แทน empty string
+
+        // Clean phone number (remove dashes)
+        const cleanPhone = newCustomerPhone.replace(/-/g, '')
+
+        const customerData: any = {
+          phoneNumber: cleanPhone,
+          firstName,
+        }
+
+        // เพิ่ม lastName เฉพาะเมื่อมีค่า
+        if (lastName) {
+          customerData.lastName = lastName
+        }
+
+        const newCustomer = await createCustomerMutation.mutateAsync(customerData)
+
+        setSelectedCustomer(newCustomer.id)
+        onUpdate({
+          customerId: newCustomer.id,
+          customerName: newCustomerName.trim(),
+          customerPhone: newCustomerPhone,
+        })
+        setShowNewCustomerForm(false)
+        setNewCustomerName('')
+        setNewCustomerPhone('')
+      } catch (error) {
+        // Error จะถูกจัดการโดย useCreateCustomer hook แล้ว
+        console.error('Component caught error:', error)
+      }
     }
   }
 
@@ -104,25 +110,6 @@ export function AgentCustomerSelectionStep({
 
   const canProceed = selectedCustomer !== null
 
-  const getBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'ปกติ':
-        return 'default'
-      case 'ไม่ผ่าน':
-        return 'destructive'
-      case 'รออนุมัติ':
-        return 'outline'
-      default:
-        return 'default'
-    }
-  }
-
-  const getBadgeClassName = (status: string) => {
-    if (status === 'รออนุมัติ') {
-      return 'text-xs bg-yellow-100 text-yellow-800 border-yellow-200'
-    }
-    return 'text-xs'
-  }
 
   return (
     <div className="space-y-6">
@@ -145,39 +132,57 @@ export function AgentCustomerSelectionStep({
             />
           </div>
 
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2 text-sm text-muted-foreground">กำลังโหลดข้อมูลลูกค้า...</span>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า</p>
+            </div>
+          )}
+
           {/* Existing Customers */}
-          <div className="space-y-2">
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer.id}
-                className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                  selectedCustomer === customer.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                }`}
-                onClick={() => handleSelectCustomer(customer)}>
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">
-                      {customer.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      {customer.phoneNumber}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      สินเชื่อ: {customer.loanCount} รายการ
-                    </p>
-                  </div>
-                  {/* <Badge
-                    variant={getBadgeVariant(customer.status)}
-                    className={getBadgeClassName(customer.status)}>
-                    {customer.status}
-                  </Badge> */}
+          {!isLoading && !error && (
+            <div className="space-y-2">
+              {filteredCustomers.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">
+                  {searchTerm.length >= 2 ? 'ไม่พบลูกค้าที่ค้นหา' : 'ยังไม่มีลูกค้า'}
                 </div>
-              </div>
-            ))}
-          </div>
+              ) : (
+                filteredCustomers.map((customer) => (
+                  <div
+                    key={customer.id}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      selectedCustomer === customer.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onClick={() => handleSelectCustomer(customer)}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">
+                          {customer.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {customer.phoneNumber}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          สินเชื่อ: {customer.loanCount} รายการ
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
 
           {/* Add New Customer */}
           {!showNewCustomerForm ? (
@@ -210,10 +215,19 @@ export function AgentCustomerSelectionStep({
                       size="sm"
                       onClick={handleNewCustomer}
                       disabled={
-                        !newCustomerName.trim() || !newCustomerPhone.trim()
+                        !newCustomerName.trim() || 
+                        !newCustomerPhone.trim() || 
+                        createCustomerMutation.isPending
                       }
                       className="flex-1">
-                      เพิ่มลูกค้า
+                      {createCustomerMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          กำลังเพิ่ม...
+                        </>
+                      ) : (
+                        'เพิ่มลูกค้า'
+                      )}
                     </Button>
                     <Button
                       size="sm"

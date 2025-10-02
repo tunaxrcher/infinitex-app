@@ -9,7 +9,9 @@ export const api = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      throw new Error(errorMessage)
     }
     
     return response.json()
@@ -25,7 +27,9 @@ export const api = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      throw new Error(errorMessage)
     }
     
     return response.json()
@@ -41,7 +45,9 @@ export const api = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      throw new Error(errorMessage)
     }
     
     return response.json()
@@ -57,7 +63,9 @@ export const api = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      throw new Error(errorMessage)
     }
     
     return response.json()
@@ -72,7 +80,9 @@ export const api = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorData = await response.json().catch(() => ({}))
+      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      throw new Error(errorMessage)
     }
     
     return response.json()
