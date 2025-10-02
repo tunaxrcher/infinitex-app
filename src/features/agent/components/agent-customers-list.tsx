@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 
 import { useGetLoansByAgentId } from '@src/features/products/hooks'
+import { formatThaiCurrency } from '@src/shared/lib/utils'
 
 // Mock data สำหรับ fallback
 const mockCustomerLoans = [
@@ -282,16 +283,23 @@ export function AgentCustomersList() {
   const agentId = session?.user?.id
   const { data: loansData, isLoading, error } = useGetLoansByAgentId(agentId || '')
   
+  // Use only real data from database
+  const allLoans = (loansData?.success && loansData?.data) ? loansData.data : []
+  
   // Debug logging (remove in production)
   if (process.env.NODE_ENV === 'development') {
     console.log('Agent Session:', session?.user)
     console.log('Agent ID:', agentId)
     console.log('Loans Data:', loansData)
+    console.log('All Loans Array:', allLoans)
+    console.log('All Loans Length:', allLoans?.length)
+    if (allLoans?.length > 0) {
+      console.log('Sample Loan:', allLoans[0])
+      console.log('Sample remainingBalance type:', typeof allLoans[0]?.remainingBalance)
+      console.log('Sample remainingBalance value:', allLoans[0]?.remainingBalance)
+    }
     if (error) console.log('API Error:', error)
   }
-  
-  // Use real data if we have it, otherwise use mock data
-  const allLoans = (loansData?.success && loansData?.data) ? loansData.data : mockCustomerLoans
 
   // Group loans by customer and filter by search term
   const customersWithLoans = useMemo(() => {
@@ -314,9 +322,11 @@ export function AgentCustomersList() {
 
       const customer = customerMap.get(customerId)
       customer.loans.push(loan)
-      // Only add to balance if it's an actual loan (not application)
-      if (loan.type === 'LOAN') {
-        customer.totalBalance += loan.remainingBalance
+      // Add to balance for active loans with remaining balance (ensure numeric calculation)
+      if (loan.type === 'LOAN' && ['ACTIVE', 'DEFAULTED'].includes(loan.status) && Number(loan.remainingBalance) > 0) {
+        customer.totalBalance += Number(loan.remainingBalance) || 0
+      } else if (loan.type === 'APPLICATION' && loan.status === 'APPROVED') {
+        customer.totalBalance += Number(loan.principalAmount) || 0
       }
       customer.loanCount += 1
     })
@@ -424,11 +434,7 @@ export function AgentCustomersList() {
                       </div>
                     </div>
                     <p className="text-sm font-semibold text-primary">
-                      ยอดคงเหลือรวม:{' '}
-                      {customer.totalBalance.toLocaleString('th-TH', {
-                        minimumFractionDigits: 2,
-                      })}{' '}
-                      บาท
+                      ยอดคงเหลือรวม: {formatThaiCurrency(customer.totalBalance)}
                     </p>
                   </div>
                   <div className="flex flex-col gap-1">
@@ -543,9 +549,7 @@ export function AgentCustomersList() {
                                 ใบสมัครสินเชื่อ
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                จำนวนเงินที่ขอ: {loan.principalAmount.toLocaleString('th-TH', {
-                                  minimumFractionDigits: 2,
-                                })} บาท
+                                จำนวนเงินที่ขอ: {formatThaiCurrency(loan.principalAmount)}
                               </p>
                               {loan.reviewNotes && (
                                 <p className="text-xs text-red-600 mt-1">
@@ -562,10 +566,7 @@ export function AgentCustomersList() {
                                   ยอดชำระรายเดือน
                                 </p>
                                 <p className="font-semibold text-foreground">
-                                  {loan.monthlyPayment.toLocaleString('th-TH', {
-                                    minimumFractionDigits: 2,
-                                  })}{' '}
-                                  บาท
+                                  {formatThaiCurrency(loan.monthlyPayment)}
                                 </p>
                               </div>
                               <div>
@@ -573,10 +574,7 @@ export function AgentCustomersList() {
                                   ยอดคงเหลือ
                                 </p>
                                 <p className="font-semibold text-foreground">
-                                  {loan.remainingBalance.toLocaleString('th-TH', {
-                                    minimumFractionDigits: 2,
-                                  })}{' '}
-                                  บาท
+                                  {formatThaiCurrency(loan.remainingBalance)}
                                 </p>
                               </div>
                             </div>
@@ -678,12 +676,31 @@ export function AgentCustomersList() {
               </div>
               <div className="text-right">
                 <p className="text-lg font-bold text-primary">
-                  {customersWithLoans
-                    .reduce((sum, customer) => sum + customer.totalBalance, 0)
-                    .toLocaleString('th-TH', {
-                      minimumFractionDigits: 2,
-                    })}{' '}
-                  บาท
+                  {(() => {
+                    const totalBalance = allLoans.reduce((sum, loan) => {
+                      const currentSum = Number(sum)
+                      if (loan.type === 'LOAN' && ['ACTIVE', 'DEFAULTED'].includes(loan.status) && Number(loan.remainingBalance) > 0) {
+                        const amount = Number(loan.remainingBalance || 0)
+                        if (process.env.NODE_ENV === 'development') {
+                          console.log(`Adding LOAN ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`)
+                        }
+                        return currentSum + amount
+                      } else if (loan.type === 'APPLICATION' && loan.status === 'APPROVED') {
+                        const amount = Number(loan.principalAmount || 0)
+                        if (process.env.NODE_ENV === 'development') {
+                          console.log(`Adding APPLICATION ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`)
+                        }
+                        return currentSum + amount
+                      }
+                      return currentSum
+                    }, 0)
+                    
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log('Final Total Balance:', totalBalance)
+                    }
+                    
+                    return formatThaiCurrency(totalBalance)
+                  })()}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {customersWithLoans.length} ลูกค้า •{' '}
