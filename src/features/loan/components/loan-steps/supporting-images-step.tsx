@@ -76,12 +76,39 @@ export function SupportingImagesStep({
           <AlertDescription>
             <div className="space-y-1">
               <p className="font-medium">ข้อมูลจากโฉนดที่ดิน:</p>
-              <p className="text-sm">ชื่อเจ้าของ: demo</p>
-              <p className="text-sm">เลขที่ดิน: demo</p>
-              <p className="text-sm">เนื้อที่: demo</p>
-              <p className="text-sm">ที่ตั้ง: demo</p>
-              <hr />
-              <p className="text-sm">ราคา: demo</p>
+              <p className="text-sm">ชื่อเจ้าของ: {data.titleDeedData.ownerName || 'ไม่พบข้อมูล'}</p>
+              <p className="text-sm">เลขที่ดิน: {data.titleDeedData.landNumber || 'ไม่พบข้อมูล'}</p>
+              <p className="text-sm">เนื้อที่: {data.titleDeedData.area || 'ไม่พบข้อมูล'}</p>
+              <p className="text-sm">ที่ตั้ง: {data.titleDeedData.location || 'ไม่พบข้อมูล'}</p>
+              {data.titleDeedData.estimatedValue && (
+                <>
+                  <hr className="my-2" />
+                  <p className="text-sm font-medium">ราคาประเมิน: {data.titleDeedData.estimatedValue}</p>
+                </>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {data.titleDeedAnalysis && !data.titleDeedData && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <p className="font-medium">ข้อมูลที่วิเคราะห์ได้จากโฉนด:</p>
+              {data.titleDeedAnalysis.pvName && (
+                <p className="text-sm">จังหวัด: {data.titleDeedAnalysis.pvName}</p>
+              )}
+              {data.titleDeedAnalysis.amName && (
+                <p className="text-sm">อำเภอ: {data.titleDeedAnalysis.amName}</p>
+              )}
+              {data.titleDeedAnalysis.parcelNo && (
+                <p className="text-sm">เลขโฉนด: {data.titleDeedAnalysis.parcelNo}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                * ไม่สามารถดึงข้อมูลรายละเอียดเพิ่มเติมได้ แต่สามารถดำเนินการต่อได้
+              </p>
             </div>
           </AlertDescription>
         </Alert>
