@@ -19,7 +19,7 @@ const customerOnlyApiRoutes = [
 const agentOnlyApiRoutes = ['/api/agent', '/api/customers', '/api/applications']
 
 // API routes that both customer and agent can access
-const sharedApiRoutes = ['/api/loans']
+const sharedApiRoutes = ['/api/loans', '/api/title-deed']
 
 function isRouteMatch(pathname: string, routes: string[]): boolean {
   return routes.some((route) => pathname.startsWith(route))

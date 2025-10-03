@@ -48,19 +48,22 @@ export function SupportingImagesStep({
 
     if (e.dataTransfer.files) {
       const files = Array.from(e.dataTransfer.files)
-      onUpdate({ supportingImages: [...data.supportingImages, ...files] })
+      const currentImages = data.supportingImages || []
+      onUpdate({ supportingImages: [...currentImages, ...files] })
     }
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files)
-      onUpdate({ supportingImages: [...data.supportingImages, ...files] })
+      const currentImages = data.supportingImages || []
+      onUpdate({ supportingImages: [...currentImages, ...files] })
     }
   }
 
   const removeImage = (index: number) => {
-    const newImages = data.supportingImages.filter(
+    const currentImages = data.supportingImages || []
+    const newImages = currentImages.filter(
       (_: any, i: number) => i !== index
     )
     onUpdate({ supportingImages: newImages })
@@ -70,22 +73,39 @@ export function SupportingImagesStep({
 
   return (
     <div className="space-y-6">
-      {data.titleDeedData && (
+      {data.titleDeedData && data.titleDeedData.result && data.titleDeedData.result[0] && (
         <Alert>
           <CheckCircle className="h-4 w-4" />
           <AlertDescription>
             <div className="space-y-1">
               <p className="font-medium">ข้อมูลจากโฉนดที่ดิน:</p>
-              <p className="text-sm">ชื่อเจ้าของ: {data.titleDeedData.ownerName || 'ไม่พบข้อมูล'}</p>
-              <p className="text-sm">เลขที่ดิน: {data.titleDeedData.landNumber || 'ไม่พบข้อมูล'}</p>
-              <p className="text-sm">เนื้อที่: {data.titleDeedData.area || 'ไม่พบข้อมูล'}</p>
-              <p className="text-sm">ที่ตั้ง: {data.titleDeedData.location || 'ไม่พบข้อมูล'}</p>
-              {data.titleDeedData.estimatedValue && (
-                <>
-                  <hr className="my-2" />
-                  <p className="text-sm font-medium">ราคาประเมิน: {data.titleDeedData.estimatedValue}</p>
-                </>
-              )}
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p><span className="font-medium">เลขโฉนดที่ดิน:</span> {data.titleDeedData.result[0].parcelno || 'ไม่พบข้อมูล'}</p>
+                    <p><span className="font-medium">หน้าสำรวจ:</span> {data.titleDeedData.result[0].surveyno || 'ไม่พบข้อมูล'}</p>
+                    <p><span className="font-medium">เลขที่ดิน:</span> {data.titleDeedData.result[0].landno || 'ไม่พบข้อมูล'}</p>
+                    <p><span className="font-medium">ระวาง:</span> {data.titleDeedData.result[0].utm || 'ไม่พบข้อมูล'}</p>
+                  </div>
+                  <div>
+                    <p><span className="font-medium">ตำบล:</span> {data.titleDeedData.result[0].tumbolname || 'ไม่พบข้อมูล'}</p>
+                    <p><span className="font-medium">อำเภอ:</span> {data.titleDeedData.result[0].amphurname || 'ไม่พบข้อมูล'}</p>
+                    <p><span className="font-medium">จังหวัด:</span> {data.titleDeedData.result[0].provname || 'ไม่พบข้อมูล'}</p>
+                  </div>
+                </div>
+                <hr className="my-2" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p><span className="font-medium">เนื้อที่:</span> {data.titleDeedData.result[0].rai || '0'} ไร่ {data.titleDeedData.result[0].ngan || '0'} งาน {data.titleDeedData.result[0].wa || '0'} ตารางวา</p>
+                    <p><span className="font-medium">ราคาประเมิน:</span> {data.titleDeedData.result[0].landprice ? `${data.titleDeedData.result[0].landprice} บาท/ตร.วา` : 'ไม่พบข้อมูล'}</p>
+                  </div>
+                  <div>
+                    <p><span className="font-medium">พิกัดแปลง:</span></p>
+                    <p className="text-xs">Lat: {data.titleDeedData.result[0].parcellat || 'ไม่พบข้อมูล'}</p>
+                    <p className="text-xs">Lon: {data.titleDeedData.result[0].parcellon || 'ไม่พบข้อมูล'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </AlertDescription>
         </Alert>
@@ -168,7 +188,7 @@ export function SupportingImagesStep({
           </div>
 
           {/* Uploaded Images */}
-          {data.supportingImages.length > 0 && (
+          {data.supportingImages && data.supportingImages.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
                 ไฟล์ที่อัพโหลด ({data.supportingImages.length})

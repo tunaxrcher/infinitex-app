@@ -53,14 +53,16 @@ export function TitleDeedUploadStep({
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0]
-      handleFileUpload(file)
+      // Just store the file, don't upload yet
+      onUpdate({ titleDeedImage: file })
     }
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      handleFileUpload(file)
+      // Just store the file, don't upload yet
+      onUpdate({ titleDeedImage: file })
     }
   }
 
@@ -106,8 +108,12 @@ export function TitleDeedUploadStep({
         setShowManualModal(true)
       } else if (result.titleDeedData) {
         toast.success('วิเคราะห์โฉนดสำเร็จ')
+        // Auto proceed to next step when successful
+        setTimeout(() => onNext(), 1000)
       } else {
         toast.warning('วิเคราะห์โฉนดเสร็จสิ้น แต่ไม่พบข้อมูลรายละเอียด')
+        // Auto proceed to next step
+        setTimeout(() => onNext(), 1000)
       }
     } catch (error) {
       console.error('[TitleDeed] Upload/analysis failed:', error)
@@ -145,6 +151,7 @@ export function TitleDeedUploadStep({
 
       setShowManualModal(false)
       toast.success('ค้นหาข้อมูลโฉนดสำเร็จ')
+      onNext() // Proceed to next step
     } catch (error) {
       console.error('[TitleDeed] Manual lookup failed:', error)
       toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการค้นหาข้อมูลโฉนด')
@@ -154,10 +161,27 @@ export function TitleDeedUploadStep({
   const handleManualSkip = () => {
     setShowManualModal(false)
     toast.info('ข้ามการค้นหาข้อมูลโฉนด')
+    onNext() // Proceed to next step
+  }
+
+  const handleNextStep = async () => {
+    // If we have an image but haven't analyzed it yet, analyze first
+    if (data.titleDeedImage && !data.titleDeedAnalysis && !data.titleDeedData) {
+      await handleFileUpload(data.titleDeedImage)
+    } else {
+      // Already analyzed or no image, proceed to next step
+      onNext()
+    }
   }
 
   const removeImage = () => {
-    onUpdate({ titleDeedImage: null, titleDeedData: null })
+    onUpdate({ 
+      titleDeedImage: null, 
+      titleDeedData: null,
+      titleDeedAnalysis: null,
+      titleDeedImageUrl: null,
+      titleDeedImageKey: null,
+    })
   }
 
   const canProceed = data.titleDeedImage
@@ -259,7 +283,7 @@ export function TitleDeedUploadStep({
             ย้อนกลับ
           </Button>
         )}
-        <Button onClick={onNext} disabled={!canProceed || isAnalyzing} className="flex-1">
+        <Button onClick={handleNextStep} disabled={!canProceed || isAnalyzing} className="flex-1">
           {isAnalyzing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

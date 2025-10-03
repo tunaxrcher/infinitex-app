@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { findProvinceCodeManual, findAmphurCodeManual } from './manual-search'
 
 interface TitleDeedAnalysisResult {
   pvName: string
@@ -110,7 +111,14 @@ class AIService {
       }
     } catch (error) {
       console.error('[AI] Title deed analysis failed:', error)
-      throw new Error(`การวิเคราะห์โฉนดล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.log('[AI] Falling back to manual input...')
+      
+      // Fallback: return empty result to trigger manual input
+      return {
+        pvName: '',
+        amName: '',
+        parcelNo: '',
+      }
     }
   }
 
@@ -161,7 +169,11 @@ class AIService {
       }
     } catch (error) {
       console.error('[AI] Province search failed:', error)
-      throw new Error(`การค้นหารหัสจังหวัดล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.log('[AI] Falling back to manual search...')
+      
+      // Fallback to manual search
+      const pvCode = findProvinceCodeManual(provinceName, provinceData)
+      return { pvCode }
     }
   }
 
@@ -226,7 +238,15 @@ class AIService {
       }
     } catch (error) {
       console.error('[AI] Amphur search failed:', error)
-      throw new Error(`การค้นหารหัสอำเภอล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.log('[AI] Falling back to manual amphur search...')
+      
+      // Fallback to manual search
+      const amCode = findAmphurCodeManual(amphurName, provinceCode, amphurData)
+      return {
+        pvCode: provinceCode,
+        amCode,
+        parcelNo,
+      }
     }
   }
 }
