@@ -25,6 +25,7 @@ interface PhoneVerificationStepProps {
   onNext: () => void
   onPrev: () => void
   skipPhoneVerification?: boolean // For logged-in users
+  isAgentFlow?: boolean // For agent submitting for customer
 }
 
 export function PhoneVerificationStep({
@@ -33,6 +34,7 @@ export function PhoneVerificationStep({
   onNext,
   onPrev,
   skipPhoneVerification = false,
+  isAgentFlow = false,
 }: PhoneVerificationStepProps) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -40,9 +42,11 @@ export function PhoneVerificationStep({
   const [showPinModal, setShowPinModal] = useState(false)
   const [pinDigits, setPinDigits] = useState(['', '', '', ''])
   const [showPin, setShowPin] = useState(false)
-  const [pinVerified, setPinVerified] = useState(
-    skipPhoneVerification || !!session?.user
-  )
+  
+  // For agent flow, always require phone verification
+  // For customer flow, skip if logged in
+  const shouldSkipVerification = isAgentFlow ? false : (skipPhoneVerification || !!session?.user)
+  const [pinVerified, setPinVerified] = useState(shouldSkipVerification)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionComplete, setSubmissionComplete] = useState(false)
 
@@ -199,8 +203,8 @@ export function PhoneVerificationStep({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {session?.user ? (
-            // Show logged-in user info
+          {session?.user && !isAgentFlow ? (
+            // Show logged-in customer info (only for customer flow)
             <div className="space-y-2">
               <Label>เบอร์โทรศัพท์ที่ลงทะเบียน</Label>
               <div className="bg-muted rounded-lg p-3">
@@ -213,9 +217,11 @@ export function PhoneVerificationStep({
               </div>
             </div>
           ) : (
-            // Show phone input for non-logged users
+            // Show phone input for non-logged users or agent flow
             <div className="space-y-2">
-              <Label htmlFor="phoneNumber">เบอร์โทรศัพท์</Label>
+              <Label htmlFor="phoneNumber">
+                {isAgentFlow ? 'เบอร์โทรศัพท์ลูกค้า' : 'เบอร์โทรศัพท์'}
+              </Label>
               <Input
                 id="phoneNumber"
                 type="tel"
@@ -227,7 +233,10 @@ export function PhoneVerificationStep({
               />
               <div className="flex justify-between items-center">
                 <p className="text-xs text-muted-foreground">
-                  เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน
+                  {isAgentFlow 
+                    ? 'เบอร์โทรศัพท์ลูกค้าที่จะใช้สำหรับเข้าสู่ระบบ'
+                    : 'เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน'
+                  }
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {data.phoneNumber?.length || 0}/10
@@ -241,16 +250,16 @@ export function PhoneVerificationStep({
             </div>
           )}
 
-          {!pinVerified && !session?.user && (
+          {!pinVerified && (session?.user ? isAgentFlow : true) && (
             <Button
               onClick={handleConfirmPhone}
               disabled={!canConfirm}
               className="w-full">
-              ยืนยันเบอร์โทรศัพท์
+              {isAgentFlow ? 'ยืนยันเบอร์โทรศัพท์ลูกค้า' : 'ยืนยันเบอร์โทรศัพท์'}
             </Button>
           )}
 
-          {session?.user && (
+          {session?.user && !isAgentFlow && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <p className="text-sm text-green-700 flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
@@ -285,7 +294,7 @@ export function PhoneVerificationStep({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              สร้าง PIN 4 หลัก
+              {isAgentFlow ? 'สร้าง PIN 4 หลักสำหรับลูกค้า' : 'สร้าง PIN 4 หลัก'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">

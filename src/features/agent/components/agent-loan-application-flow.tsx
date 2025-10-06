@@ -113,6 +113,7 @@ export function AgentLoanApplicationFlow() {
             onUpdate={updateApplicationData}
             onNext={nextStep}
             onPrev={prevStep}
+            isAgentFlow={true}
           />
         )
       case 7:
