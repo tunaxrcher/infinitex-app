@@ -134,6 +134,29 @@ export function SupportingImagesStep({
         </Alert>
       )}
 
+      {/* {data.titleDeedManualData && !data.titleDeedData && (
+        <Alert>
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-1">
+              <p className="font-medium">ข้อมูลโฉนดที่กรอกด้วยตนเอง:</p>
+              {data.titleDeedManualData.pvName && (
+                <p className="text-sm">จังหวัด: {data.titleDeedManualData.pvName}</p>
+              )}
+              {data.titleDeedManualData.amName && (
+                <p className="text-sm">อำเภอ: {data.titleDeedManualData.amName}</p>
+              )}
+              {data.titleDeedManualData.parcelNo && (
+                <p className="text-sm">เลขโฉนด: {data.titleDeedManualData.parcelNo}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
+                * ข้อมูลที่กรอกด้วยตนเองจากขั้นตอนก่อนหน้า
+              </p>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )} */}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">

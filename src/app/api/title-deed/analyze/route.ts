@@ -68,10 +68,11 @@ export async function POST(request: NextRequest) {
     let finalResult = {
       imageUrl: uploadResult.url,
       imageKey: uploadResult.key,
-      analysisResult,
+      analysisResult: analysisResult as any, // Allow additional properties
       titleDeedData: null as any,
       needsManualInput: false,
       manualInputType: '' as 'full' | 'amphur_only' | '',
+      errorMessage: undefined as string | undefined,
     }
 
     // Step 3: Process based on AI analysis result
@@ -133,9 +134,22 @@ export async function POST(request: NextRequest) {
 
                   console.log('[API] Title deed data retrieved:', titleDeedData)
                   finalResult.titleDeedData = titleDeedData
-                } catch (error) {
-                  console.error('[API] Failed to fetch title deed data:', error)
-                  // Continue without title deed data - user can still proceed
+                } catch (landsMapError) {
+                  console.error('[API] LandsMapsAPI failed:', landsMapError)
+                  
+                  // LandsMapsAPI failed - show manual input modal with AI data as initial values
+                  console.log('[API] LandsMapsAPI failed - requiring manual input with AI data')
+                  finalResult.needsManualInput = true
+                  finalResult.manualInputType = 'full'
+                  finalResult.analysisResult = {
+                    ...finalResult.analysisResult,
+                    pvCode: amphurSearchResult.pvCode,
+                    amCode: amphurSearchResult.amCode,
+                    parcelNo: amphurSearchResult.parcelNo,
+                  }
+                  
+                  // Add error message for user context
+                  finalResult.errorMessage = 'ไม่สามารถค้นหาข้อมูลโฉนดจากระบบกรมที่ดินได้ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง'
                 }
               }
             } catch (amphurError) {

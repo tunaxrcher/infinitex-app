@@ -33,7 +33,9 @@ export function TitleDeedUploadStep({
   const [manualInputData, setManualInputData] = useState<{
     type: 'full' | 'amphur_only'
     pvCode?: string
+    amCode?: string
     parcelNo?: string
+    errorMessage?: string
   } | null>(null)
 
   const handleDrag = (e: React.DragEvent) => {
@@ -103,7 +105,9 @@ export function TitleDeedUploadStep({
         setManualInputData({
           type: result.manualInputType,
           pvCode: result.analysisResult.pvCode,
+          amCode: result.analysisResult.amCode,
           parcelNo: result.analysisResult.parcelNo,
+          errorMessage: result.errorMessage,
         })
         setShowManualModal(true)
       } else if (result.titleDeedData) {
@@ -158,9 +162,43 @@ export function TitleDeedUploadStep({
     }
   }
 
-  const handleManualSkip = () => {
+  const handleManualSkip = (formData?: { pvCode: string; amCode: string; parcelNo: string }) => {
+    // If form data is provided, save it as manual analysis result
+    if (formData && (formData.pvCode || formData.amCode || formData.parcelNo)) {
+      const manualAnalysisResult = {
+        pvName: '', // We don't have province name from form
+        amName: '', // We don't have amphur name from form
+        parcelNo: formData.parcelNo || '',
+        pvCode: formData.pvCode || '',
+        amCode: formData.amCode || '',
+      }
+
+      // Find province and amphur names for display
+      const provinceName = provinceData.find(p => p.pvcode === formData.pvCode)?.pvnamethai || ''
+      const amphurName = amphurData.find(a => a.pvcode === formData.pvCode && a.amcode === formData.amCode)?.amnamethai || ''
+
+      onUpdate({
+        ...data,
+        titleDeedAnalysis: {
+          ...manualAnalysisResult,
+          pvName: provinceName,
+          amName: amphurName,
+        },
+        titleDeedManualData: {
+          pvCode: formData.pvCode,
+          amCode: formData.amCode,
+          parcelNo: formData.parcelNo,
+          pvName: provinceName,
+          amName: amphurName,
+        }
+      })
+
+      toast.info('บันทึกข้อมูลโฉนดที่กรอกไว้แล้ว')
+    } else {
+      toast.info('ข้ามการค้นหาข้อมูลโฉนด')
+    }
+
     setShowManualModal(false)
-    toast.info('ข้ามการค้นหาข้อมูลโฉนด')
     onNext() // Proceed to next step
   }
 
@@ -304,8 +342,10 @@ export function TitleDeedUploadStep({
           onConfirm={handleManualConfirm}
           initialData={{
             pvCode: manualInputData.pvCode,
+            amCode: manualInputData.amCode,
             parcelNo: manualInputData.parcelNo,
           }}
+          errorMessage={manualInputData.errorMessage}
           provinces={provinceData}
           amphurs={amphurData}
         />

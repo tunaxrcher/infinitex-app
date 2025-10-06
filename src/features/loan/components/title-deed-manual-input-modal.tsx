@@ -39,12 +39,14 @@ interface Amphur {
 interface TitleDeedManualInputModalProps {
   isOpen: boolean
   onClose: () => void
-  onSkip: () => void
+  onSkip: (formData?: { pvCode: string; amCode: string; parcelNo: string }) => void
   onConfirm: (data: { pvCode: string; amCode: string; parcelNo: string }) => Promise<void>
   initialData?: {
     pvCode?: string
+    amCode?: string
     parcelNo?: string
   }
+  errorMessage?: string
   provinces: Province[]
   amphurs: Amphur[]
 }
@@ -55,11 +57,12 @@ export function TitleDeedManualInputModal({
   onSkip,
   onConfirm,
   initialData,
+  errorMessage,
   provinces,
   amphurs,
 }: TitleDeedManualInputModalProps) {
   const [selectedProvince, setSelectedProvince] = useState<string>(initialData?.pvCode || '')
-  const [selectedAmphur, setSelectedAmphur] = useState<string>('')
+  const [selectedAmphur, setSelectedAmphur] = useState<string>(initialData?.amCode || '')
   const [parcelNumber, setParcelNumber] = useState<string>(initialData?.parcelNo || '')
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
@@ -68,12 +71,12 @@ export function TitleDeedManualInputModal({
     amphur.pvcode === selectedProvince && amphur.amcode !== '00'
   )
 
-  // Reset amphur when province changes
+  // Reset amphur when province changes (but not if we have initial amCode)
   useEffect(() => {
-    if (!initialData?.pvCode) {
+    if (!initialData?.pvCode || !initialData?.amCode) {
       setSelectedAmphur('')
     }
-  }, [selectedProvince, initialData?.pvCode])
+  }, [selectedProvince, initialData?.pvCode, initialData?.amCode])
 
   const handleConfirm = async () => {
     if (!selectedProvince || !selectedAmphur || !parcelNumber.trim()) {
@@ -100,6 +103,19 @@ export function TitleDeedManualInputModal({
       // Error handling is done in the parent component
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleSkip = () => {
+    // Send current form data if any fields are filled
+    if (selectedProvince || selectedAmphur || parcelNumber.trim()) {
+      onSkip({
+        pvCode: selectedProvince,
+        amCode: selectedAmphur,
+        parcelNo: parcelNumber.trim(),
+      })
+    } else {
+      onSkip()
     }
   }
 
@@ -136,7 +152,7 @@ export function TitleDeedManualInputModal({
           <DialogDescription>
             {isLoading 
               ? 'กำลังค้นหาข้อมูลโฉนดจากระบบกรมที่ดิน กรุณารอสักครู่...'
-              : 'ระบบไม่สามารถอ่านข้อมูลจากโฉนดได้ กรุณากรอกข้อมูลด้วยตนเอง'
+              : errorMessage || 'ระบบไม่สามารถอ่านข้อมูลจากโฉนดได้ กรุณากรอกข้อมูลด้วยตนเอง'
             }
           </DialogDescription>
         </DialogHeader>
@@ -200,6 +216,11 @@ export function TitleDeedManualInputModal({
                   ))}
                 </SelectContent>
               </Select>
+              {initialData?.amCode && selectedAmphur === initialData.amCode && (
+                <p className="text-xs text-muted-foreground">
+                  อำเภอถูกเลือกอัตโนมัติจากการวิเคราะห์รูป: {filteredAmphurs.find(a => a.amcode === selectedAmphur)?.amnamethai}
+                </p>
+              )}
               {filteredAmphurs.length === 0 && (
                 <p className="text-xs text-amber-600">
                   ไม่พบข้อมูลอำเภอในจังหวัดนี้
@@ -230,6 +251,11 @@ export function TitleDeedManualInputModal({
                 disabled={isLoading}
                 autoFocus
               />
+              {initialData?.parcelNo && parcelNumber === initialData.parcelNo && (
+                <p className="text-xs text-muted-foreground">
+                  เลขโฉนดจากการวิเคราะห์รูป: {parcelNumber}
+                </p>
+              )}
               {!parcelNumber.trim() && !isLoading && (
                 <p className="text-xs text-muted-foreground">
                   กรอกเลขโฉนดเพื่อค้นหาข้อมูล
@@ -263,7 +289,7 @@ export function TitleDeedManualInputModal({
         <DialogFooter className="flex gap-2">
           <Button
             variant="outline"
-            onClick={onSkip}
+            onClick={handleSkip}
             disabled={isLoading}
             className="flex-1">
             ข้าม
