@@ -212,6 +212,7 @@ class AIService {
 
   /**
    * ประเมินมูลค่าทรัพย์สินจากข้อมูลโฉนดและรูปภาพ
+   * ต้องมีข้อมูลเพิ่มเติมนอกจากรูปโฉนด (ข้อมูลจาก LandsMapsAPI หรือรูปประกอบ)
    */
   async evaluatePropertyValue(
     titleDeedImage: Buffer,
@@ -219,7 +220,20 @@ class AIService {
     supportingImages?: Buffer[]
   ): Promise<PropertyValuationResult> {
     try {
-      console.log('[AI] Starting property valuation...')
+      console.log('[AI] Starting property valuation...', {
+        hasTitleDeedData: !!titleDeedData,
+        supportingImagesCount: supportingImages?.length || 0,
+      })
+
+      // Validate that we have sufficient data beyond just the title deed image
+      if (!titleDeedData && (!supportingImages || supportingImages.length === 0)) {
+        console.log('[AI] Insufficient data for valuation - only title deed image provided')
+        return {
+          estimatedValue: 0,
+          reasoning: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
+          confidence: 0,
+        }
+      }
 
       const model = this.getModel(true)
 

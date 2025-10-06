@@ -45,6 +45,20 @@ export async function POST(request: NextRequest) {
       supportingImagesCount: supportingImages.length,
     })
 
+    // Check if we have sufficient data for valuation
+    if (!titleDeedData && supportingImages.length === 0) {
+      console.log('[API] Insufficient data for valuation - only title deed image provided')
+      return NextResponse.json({
+        success: false,
+        error: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
+        valuation: {
+          estimatedValue: 0,
+          reasoning: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
+          confidence: 0,
+        }
+      })
+    }
+
     // Convert title deed image to buffer
     const titleDeedArrayBuffer = await titleDeedImage.arrayBuffer()
     const titleDeedBuffer = Buffer.from(titleDeedArrayBuffer)

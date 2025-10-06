@@ -51,9 +51,23 @@ export function IdCardStep({
   }
 
   const handlePropertyValuation = async () => {
-    // Check if we have title deed image (required for valuation)
-    if (!data.titleDeedImage) {
-      console.log('[IdCard] No title deed image, skipping valuation')
+    // Check if we have sufficient data for valuation
+    const hasTitleDeedData = data.titleDeedData && data.titleDeedData.result && data.titleDeedData.result.length > 0
+    const hasSupportingImages = data.supportingImages && data.supportingImages.length > 0
+    
+    // Skip valuation if we only have title deed image without additional data
+    if (!data.titleDeedImage || (!hasTitleDeedData && !hasSupportingImages)) {
+      console.log('[IdCard] Insufficient data for valuation, skipping...', {
+        hasTitleDeedImage: !!data.titleDeedImage,
+        hasTitleDeedData,
+        hasSupportingImages,
+      })
+      
+      // Set empty valuation result to indicate no valuation was performed
+      onUpdate({
+        ...data,
+        propertyValuation: null,
+      })
       onNext()
       return
     }
@@ -84,13 +98,24 @@ export function IdCardStep({
         body: formData,
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'การประเมินมูลค่าล้มเหลว')
-      }
-
       const result = await response.json()
       console.log('[IdCard] Valuation result:', result)
+
+      if (!response.ok || !result.success) {
+        // Handle insufficient data case
+        if (result.valuation && result.valuation.estimatedValue === 0) {
+          console.log('[IdCard] Insufficient data for valuation')
+          onUpdate({
+            ...data,
+            propertyValuation: null,
+          })
+          toast.info('ข้อมูลไม่เพียงพอสำหรับการประเมิน AI')
+          onNext()
+          return
+        }
+        
+        throw new Error(result.error || 'การประเมินมูลค่าล้มเหลว')
+      }
 
       // Update data with valuation result
       onUpdate({
