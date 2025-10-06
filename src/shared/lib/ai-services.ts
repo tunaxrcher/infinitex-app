@@ -20,10 +20,18 @@ const amphurSearchSchema = z.object({
   parcelNo: z.string().describe('เลขโฉนดที่ดิน'),
 })
 
+// Property valuation schema
+const propertyValuationSchema = z.object({
+  estimatedValue: z.number().describe('มูลค่าประเมินของทรัพย์สินในหน่วยบาท'),
+  reasoning: z.string().describe('เหตุผลและการวิเคราะห์ที่ใช้ในการประเมินมูลค่า'),
+  confidence: z.number().min(0).max(100).describe('ระดับความมั่นใจในการประเมิน (0-100)'),
+})
+
 // Type definitions from schemas
 type TitleDeedAnalysisResult = z.infer<typeof titleDeedAnalysisSchema>
 type ProvinceSearchResult = z.infer<typeof provinceSearchSchema>
 type AmphurSearchResult = z.infer<typeof amphurSearchSchema>
+type PropertyValuationResult = z.infer<typeof propertyValuationSchema>
 
 class AIService {
   private googleProvider: ReturnType<typeof createGoogleGenerativeAI>
@@ -198,6 +206,82 @@ class AIService {
         pvCode: provinceCode,
         amCode,
         parcelNo,
+      }
+    }
+  }
+
+  /**
+   * ประเมินมูลค่าทรัพย์สินจากข้อมูลโฉนดและรูปภาพ
+   */
+  async evaluatePropertyValue(
+    titleDeedImage: Buffer,
+    titleDeedData: any,
+    supportingImages?: Buffer[]
+  ): Promise<PropertyValuationResult> {
+    try {
+      console.log('[AI] Starting property valuation...')
+
+      const model = this.getModel(true)
+
+      // Prepare content array
+      const content: any[] = [
+        {
+          type: 'text',
+          text: `ประเมินมูลค่าทรัพย์สินจากข้อมูลต่อไปนี้:
+
+ข้อมูลจากโฉนดที่ดิน:
+${titleDeedData ? JSON.stringify(titleDeedData, null, 2) : 'ไม่มีข้อมูลรายละเอียด'}
+
+กรุณาวิเคราะห์และประเมินมูลค่าทรัพย์สินโดยพิจารณาจาก:
+1. ข้อมูลจากโฉนดที่ดิน (เนื้อที่, ที่ตั้ง, ราคาประเมินราชการ)
+2. รูปภาพโฉนดที่ดิน
+3. รูปภาพประกอบเพิ่มเติม (หากมี)
+4. ปัจจัยอื่นๆ ที่เกี่ยวข้อง เช่น ทำเล การคมนาคม สภาพแวดล้อม
+
+ให้ประเมินมูลค่าที่เหมาะสมสำหรับการใช้เป็นหลักประกัน และระบุเหตุผลอย่างละเอียด`,
+        },
+        {
+          type: 'image',
+          image: titleDeedImage,
+        },
+      ]
+
+      // Add supporting images if available
+      if (supportingImages && supportingImages.length > 0) {
+        supportingImages.forEach((imageBuffer, index) => {
+          content.push({
+            type: 'image',
+            image: imageBuffer,
+          })
+        })
+      }
+
+      const { object } = await generateObject({
+        model,
+        schema: propertyValuationSchema,
+        messages: [
+          {
+            role: 'user',
+            content,
+          },
+        ],
+      })
+
+      console.log('[AI] Property valuation result:', object)
+
+      return {
+        estimatedValue: object.estimatedValue || 0,
+        reasoning: object.reasoning || 'ไม่สามารถประเมินได้',
+        confidence: object.confidence || 0,
+      }
+    } catch (error) {
+      console.error('[AI] Property valuation failed:', error)
+      
+      // Return fallback result
+      return {
+        estimatedValue: 0,
+        reasoning: 'ไม่สามารถประเมินมูลค่าได้เนื่องจากข้อมูลไม่เพียงพอ',
+        confidence: 0,
       }
     }
   }

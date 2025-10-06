@@ -23,7 +23,10 @@ export function LoanAmountStep({
   onNext,
   onPrev,
 }: LoanAmountStepProps) {
-  const systemEvaluatedAmount = 2500000 // 2.5 million baht
+  // Use AI valuation if available, otherwise use default
+  const systemEvaluatedAmount = data.propertyValuation?.estimatedValue || 0
+  const hasAIValuation = data.propertyValuation && data.propertyValuation.estimatedValue > 0
+  
   const [requestedAmount, setRequestedAmount] = useState(
     data.requestedLoanAmount || ''
   )
@@ -61,25 +64,52 @@ export function LoanAmountStep({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
-            <DollarSign className="h-4 w-4" />
-            <AlertDescription>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-2xl font-bold text-primary">
-                    {systemEvaluatedAmount.toLocaleString()} บาท
-                  </p>
-                </div>
+          {hasAIValuation ? (
+            <Alert>
+              <DollarSign className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-2xl font-bold text-primary">
+                      {systemEvaluatedAmount.toLocaleString()} บาท
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      ความมั่นใจ: {data.propertyValuation.confidence}%
+                    </p>
+                  </div>
 
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    * วงเงินและเงื่อนไขนี้เป็นการประเมินเบื้องต้น
-                    อาจมีการปรับเปลี่ยนหลังจากการตรวจสอบจริงอีกครั้ง
+                  {data.propertyValuation.reasoning && (
+                    <div className="pt-2 border-t">
+                      <p className="text-sm font-medium mb-1">เหตุผลการประเมิน:</p>
+                      <p className="text-xs text-muted-foreground">
+                        {data.propertyValuation.reasoning}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      * วงเงินและเงื่อนไขนี้เป็นการประเมินเบื้องต้นจาก AI
+                      อาจมีการปรับเปลี่ยนหลังจากการตรวจสอบจริงอีกครั้ง
+                    </p>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert variant="destructive">
+              <DollarSign className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="font-medium">ข้อมูลที่ท่านให้ไม่เพียงพอต่อ AI</p>
+                  <p className="text-sm">
+                    ระบบไม่สามารถประเมินมูลค่าทรัพย์สินได้เนื่องจากข้อมูลไม่เพียงพอ
+                    กรุณาติดต่อเจ้าหน้าที่เพื่อประเมินมูลค่าด้วยตนเอง
                   </p>
                 </div>
-              </div>
-            </AlertDescription>
-          </Alert>
+              </AlertDescription>
+            </Alert>
+          )}
           <hr />
           <div className="space-y-2">
             <Label htmlFor="requestedAmount" className="text-sm font-medium">

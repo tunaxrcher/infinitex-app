@@ -5,7 +5,8 @@ import { useState } from 'react'
 
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import { AlertCircle, Camera, CreditCard, Upload } from 'lucide-react'
+import { AlertCircle, Camera, CreditCard, Upload, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface IdCardStepProps {
   data: any
@@ -21,6 +22,7 @@ export function IdCardStep({
   onPrev,
 }: IdCardStepProps) {
   const [dragActive, setDragActive] = useState(false)
+  const [isEvaluating, setIsEvaluating] = useState(false)
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -48,7 +50,72 @@ export function IdCardStep({
     }
   }
 
-  const canProceed = data.idCardImage
+  const handlePropertyValuation = async () => {
+    // Check if we have title deed image (required for valuation)
+    if (!data.titleDeedImage) {
+      console.log('[IdCard] No title deed image, skipping valuation')
+      onNext()
+      return
+    }
+
+    setIsEvaluating(true)
+    try {
+      console.log('[IdCard] Starting property valuation...')
+
+      // Prepare form data
+      const formData = new FormData()
+      formData.append('titleDeedImage', data.titleDeedImage)
+
+      // Add title deed data if available
+      if (data.titleDeedData) {
+        formData.append('titleDeedData', JSON.stringify(data.titleDeedData))
+      }
+
+      // Add supporting images if available
+      if (data.supportingImages && data.supportingImages.length > 0) {
+        data.supportingImages.forEach((image: File, index: number) => {
+          formData.append(`supportingImage_${index}`, image)
+        })
+      }
+
+      // Call valuation API
+      const response = await fetch('/api/property/valuation', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'การประเมินมูลค่าล้มเหลว')
+      }
+
+      const result = await response.json()
+      console.log('[IdCard] Valuation result:', result)
+
+      // Update data with valuation result
+      onUpdate({
+        ...data,
+        propertyValuation: result.valuation,
+      })
+
+      toast.success('ประเมินมูลค่าทรัพย์สินสำเร็จ')
+      onNext()
+    } catch (error) {
+      console.error('[IdCard] Property valuation failed:', error)
+      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการประเมินมูลค่า')
+      
+      // Continue without valuation
+      onUpdate({
+        ...data,
+        propertyValuation: null,
+      })
+      onNext()
+    } finally {
+      setIsEvaluating(false)
+    }
+  }
+
+  const canProceed = data.idCardImage && !isEvaluating
 
   return (
     <div className="space-y-6">
@@ -165,8 +232,15 @@ export function IdCardStep({
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button onClick={onNext} disabled={!canProceed} className="flex-1">
-          ถัดไป
+        <Button onClick={handlePropertyValuation} disabled={!canProceed} className="flex-1">
+          {isEvaluating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              กำลังประเมินมูลค่า...
+            </>
+          ) : (
+            'ถัดไป'
+          )}
         </Button>
       </div>
     </div>
