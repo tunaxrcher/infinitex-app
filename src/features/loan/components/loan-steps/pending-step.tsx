@@ -114,10 +114,10 @@ export function PendingStep() {
       </Card>
 
       <div className="space-y-3">
-        <Button asChild className="w-full">
+        {/* <Button asChild className="w-full">
           <Link href="/">กลับหน้าหลัก</Link>
-        </Button>
-        <Button variant="outline" asChild className="w-full bg-transparent">
+        </Button> */}
+        <Button asChild className="w-full">
           <Link href={myLoansUrl}>ดูสินเชื่อของฉัน</Link>
         </Button>
       </div>

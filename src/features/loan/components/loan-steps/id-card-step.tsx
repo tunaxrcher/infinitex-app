@@ -71,7 +71,7 @@ export function IdCardStep({
       formData.append('file', file)
 
       // Call API to upload ID card
-      const response = await fetch('/api/id-card/upload', {
+      const response = await fetch('/api/loans/id-card/upload', {
         method: 'POST',
         body: formData,
       })
@@ -141,7 +141,7 @@ export function IdCardStep({
       }
 
       // Call valuation API
-      const response = await fetch('/api/property/valuation', {
+      const response = await fetch('/api/loans/property/valuation', {
         method: 'POST',
         body: formData,
       })

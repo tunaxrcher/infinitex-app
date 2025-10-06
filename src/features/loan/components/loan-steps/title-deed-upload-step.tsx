@@ -78,7 +78,7 @@ export function TitleDeedUploadStep({
       formData.append('file', file)
 
       // Call API to analyze title deed
-      const response = await fetch('/api/title-deed/analyze', {
+      const response = await fetch('/api/loans/title-deed/analyze', {
         method: 'POST',
         body: formData,
       })
@@ -131,7 +131,7 @@ export function TitleDeedUploadStep({
     try {
       console.log('[TitleDeed] Manual lookup:', manualData)
 
-      const response = await fetch('/api/title-deed/manual-lookup', {
+      const response = await fetch('/api/loans/title-deed/manual-lookup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

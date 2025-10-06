@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { aiService } from '@src/shared/lib/ai-services'
+import { loanService } from '@src/features/loan/services/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,14 +28,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Get supporting images (optional)
-    const supportingImages: Buffer[] = []
+    const supportingImages: File[] = []
     let imageIndex = 0
     while (true) {
       const supportingImage = formData.get(`supportingImage_${imageIndex}`) as File
       if (!supportingImage) break
       
-      const arrayBuffer = await supportingImage.arrayBuffer()
-      supportingImages.push(Buffer.from(arrayBuffer))
+      supportingImages.push(supportingImage)
       imageIndex++
     }
 
@@ -45,37 +44,14 @@ export async function POST(request: NextRequest) {
       supportingImagesCount: supportingImages.length,
     })
 
-    // Check if we have sufficient data for valuation
-    if (!titleDeedData && supportingImages.length === 0) {
-      console.log('[API] Insufficient data for valuation - only title deed image provided')
-      return NextResponse.json({
-        success: false,
-        error: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
-        valuation: {
-          estimatedValue: 0,
-          reasoning: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
-          confidence: 0,
-        }
-      })
-    }
-
-    // Convert title deed image to buffer
-    const titleDeedArrayBuffer = await titleDeedImage.arrayBuffer()
-    const titleDeedBuffer = Buffer.from(titleDeedArrayBuffer)
-
-    // Call AI service for property valuation
-    const valuationResult = await aiService.evaluatePropertyValue(
-      titleDeedBuffer,
+    // Call service layer
+    const result = await loanService.evaluatePropertyValue(
+      titleDeedImage,
       titleDeedData,
       supportingImages.length > 0 ? supportingImages : undefined
     )
 
-    console.log('[API] Valuation completed:', valuationResult)
-
-    return NextResponse.json({
-      success: true,
-      valuation: valuationResult,
-    })
+    return NextResponse.json(result)
   } catch (error) {
     console.error('[API] Property valuation failed:', error)
     return NextResponse.json(
