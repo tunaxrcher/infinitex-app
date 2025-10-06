@@ -42,10 +42,12 @@ export function PhoneVerificationStep({
   const [showPinModal, setShowPinModal] = useState(false)
   const [pinDigits, setPinDigits] = useState(['', '', '', ''])
   const [showPin, setShowPin] = useState(false)
-  
+
   // For agent flow, always require phone verification
   // For customer flow, skip if logged in
-  const shouldSkipVerification = isAgentFlow ? false : (skipPhoneVerification || !!session?.user)
+  const shouldSkipVerification = isAgentFlow
+    ? false
+    : skipPhoneVerification || !!session?.user
   const [pinVerified, setPinVerified] = useState(shouldSkipVerification)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionComplete, setSubmissionComplete] = useState(false)
@@ -162,10 +164,15 @@ export function PhoneVerificationStep({
 
       // Auto proceed after 2 seconds
       setTimeout(() => {
-        // Redirect to products page if logged in, otherwise continue flow
-        if (session?.user) {
+        // Different behavior based on flow type
+        if (isAgentFlow) {
+          // Agent flow - go to next step (pending step)
+          onNext()
+        } else if (session?.user) {
+          // Logged-in customer - redirect to products page
           router.push('/customer/products')
         } else {
+          // Non-logged customer - go to next step (pending step)
           onNext()
         }
       }, 2000)
@@ -233,10 +240,9 @@ export function PhoneVerificationStep({
               />
               <div className="flex justify-between items-center">
                 <p className="text-xs text-muted-foreground">
-                  {isAgentFlow 
+                  {isAgentFlow
                     ? 'เบอร์โทรศัพท์ลูกค้าที่จะใช้สำหรับเข้าสู่ระบบ'
-                    : 'เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน'
-                  }
+                    : 'เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {data.phoneNumber?.length || 0}/10
@@ -255,7 +261,9 @@ export function PhoneVerificationStep({
               onClick={handleConfirmPhone}
               disabled={!canConfirm}
               className="w-full">
-              {isAgentFlow ? 'ยืนยันเบอร์โทรศัพท์ลูกค้า' : 'ยืนยันเบอร์โทรศัพท์'}
+              {isAgentFlow
+                ? 'ยืนยันเบอร์โทรศัพท์ลูกค้า'
+                : 'ยืนยันเบอร์โทรศัพท์'}
             </Button>
           )}
 
@@ -294,7 +302,9 @@ export function PhoneVerificationStep({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              {isAgentFlow ? 'สร้าง PIN 4 หลักสำหรับลูกค้า' : 'สร้าง PIN 4 หลัก'}
+              {isAgentFlow
+                ? 'สร้าง PIN 4 หลักสำหรับลูกค้า'
+                : 'สร้าง PIN 4 หลัก'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
