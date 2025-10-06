@@ -34,19 +34,67 @@ export function IdCardStep({
     }
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onUpdate({ idCardImage: e.dataTransfer.files[0] })
+      const file = e.dataTransfer.files[0]
+      
+      // Store file immediately
+      onUpdate({ idCardImage: file })
+      
+      // Upload file to storage
+      await handleFileUpload(file)
     }
   }
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      onUpdate({ idCardImage: e.target.files[0] })
+      const file = e.target.files[0]
+      
+      // Store file immediately
+      onUpdate({ idCardImage: file })
+      
+      // Upload file to storage
+      await handleFileUpload(file)
+    }
+  }
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      console.log('[IdCard] Starting file upload:', file.name)
+
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // Call API to upload ID card
+      const response = await fetch('/api/id-card/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'การอัพโหลดบัตรประชาชนล้มเหลว')
+      }
+
+      const result = await response.json()
+      console.log('[IdCard] Upload result:', result)
+
+      // Update component data with upload result
+      onUpdate({
+        idCardImage: file,
+        idCardImageUrl: result.imageUrl,
+        idCardImageKey: result.imageKey,
+      })
+
+      toast.success('อัพโหลดบัตรประชาชนสำเร็จ')
+    } catch (error) {
+      console.error('[IdCard] Upload failed:', error)
+      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการอัพโหลดบัตรประชาชน')
     }
   }
 
