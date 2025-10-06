@@ -13,7 +13,8 @@ import {
 } from '@src/shared/ui/dialog'
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
-import { Eye, EyeOff, Phone, Shield } from 'lucide-react'
+import { Eye, EyeOff, Phone, Shield, Loader2, CheckCircle } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface PhoneVerificationStepProps {
   data: any
@@ -32,6 +33,8 @@ export function PhoneVerificationStep({
   const [pinDigits, setPinDigits] = useState(['', '', '', ''])
   const [showPin, setShowPin] = useState(false)
   const [pinVerified, setPinVerified] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submissionComplete, setSubmissionComplete] = useState(false)
 
   const pinInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -67,6 +70,87 @@ export function PhoneVerificationStep({
       onUpdate({ pin })
       setPinVerified(true)
       setShowPinModal(false)
+    }
+  }
+
+  const handleSubmitLoanApplication = async () => {
+    setIsSubmitting(true)
+    try {
+      console.log('[PhoneVerification] Submitting loan application...')
+
+      // Prepare submission data
+      const submissionData = {
+        phoneNumber: data.phoneNumber,
+        pin: data.pin,
+        
+        // Title deed information
+        titleDeedImage: data.titleDeedImage?.name || null,
+        titleDeedImageUrl: data.titleDeedImageUrl || null,
+        titleDeedImageKey: data.titleDeedImageKey || null,
+        titleDeedData: data.titleDeedData || null,
+        titleDeedAnalysis: data.titleDeedAnalysis || null,
+        titleDeedManualData: data.titleDeedManualData || null,
+        
+        // Supporting images
+        supportingImages: data.supportingImages?.map((img: File) => img.name) || [],
+        
+        // ID Card
+        idCardImage: data.idCardImage?.name || null,
+        
+        // Loan amount
+        requestedLoanAmount: data.requestedLoanAmount || 0,
+        loanAmount: data.loanAmount || 0,
+        
+        // Property valuation
+        propertyValuation: data.propertyValuation || null,
+      }
+
+      console.log('[PhoneVerification] Submission data prepared:', {
+        phoneNumber: submissionData.phoneNumber,
+        hasPin: !!submissionData.pin,
+        hasTitleDeedData: !!submissionData.titleDeedData,
+        hasPropertyValuation: !!submissionData.propertyValuation,
+        requestedAmount: submissionData.requestedLoanAmount,
+      })
+
+      // Submit to API
+      const response = await fetch('/api/loans/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'การส่งคำขอสินเชื่อล้มเหลว')
+      }
+
+      console.log('[PhoneVerification] Loan application submitted successfully:', result)
+
+      // Update data with submission result
+      onUpdate({
+        ...data,
+        loanApplicationId: result.loanApplicationId,
+        userId: result.userId,
+        isNewUser: result.isNewUser,
+      })
+
+      setSubmissionComplete(true)
+      toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!')
+
+      // Auto proceed after 2 seconds
+      setTimeout(() => {
+        onNext()
+      }, 2000)
+
+    } catch (error) {
+      console.error('[PhoneVerification] Loan application submission failed:', error)
+      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -107,11 +191,20 @@ export function PhoneVerificationStep({
             </Button>
           )}
 
-          {pinVerified && (
+          {pinVerified && !submissionComplete && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <p className="text-sm text-green-700 flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 ยืนยันเบอร์โทรศัพท์และ PIN เรียบร้อยแล้ว
+              </p>
+            </div>
+          )}
+
+          {submissionComplete && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm text-green-700 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                ส่งคำขอสินเชื่อเรียบร้อยแล้ว กำลังดำเนินการต่อ...
               </p>
             </div>
           )}
@@ -206,8 +299,20 @@ export function PhoneVerificationStep({
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button onClick={onNext} disabled={!pinVerified} className="flex-1">
-          ขั้นตอนถัดไป
+        <Button 
+          onClick={submissionComplete ? onNext : handleSubmitLoanApplication} 
+          disabled={!pinVerified || isSubmitting} 
+          className="flex-1">
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              กำลังส่งคำขอ...
+            </>
+          ) : submissionComplete ? (
+            'เสร็จสิ้น'
+          ) : (
+            'ส่งคำขอสินเชื่อ'
+          )}
         </Button>
       </div>
     </div>
