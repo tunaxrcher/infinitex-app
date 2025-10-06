@@ -96,6 +96,7 @@ export function PhoneVerificationStep({
         
         // ID Card
         idCardImage: data.idCardImage?.name || null,
+        idCardImageUrl: data.idCardImageUrl || null, // Add ID card image URL
         
         // Loan amount
         requestedLoanAmount: data.requestedLoanAmount || 0,

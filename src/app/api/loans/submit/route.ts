@@ -8,6 +8,13 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[API] Loan application submission started')
 
+    // Get agent information from headers (set by middleware)
+    const agentId = request.headers.get('x-user-id')
+    const userType = request.headers.get('x-user-type')
+    const isSubmittedByAgent = userType === 'AGENT' && !!agentId
+
+    console.log('[API] Submission context:', { agentId, userType, isSubmittedByAgent })
+
     const body = await request.json()
     const {
       phoneNumber,
@@ -20,6 +27,7 @@ export async function POST(request: NextRequest) {
       titleDeedManualData,
       supportingImages,
       idCardImage,
+      idCardImageUrl, // Add this for uploaded ID card URL
       requestedLoanAmount,
       loanAmount,
       propertyValuation,
@@ -105,21 +113,23 @@ export async function POST(request: NextRequest) {
     const loanApplication = await prisma.loanApplication.create({
       data: {
         customerId: user.id,
+        agentId: isSubmittedByAgent ? agentId : null, // Add agent ID if submitted by agent
         loanType: 'HOUSE_LAND_MORTGAGE',
         status: 'UNDER_REVIEW',
         currentStep: 5, // Completed all steps
         completedSteps: [1, 2, 3, 4, 5],
         isNewUser,
+        submittedByAgent: isSubmittedByAgent, // Set to true if submitted by agent
         
         // Title deed information
         titleDeedImage: titleDeedImageUrl || null,
-        titleDeedData: titleDeedData || null,
+        titleDeedData: titleDeedData || {}, // Use empty object instead of null
         
         // Supporting documents
         supportingImages: supportingImages || [],
         
-        // ID Card
-        idCardFrontImage: idCardImage ? 'pending_upload' : null, // Will be updated after file upload
+        // ID Card - use actual URL if provided
+        idCardFrontImage: idCardImageUrl || (idCardImage ? 'pending_upload' : null),
         
         // Loan amount
         requestedAmount: requestedLoanAmount || 0,
@@ -149,12 +159,15 @@ export async function POST(request: NextRequest) {
     // Create audit log
     await prisma.auditLog.create({
       data: {
+        adminId: isSubmittedByAgent ? agentId : null, // Link to agent if submitted by agent
         action: 'LOAN_APPLICATION_SUBMITTED',
         entity: 'LoanApplication',
         entityId: loanApplication.id,
         newData: {
           userId: user.id,
+          agentId: isSubmittedByAgent ? agentId : null,
           isNewUser,
+          submittedByAgent: isSubmittedByAgent,
           requestedAmount: requestedLoanAmount,
           hasPropertyValuation: !!propertyValuation,
           hasTitleDeedData: !!titleDeedData,
@@ -169,7 +182,9 @@ export async function POST(request: NextRequest) {
       success: true,
       loanApplicationId: loanApplication.id,
       userId: user.id,
+      agentId: isSubmittedByAgent ? agentId : null,
       isNewUser,
+      submittedByAgent: isSubmittedByAgent,
       message: 'ส่งคำขอสินเชื่อเรียบร้อยแล้ว',
     })
 
