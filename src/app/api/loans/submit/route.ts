@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       data: {
         customerId: user.id,
         loanType: 'HOUSE_LAND_MORTGAGE',
-        status: 'PENDING_REVIEW',
+        status: 'UNDER_REVIEW',
         currentStep: 5, // Completed all steps
         completedSteps: [1, 2, 3, 4, 5],
         isNewUser,
