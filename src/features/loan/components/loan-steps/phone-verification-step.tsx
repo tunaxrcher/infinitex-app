@@ -199,9 +199,9 @@ export function PhoneVerificationStep({
               <p className="text-xs text-muted-foreground">
                 เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน
               </p>
-              <p className="text-xs text-muted-foreground">
+              {/* <p className="text-xs text-muted-foreground">
                 {data.phoneNumber?.length || 0}/10
-              </p>
+              </p> */}
             </div>
             {data.phoneNumber && data.phoneNumber.length < 10 && (
               <p className="text-xs text-destructive">

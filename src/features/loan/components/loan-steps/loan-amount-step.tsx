@@ -61,7 +61,7 @@ export function LoanAmountStep({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
-            วงเงินที่ระบบประเมินให้ (จาก AI)
+            วงเงินที่ AI ของระบบประเมินให้
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -100,20 +100,15 @@ export function LoanAmountStep({
               </AlertDescription>
             </Alert>
           ) : (
-            <Alert variant="destructive">
-              <DollarSign className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-2">
-                  <p className="font-medium">
+            <div className="space-y-2 text-warning">
+              {/* <p className="font-medium">
                     ข้อมูลที่ท่านให้ไม่เพียงพอต่อ AI
-                  </p>
-                  <p className="text-sm">
-                    ระบบไม่สามารถประเมินมูลค่าทรัพย์สินได้เนื่องจากข้อมูลไม่เพียงพอ
-                    กรุณาติดต่อเจ้าหน้าที่เพื่อประเมินมูลค่าด้วยตนเอง
-                  </p>
-                </div>
-              </AlertDescription>
-            </Alert>
+                  </p> */}
+              <p className="text-sm">
+                ระบบไม่สามารถประเมินมูลค่าทรัพย์สินได้เนื่องจากข้อมูลไม่เพียงพอ
+                {/* กรุณาติดต่อเจ้าหน้าที่เพื่อประเมินมูลค่าด้วยตนเอง */}
+              </p>
+            </div>
           )}
           <hr />
           <div className="space-y-2">
