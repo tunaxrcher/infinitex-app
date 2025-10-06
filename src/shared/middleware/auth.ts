@@ -6,7 +6,7 @@ import { getToken } from 'next-auth/jwt'
 const customerRoutes = ['/customer']
 const agentRoutes = ['/agent']
 const sharedRoutes = ['/', '/notifications', '/more', '/bills', '/payment']
-const publicRoutes = ['/login', '/about', '/contact']
+const publicRoutes = ['/login', '/about', '/contact', '/customer/apply']
 
 function isRouteMatch(pathname: string, routes: string[]): boolean {
   return routes.some((route) => pathname.startsWith(route))

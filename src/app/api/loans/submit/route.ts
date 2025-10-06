@@ -7,10 +7,11 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[API] Loan application submission started')
 
-    // Get agent information from headers (set by middleware)
-    const agentId = request.headers.get('x-user-id')
+    // Get user information from headers (set by middleware)
+    const userId = request.headers.get('x-user-id')
     const userType = request.headers.get('x-user-type')
-    const isSubmittedByAgent = userType === 'AGENT' && !!agentId
+    const isSubmittedByAgent = userType === 'AGENT' && !!userId
+    const isSubmittedByCustomer = userType === 'CUSTOMER' && !!userId
 
     const body = await request.json()
 
@@ -18,15 +19,17 @@ export async function POST(request: NextRequest) {
     const validatedData = loanApplicationSubmissionSchema.parse(body)
 
     console.log('[API] Submission context:', {
-      agentId,
+      userId,
       userType,
       isSubmittedByAgent,
+      isSubmittedByCustomer,
     })
 
     // Call service layer
     const result = await loanService.submitApplication(
       validatedData,
-      isSubmittedByAgent ? agentId! : undefined
+      isSubmittedByAgent ? userId! : undefined,
+      isSubmittedByCustomer ? userId! : undefined
     )
 
     return NextResponse.json({

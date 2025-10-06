@@ -3,6 +3,8 @@
 import type React from 'react'
 import { useRef, useState } from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import {
@@ -14,6 +16,7 @@ import {
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
 import { CheckCircle, Eye, EyeOff, Loader2, Phone, Shield } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 
 interface PhoneVerificationStepProps {
@@ -21,6 +24,7 @@ interface PhoneVerificationStepProps {
   onUpdate: (data: any) => void
   onNext: () => void
   onPrev: () => void
+  skipPhoneVerification?: boolean // For logged-in users
 }
 
 export function PhoneVerificationStep({
@@ -28,11 +32,17 @@ export function PhoneVerificationStep({
   onUpdate,
   onNext,
   onPrev,
+  skipPhoneVerification = false,
 }: PhoneVerificationStepProps) {
+  const { data: session } = useSession()
+  const router = useRouter()
+
   const [showPinModal, setShowPinModal] = useState(false)
   const [pinDigits, setPinDigits] = useState(['', '', '', ''])
   const [showPin, setShowPin] = useState(false)
-  const [pinVerified, setPinVerified] = useState(false)
+  const [pinVerified, setPinVerified] = useState(
+    skipPhoneVerification || !!session?.user
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionComplete, setSubmissionComplete] = useState(false)
 
@@ -80,8 +90,8 @@ export function PhoneVerificationStep({
 
       // Prepare submission data
       const submissionData = {
-        phoneNumber: data.phoneNumber,
-        pin: data.pin,
+        phoneNumber: session?.user?.phoneNumber || data.phoneNumber,
+        pin: session?.user ? undefined : data.pin, // Don't send PIN for logged-in users
 
         // Title deed information
         titleDeedImage: data.titleDeedImage?.name || null,
@@ -148,7 +158,12 @@ export function PhoneVerificationStep({
 
       // Auto proceed after 2 seconds
       setTimeout(() => {
-        onNext()
+        // Redirect to products page if logged in, otherwise continue flow
+        if (session?.user) {
+          router.push('/customer/products')
+        } else {
+          onNext()
+        }
       }, 2000)
     } catch (error) {
       console.error(
@@ -184,39 +199,64 @@ export function PhoneVerificationStep({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="phoneNumber">เบอร์โทรศัพท์</Label>
-            <Input
-              id="phoneNumber"
-              type="tel"
-              placeholder="0812345678"
-              value={data.phoneNumber || ''}
-              onChange={handlePhoneNumberChange}
-              disabled={pinVerified}
-              maxLength={10}
-            />
-            <div className="flex justify-between items-center">
-              <p className="text-xs text-muted-foreground">
-                เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน
-              </p>
-              {/* <p className="text-xs text-muted-foreground">
-                {data.phoneNumber?.length || 0}/10
-              </p> */}
+          {session?.user ? (
+            // Show logged-in user info
+            <div className="space-y-2">
+              <Label>เบอร์โทรศัพท์ที่ลงทะเบียน</Label>
+              <div className="bg-muted rounded-lg p-3">
+                <p className="text-sm font-medium">
+                  {session.user.phoneNumber}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ใช้เบอร์โทรศัพท์ที่ลงทะเบียนไว้แล้ว
+                </p>
+              </div>
             </div>
-            {data.phoneNumber && data.phoneNumber.length < 10 && (
-              <p className="text-xs text-destructive">
-                เบอร์โทรศัพท์ต้องมี 10 หลัก
-              </p>
-            )}
-          </div>
+          ) : (
+            // Show phone input for non-logged users
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">เบอร์โทรศัพท์</Label>
+              <Input
+                id="phoneNumber"
+                type="tel"
+                placeholder="0812345678"
+                value={data.phoneNumber || ''}
+                onChange={handlePhoneNumberChange}
+                disabled={pinVerified}
+                maxLength={10}
+              />
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-muted-foreground">
+                  เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {data.phoneNumber?.length || 0}/10
+                </p>
+              </div>
+              {data.phoneNumber && data.phoneNumber.length < 10 && (
+                <p className="text-xs text-destructive">
+                  เบอร์โทรศัพท์ต้องมี 10 หลัก
+                </p>
+              )}
+            </div>
+          )}
 
-          {!pinVerified && (
+          {!pinVerified && !session?.user && (
             <Button
               onClick={handleConfirmPhone}
               disabled={!canConfirm}
               className="w-full">
               ยืนยันเบอร์โทรศัพท์
             </Button>
+          )}
+
+          {session?.user && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm text-green-700 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                เข้าสู่ระบบแล้ว พร้อมส่งคำขอสินเชื่อ
+              </p>
+            </div>
           )}
 
           {pinVerified && !submissionComplete && (

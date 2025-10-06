@@ -1,18 +1,27 @@
 'use client'
 
-import { LoanApplicationFlow } from '@src/features/loan/components/loan-application-flow'
+import { CustomerLoanApplicationFlow } from '@src/features/loan/components/customer-loan-application-flow'
 import { BottomNavigation } from '@src/shared/components/bottom-navigation'
 import { MobileHeader } from '@src/shared/components/mobile-header'
-import { CustomerRoute } from '@src/shared/components/route-guard'
+import { PublicRoute } from '@src/shared/components/route-guard'
+import { useSession } from 'next-auth/react'
 
 export default function CustomerApplyPage() {
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
+
   return (
-    <CustomerRoute>
-      <MobileHeader title="ขอสินเชื่อ" showNotifications={false} />
-      <main className="flex-1 pb-20">
-        <LoanApplicationFlow />
+    <PublicRoute>
+      {/* Show header and navigation only for logged-in users */}
+      {isLoggedIn && (
+        <MobileHeader title="ขอสินเชื่อ" showNotifications={false} />
+      )}
+
+      <main className={isLoggedIn ? 'flex-1 pb-20' : 'min-h-screen'}>
+        <CustomerLoanApplicationFlow />
       </main>
-      <BottomNavigation />
-    </CustomerRoute>
+
+      {isLoggedIn && <BottomNavigation />}
+    </PublicRoute>
   )
 }

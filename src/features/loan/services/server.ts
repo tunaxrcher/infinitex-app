@@ -21,44 +21,61 @@ export const loanService = {
    */
   async submitApplication(
     data: LoanApplicationSubmissionSchema,
-    agentId?: string
+    agentId?: string,
+    customerId?: string
   ) {
     console.log('[LoanService] Starting loan application submission')
 
     const isSubmittedByAgent = !!agentId
+    const isSubmittedByLoggedInCustomer = !!customerId
 
     // Step 1: Handle user creation/update
-    let user = await prisma.user.findUnique({
-      where: { phoneNumber: data.phoneNumber },
-      include: { profile: true },
-    })
-
+    let user
     let isNewUser = false
 
-    if (!user) {
-      console.log('[LoanService] Creating new user')
-      isNewUser = true
-
-      const hashedPin = data.pin ? await bcrypt.hash(data.pin, 10) : null
-
-      user = await prisma.user.create({
-        data: {
-          phoneNumber: data.phoneNumber,
-          pin: hashedPin,
-          userType: 'CUSTOMER',
-          profile: {
-            create: {},
-          },
-        },
+    if (isSubmittedByLoggedInCustomer) {
+      // Use existing logged-in customer
+      console.log('[LoanService] Using logged-in customer')
+      user = await prisma.user.findUnique({
+        where: { id: customerId },
         include: { profile: true },
       })
-    } else if (data.pin) {
-      console.log('[LoanService] Updating existing user PIN')
-      const hashedPin = await bcrypt.hash(data.pin, 10)
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { pin: hashedPin },
+
+      if (!user) {
+        throw new Error('ไม่พบข้อมูลผู้ใช้ที่เข้าสู่ระบบ')
+      }
+    } else {
+      // Handle phone-based user creation/update
+      user = await prisma.user.findUnique({
+        where: { phoneNumber: data.phoneNumber },
+        include: { profile: true },
       })
+
+      if (!user) {
+        console.log('[LoanService] Creating new user')
+        isNewUser = true
+
+        const hashedPin = data.pin ? await bcrypt.hash(data.pin, 10) : null
+
+        user = await prisma.user.create({
+          data: {
+            phoneNumber: data.phoneNumber,
+            pin: hashedPin,
+            userType: 'CUSTOMER',
+            profile: {
+              create: {},
+            },
+          },
+          include: { profile: true },
+        })
+      } else if (data.pin) {
+        console.log('[LoanService] Updating existing user PIN')
+        const hashedPin = await bcrypt.hash(data.pin, 10)
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { pin: hashedPin },
+        })
+      }
     }
 
     // Step 2: Prepare property information

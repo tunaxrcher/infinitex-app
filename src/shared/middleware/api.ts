@@ -7,6 +7,10 @@ const publicApiRoutes = [
   '/api/auth', // NextAuth routes
   '/api/health', // Health check
   '/api/public', // Public endpoints
+  '/api/loans/title-deed', // Title deed analysis for public loan applications
+  '/api/loans/id-card', // ID card upload for public loan applications
+  '/api/loans/property', // Property valuation for public loan applications
+  '/api/loans/submit', // Loan submission for public applications
 ]
 
 // API routes that require specific user types
@@ -19,7 +23,7 @@ const customerOnlyApiRoutes = [
 const agentOnlyApiRoutes = ['/api/agent', '/api/customers', '/api/applications']
 
 // API routes that both customer and agent can access
-const sharedApiRoutes = ['/api/loans', '/api/title-deed']
+const sharedApiRoutes = []
 
 function isRouteMatch(pathname: string, routes: string[]): boolean {
   return routes.some((route) => pathname.startsWith(route))
