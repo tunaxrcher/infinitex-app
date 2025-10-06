@@ -2,7 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { loanApi } from './api'
-import { type LoanApplicationSubmissionSchema, type ManualLookupSchema } from './validations'
+import {
+  type LoanApplicationSubmissionSchema,
+  type ManualLookupSchema,
+} from './validations'
 
 export const loanKeys = {
   all: () => ['loans'] as const,
@@ -15,7 +18,8 @@ export const loanKeys = {
  */
 export const useSubmitLoanApplication = () => {
   return useMutation({
-    mutationFn: (data: LoanApplicationSubmissionSchema) => loanApi.submitApplication(data),
+    mutationFn: (data: LoanApplicationSubmissionSchema) =>
+      loanApi.submitApplication(data),
     onSuccess: (result) => {
       toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!')
     },
@@ -42,7 +46,8 @@ export const useAnalyzeTitleDeed = () => {
  */
 export const useManualTitleDeedLookup = () => {
   return useMutation({
-    mutationFn: (data: ManualLookupSchema) => loanApi.manualTitleDeedLookup(data),
+    mutationFn: (data: ManualLookupSchema) =>
+      loanApi.manualTitleDeedLookup(data),
     onSuccess: () => {
       toast.success('ค้นหาข้อมูลโฉนดสำเร็จ')
     },
@@ -72,11 +77,20 @@ export const useUploadIdCard = () => {
  */
 export const useEvaluatePropertyValue = () => {
   return useMutation({
-    mutationFn: ({ titleDeedImage, titleDeedData, supportingImages }: {
+    mutationFn: ({
+      titleDeedImage,
+      titleDeedData,
+      supportingImages,
+    }: {
       titleDeedImage: File
       titleDeedData: any
       supportingImages?: File[]
-    }) => loanApi.evaluatePropertyValue(titleDeedImage, titleDeedData, supportingImages),
+    }) =>
+      loanApi.evaluatePropertyValue(
+        titleDeedImage,
+        titleDeedData,
+        supportingImages
+      ),
     onSuccess: () => {
       toast.success('ประเมินมูลค่าทรัพย์สินสำเร็จ')
     },
@@ -115,10 +129,17 @@ export const useGetLoanById = (id: string) => {
  */
 export const useUpdateLoanStatus = () => {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: ({ id, status, reviewNotes }: { id: string; status: string; reviewNotes?: string }) => 
-      loanApi.updateStatus(id, status, reviewNotes),
+    mutationFn: ({
+      id,
+      status,
+      reviewNotes,
+    }: {
+      id: string
+      status: string
+      reviewNotes?: string
+    }) => loanApi.updateStatus(id, status, reviewNotes),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: loanKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: loanKeys.all() })

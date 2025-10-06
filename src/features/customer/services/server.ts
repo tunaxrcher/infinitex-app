@@ -1,19 +1,21 @@
+import { prisma } from '@src/shared/lib/db'
 import 'server-only'
 
-import { prisma } from '@src/shared/lib/db'
-
 import { customerRepository } from '../repositories/customerRepository'
-import { type CustomerCreateSchema, type CustomerUpdateSchema } from '../validations'
+import {
+  type CustomerCreateSchema,
+  type CustomerUpdateSchema,
+} from '../validations'
 
 export const customerService = {
   async getListByAgent(agentId: string, filters: any = {}) {
     try {
       const agentCustomers = await customerRepository.findByAgentId(agentId)
-      
+
       // Transform data for frontend
-      const customers = agentCustomers.map(ac => ({
+      const customers = agentCustomers.map((ac) => ({
         id: ac.customer.id,
-        name: ac.customer.profile 
+        name: ac.customer.profile
           ? `${ac.customer.profile.firstName || ''} ${ac.customer.profile.lastName || ''}`.trim()
           : 'ไม่ระบุชื่อ',
         phoneNumber: ac.customer.phoneNumber,
@@ -28,9 +30,10 @@ export const customerService = {
       // Apply search filter if provided
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase()
-        return customers.filter(customer => 
-          customer.name.toLowerCase().includes(searchTerm) ||
-          customer.phoneNumber.includes(searchTerm)
+        return customers.filter(
+          (customer) =>
+            customer.name.toLowerCase().includes(searchTerm) ||
+            customer.phoneNumber.includes(searchTerm)
         )
       }
 
@@ -53,9 +56,10 @@ export const customerService = {
     try {
       // Normalize phone number (remove all non-digits)
       const normalizedPhone = data.phoneNumber.replace(/\D/g, '')
-      
+
       // Check if phone number already exists
-      const existingCustomer = await customerRepository.findByPhoneNumber(normalizedPhone)
+      const existingCustomer =
+        await customerRepository.findByPhoneNumber(normalizedPhone)
       if (existingCustomer) {
         throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว')
       }
@@ -70,21 +74,21 @@ export const customerService = {
               profile: {
                 firstName: data.firstName,
                 lastName: data.lastName || null,
-              }
-            }
+              },
+            },
           },
           include: {
             customer: {
               include: {
-                profile: true
-              }
-            }
-          }
+                profile: true,
+              },
+            },
+          },
         })
 
         if (existingName) {
-          const fullName = data.lastName 
-            ? `${data.firstName} ${data.lastName}` 
+          const fullName = data.lastName
+            ? `${data.firstName} ${data.lastName}`
             : data.firstName
           throw new Error(`ลูกค้าชื่อ "${fullName}" มีอยู่ในระบบแล้ว`)
         }
@@ -112,7 +116,10 @@ export const customerService = {
       }
 
       // Create customer with profile
-      const customer = await customerRepository.createWithProfile(customerData, profileData)
+      const customer = await customerRepository.createWithProfile(
+        customerData,
+        profileData
+      )
 
       // If agentId is provided, create agent-customer relationship
       if (agentId) {
@@ -121,7 +128,7 @@ export const customerService = {
             agentId,
             customerId: customer.id,
             isActive: true,
-          }
+          },
         })
       }
 
@@ -143,8 +150,13 @@ export const customerService = {
       }
 
       // Check if phone number is being changed and already exists
-      if (data.phoneNumber && data.phoneNumber !== existingCustomer.phoneNumber) {
-        const phoneExists = await customerRepository.findByPhoneNumber(data.phoneNumber)
+      if (
+        data.phoneNumber &&
+        data.phoneNumber !== existingCustomer.phoneNumber
+      ) {
+        const phoneExists = await customerRepository.findByPhoneNumber(
+          data.phoneNumber
+        )
         if (phoneExists) {
           throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว')
         }
@@ -158,8 +170,12 @@ export const customerService = {
       const profileUpdate: any = {}
       if (data.firstName !== undefined) profileUpdate.firstName = data.firstName
       if (data.lastName !== undefined) profileUpdate.lastName = data.lastName
-      if (data.idCardNumber !== undefined) profileUpdate.idCardNumber = data.idCardNumber
-      if (data.dateOfBirth !== undefined) profileUpdate.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null
+      if (data.idCardNumber !== undefined)
+        profileUpdate.idCardNumber = data.idCardNumber
+      if (data.dateOfBirth !== undefined)
+        profileUpdate.dateOfBirth = data.dateOfBirth
+          ? new Date(data.dateOfBirth)
+          : null
       if (data.address !== undefined) profileUpdate.address = data.address
       if (data.email !== undefined) profileUpdate.email = data.email
       if (data.lineId !== undefined) profileUpdate.lineId = data.lineId
@@ -169,12 +185,12 @@ export const customerService = {
         data: {
           ...customerUpdate,
           profile: {
-            update: profileUpdate
-          }
+            update: profileUpdate,
+          },
         },
         include: {
-          profile: true
-        }
+          profile: true,
+        },
       })
     } catch (error) {
       console.error('Error updating customer:', error)
@@ -193,7 +209,7 @@ export const customerService = {
         data: {
           isActive: false,
           updatedAt: new Date(),
-        }
+        },
       })
     } catch (error) {
       console.error('Error deleting customer:', error)
@@ -208,9 +224,9 @@ export const customerService = {
         where: {
           agentId_customerId: {
             agentId,
-            customerId
-          }
-        }
+            customerId,
+          },
+        },
       })
 
       if (existing) {
@@ -218,7 +234,7 @@ export const customerService = {
         if (!existing.isActive) {
           return prisma.agentCustomer.update({
             where: { id: existing.id },
-            data: { isActive: true }
+            data: { isActive: true },
           })
         }
         throw new Error('ลูกค้านี้อยู่ภายใต้ Agent นี้อยู่แล้ว')
@@ -230,7 +246,7 @@ export const customerService = {
           agentId,
           customerId,
           isActive: true,
-        }
+        },
       })
     } catch (error) {
       console.error('Error assigning customer to agent:', error)

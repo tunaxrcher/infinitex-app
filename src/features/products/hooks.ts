@@ -7,7 +7,8 @@ import { type ProductsFiltersSchema } from './validations'
 
 export const loanKeys = {
   all: () => ['loans'] as const,
-  list: (filters?: ProductsFiltersSchema) => ['loans', 'list', filters] as const,
+  list: (filters?: ProductsFiltersSchema) =>
+    ['loans', 'list', filters] as const,
   detail: (id: string) => ['loans', 'detail', id] as const,
   customer: (customerId: string) => ['loans', 'customer', customerId] as const,
   agent: (agentId: string) => ['loans', 'agent', agentId] as const,
@@ -82,7 +83,8 @@ export const useCreateLoan = () => {
 export const useUpdateLoan = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => loanApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      loanApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: loanKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: loanKeys.list() })

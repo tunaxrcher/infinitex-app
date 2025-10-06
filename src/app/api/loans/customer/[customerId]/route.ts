@@ -1,5 +1,6 @@
 // src/app/api/loans/customer/[customerId]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+
 import { loanService } from '../../../../../features/products/services/server'
 
 interface RouteParams {

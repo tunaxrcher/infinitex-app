@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+
 import { loanService } from '@src/features/loan/services/server'
 
 export async function POST(request: NextRequest) {
@@ -15,7 +16,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[API] File received:', { name: file.name, type: file.type, size: file.size })
+    console.log('[API] File received:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    })
 
     // Call service layer
     const result = await loanService.analyzeTitleDeed(file)
@@ -24,7 +29,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[API] Title deed analysis failed:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการวิเคราะห์โฉนด' },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'เกิดข้อผิดพลาดในการวิเคราะห์โฉนด',
+      },
       { status: 500 }
     )
   }

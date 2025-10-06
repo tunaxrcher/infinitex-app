@@ -3,11 +3,14 @@
 import type React from 'react'
 import { useState } from 'react'
 
-import { useCreateCustomer, useGetCustomerListByAgent } from '@src/features/customer/hooks'
+import {
+  useCreateCustomer,
+  useGetCustomerListByAgent,
+} from '@src/features/customer/hooks'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import { Input } from '@src/shared/ui/input'
-import { Phone, Plus, Search, User, Loader2 } from 'lucide-react'
+import { Loader2, Phone, Plus, Search, User } from 'lucide-react'
 
 interface AgentCustomerSelectionStepProps {
   data: any
@@ -16,7 +19,6 @@ interface AgentCustomerSelectionStepProps {
   onPrev: () => void
   isFirstStep: boolean
 }
-
 
 export function AgentCustomerSelectionStep({
   data,
@@ -34,8 +36,12 @@ export function AgentCustomerSelectionStep({
   const [newCustomerName, setNewCustomerName] = useState('')
 
   // Fetch customers for current agent
-  const { data: customers = [], isLoading, error } = useGetCustomerListByAgent({
-    search: searchTerm.length >= 2 ? searchTerm : undefined
+  const {
+    data: customers = [],
+    isLoading,
+    error,
+  } = useGetCustomerListByAgent({
+    search: searchTerm.length >= 2 ? searchTerm : undefined,
   })
 
   // Create customer mutation
@@ -73,7 +79,8 @@ export function AgentCustomerSelectionStep({
           customerData.lastName = lastName
         }
 
-        const newCustomer = await createCustomerMutation.mutateAsync(customerData)
+        const newCustomer =
+          await createCustomerMutation.mutateAsync(customerData)
 
         setSelectedCustomer(newCustomer.id)
         onUpdate({
@@ -110,7 +117,6 @@ export function AgentCustomerSelectionStep({
 
   const canProceed = selectedCustomer !== null
 
-
   return (
     <div className="space-y-6">
       <Card>
@@ -136,14 +142,18 @@ export function AgentCustomerSelectionStep({
           {isLoading && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-2 text-sm text-muted-foreground">กำลังโหลดข้อมูลลูกค้า...</span>
+              <span className="ml-2 text-sm text-muted-foreground">
+                กำลังโหลดข้อมูลลูกค้า...
+              </span>
             </div>
           )}
 
           {/* Error State */}
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า</p>
+              <p className="text-sm text-red-600">
+                เกิดข้อผิดพลาดในการโหลดข้อมูลลูกค้า
+              </p>
             </div>
           )}
 
@@ -152,7 +162,9 @@ export function AgentCustomerSelectionStep({
             <div className="space-y-2">
               {filteredCustomers.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  {searchTerm.length >= 2 ? 'ไม่พบลูกค้าที่ค้นหา' : 'ยังไม่มีลูกค้า'}
+                  {searchTerm.length >= 2
+                    ? 'ไม่พบลูกค้าที่ค้นหา'
+                    : 'ยังไม่มีลูกค้า'}
                 </div>
               ) : (
                 filteredCustomers.map((customer) => (
@@ -215,8 +227,8 @@ export function AgentCustomerSelectionStep({
                       size="sm"
                       onClick={handleNewCustomer}
                       disabled={
-                        !newCustomerName.trim() || 
-                        !newCustomerPhone.trim() || 
+                        !newCustomerName.trim() ||
+                        !newCustomerPhone.trim() ||
                         createCustomerMutation.isPending
                       }
                       className="flex-1">

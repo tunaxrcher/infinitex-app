@@ -25,8 +25,9 @@ export function LoanAmountStep({
 }: LoanAmountStepProps) {
   // Use AI valuation if available, otherwise use default
   const systemEvaluatedAmount = data.propertyValuation?.estimatedValue || 0
-  const hasAIValuation = data.propertyValuation && data.propertyValuation.estimatedValue > 0
-  
+  const hasAIValuation =
+    data.propertyValuation && data.propertyValuation.estimatedValue > 0
+
   const [requestedAmount, setRequestedAmount] = useState(
     data.requestedLoanAmount || ''
   )
@@ -80,7 +81,9 @@ export function LoanAmountStep({
 
                   {data.propertyValuation.reasoning && (
                     <div className="pt-2 border-t">
-                      <p className="text-sm font-medium mb-1">เหตุผลการประเมิน:</p>
+                      <p className="text-sm font-medium mb-1">
+                        เหตุผลการประเมิน:
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {data.propertyValuation.reasoning}
                       </p>
@@ -101,7 +104,9 @@ export function LoanAmountStep({
               <DollarSign className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-2">
-                  <p className="font-medium">ข้อมูลที่ท่านให้ไม่เพียงพอต่อ AI</p>
+                  <p className="font-medium">
+                    ข้อมูลที่ท่านให้ไม่เพียงพอต่อ AI
+                  </p>
                   <p className="text-sm">
                     ระบบไม่สามารถประเมินมูลค่าทรัพย์สินได้เนื่องจากข้อมูลไม่เพียงพอ
                     กรุณาติดต่อเจ้าหน้าที่เพื่อประเมินมูลค่าด้วยตนเอง

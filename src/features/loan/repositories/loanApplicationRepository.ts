@@ -1,10 +1,16 @@
 import { PrismaClient } from '@prisma/client'
+import type {
+  ApplicationStatus,
+  LoanApplication,
+  LoanType,
+} from '@prisma/client'
 import { BaseRepository } from '@src/shared/repositories/baseRepository'
-import type { LoanApplication, ApplicationStatus, LoanType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export class LoanApplicationRepository extends BaseRepository<typeof prisma.loanApplication> {
+export class LoanApplicationRepository extends BaseRepository<
+  typeof prisma.loanApplication
+> {
   constructor() {
     super(prisma.loanApplication)
   }
@@ -16,24 +22,24 @@ export class LoanApplicationRepository extends BaseRepository<typeof prisma.loan
     return this.model.findFirst({
       where: {
         customer: {
-          phoneNumber
-        }
+          phoneNumber,
+        },
       },
       include: {
         customer: {
           include: {
-            profile: true
-          }
+            profile: true,
+          },
         },
         agent: {
           include: {
-            profile: true
-          }
-        }
+            profile: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     })
   }
 
@@ -43,18 +49,18 @@ export class LoanApplicationRepository extends BaseRepository<typeof prisma.loan
   async findByAgentId(agentId: string) {
     return this.model.findMany({
       where: {
-        agentId
+        agentId,
       },
       include: {
         customer: {
           include: {
-            profile: true
-          }
-        }
+            profile: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     })
   }
 
@@ -67,16 +73,16 @@ export class LoanApplicationRepository extends BaseRepository<typeof prisma.loan
       include: {
         customer: {
           include: {
-            profile: true
-          }
+            profile: true,
+          },
         },
         agent: {
           include: {
-            profile: true
-          }
-        }
+            profile: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     })
   }
 
@@ -92,22 +98,22 @@ export class LoanApplicationRepository extends BaseRepository<typeof prisma.loan
     completedSteps: number[]
     isNewUser: boolean
     submittedByAgent: boolean
-    
+
     // Title deed information
     titleDeedImage?: string
     titleDeedData?: any
-    
+
     // Supporting documents
     supportingImages?: string[]
-    
+
     // ID Card
     idCardFrontImage?: string
     idCardBackImage?: string
-    
+
     // Loan amount
     requestedAmount: number
     maxApprovedAmount?: number
-    
+
     // Property information
     propertyType?: string
     propertyValue?: number
@@ -115,7 +121,7 @@ export class LoanApplicationRepository extends BaseRepository<typeof prisma.loan
     propertyLocation?: string
     landNumber?: string
     ownerName?: string
-    
+
     // Submission timestamp
     submittedAt?: Date
   }) {
@@ -129,22 +135,27 @@ export class LoanApplicationRepository extends BaseRepository<typeof prisma.loan
       include: {
         customer: {
           include: {
-            profile: true
-          }
+            profile: true,
+          },
         },
         agent: {
           include: {
-            profile: true
-          }
-        }
-      }
+            profile: true,
+          },
+        },
+      },
     })
   }
 
   /**
    * Update application status
    */
-  async updateStatus(id: string, status: ApplicationStatus, reviewedBy?: string, reviewNotes?: string) {
+  async updateStatus(
+    id: string,
+    status: ApplicationStatus,
+    reviewedBy?: string,
+    reviewNotes?: string
+  ) {
     return this.model.update({
       where: { id },
       data: {
@@ -152,7 +163,7 @@ export class LoanApplicationRepository extends BaseRepository<typeof prisma.loan
         reviewedAt: new Date(),
         reviewedBy,
         reviewNotes,
-      }
+      },
     })
   }
 }

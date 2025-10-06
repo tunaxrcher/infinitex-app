@@ -13,13 +13,17 @@ export const customerFiltersSchema = baseTableSchema.extend({
 export type CustomerFiltersSchema = z.infer<typeof customerFiltersSchema>
 
 export const customerCreateSchema = z.object({
-  phoneNumber: z.string()
+  phoneNumber: z
+    .string()
     .min(10, 'กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก')
     .refine((val) => {
       const cleaned = val.replace(/\D/g, '')
       return cleaned.length === 10 && cleaned.startsWith('0')
     }, 'เบอร์โทรศัพท์ต้องเป็น 10 หลักและขึ้นต้นด้วย 0'),
-  firstName: z.string().min(1, 'กรุณากรอกชื่อ').max(50, 'ชื่อต้องไม่เกิน 50 ตัวอักษร'),
+  firstName: z
+    .string()
+    .min(1, 'กรุณากรอกชื่อ')
+    .max(50, 'ชื่อต้องไม่เกิน 50 ตัวอักษร'),
   lastName: z.string().max(50, 'นามสกุลต้องไม่เกิน 50 ตัวอักษร').optional(), // ทำให้นามสกุลเป็น optional
   idCardNumber: z.string().optional(),
   dateOfBirth: z.string().optional(),
@@ -39,4 +43,6 @@ export const agentCustomerAssignSchema = z.object({
   customerId: z.string().min(1, 'กรุณาเลือกลูกค้า'),
 })
 
-export type AgentCustomerAssignSchema = z.infer<typeof agentCustomerAssignSchema>
+export type AgentCustomerAssignSchema = z.infer<
+  typeof agentCustomerAssignSchema
+>

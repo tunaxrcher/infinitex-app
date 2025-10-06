@@ -13,7 +13,7 @@ import {
 } from '@src/shared/ui/dialog'
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
-import { Eye, EyeOff, Phone, Shield, Loader2, CheckCircle } from 'lucide-react'
+import { CheckCircle, Eye, EyeOff, Loader2, Phone, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface PhoneVerificationStepProps {
@@ -82,7 +82,7 @@ export function PhoneVerificationStep({
       const submissionData = {
         phoneNumber: data.phoneNumber,
         pin: data.pin,
-        
+
         // Title deed information
         titleDeedImage: data.titleDeedImage?.name || null,
         titleDeedImageUrl: data.titleDeedImageUrl || null,
@@ -90,18 +90,19 @@ export function PhoneVerificationStep({
         titleDeedData: data.titleDeedData || null,
         titleDeedAnalysis: data.titleDeedAnalysis || null,
         titleDeedManualData: data.titleDeedManualData || null,
-        
+
         // Supporting images
-        supportingImages: data.supportingImages?.map((img: File) => img.name) || [],
-        
+        supportingImages:
+          data.supportingImages?.map((img: File) => img.name) || [],
+
         // ID Card
         idCardImage: data.idCardImage?.name || null,
         idCardImageUrl: data.idCardImageUrl || null, // Add ID card image URL
-        
+
         // Loan amount
         requestedLoanAmount: data.requestedLoanAmount || 0,
         loanAmount: data.loanAmount || 0,
-        
+
         // Property valuation
         propertyValuation: data.propertyValuation || null,
       }
@@ -129,7 +130,10 @@ export function PhoneVerificationStep({
         throw new Error(result.error || 'การส่งคำขอสินเชื่อล้มเหลว')
       }
 
-      console.log('[PhoneVerification] Loan application submitted successfully:', result)
+      console.log(
+        '[PhoneVerification] Loan application submitted successfully:',
+        result
+      )
 
       // Update data with submission result
       onUpdate({
@@ -146,16 +150,28 @@ export function PhoneVerificationStep({
       setTimeout(() => {
         onNext()
       }, 2000)
-
     } catch (error) {
-      console.error('[PhoneVerification] Loan application submission failed:', error)
-      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ')
+      console.error(
+        '[PhoneVerification] Loan application submission failed:',
+        error
+      )
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ'
+      )
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const canConfirm = data.phoneNumber && data.phoneNumber.length >= 10
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow numbers and limit to 10 digits
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10)
+    onUpdate({ phoneNumber: value })
+  }
+
+  const canConfirm = data.phoneNumber && data.phoneNumber.length === 10
   const isPinComplete = pinDigits.every((digit) => digit !== '')
 
   return (
@@ -173,14 +189,25 @@ export function PhoneVerificationStep({
             <Input
               id="phoneNumber"
               type="tel"
-              placeholder="081-234-5678"
+              placeholder="0812345678"
               value={data.phoneNumber || ''}
-              onChange={(e) => onUpdate({ phoneNumber: e.target.value })}
+              onChange={handlePhoneNumberChange}
               disabled={pinVerified}
+              maxLength={10}
             />
-            <p className="text-xs text-muted-foreground">
-              เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน
-            </p>
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-muted-foreground">
+                เบอร์โทรศัพท์นี้จะใช้สำหรับเข้าสู่ระบบและรับการแจ้งเตือน
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {data.phoneNumber?.length || 0}/10
+              </p>
+            </div>
+            {data.phoneNumber && data.phoneNumber.length < 10 && (
+              <p className="text-xs text-destructive">
+                เบอร์โทรศัพท์ต้องมี 10 หลัก
+              </p>
+            )}
           </div>
 
           {!pinVerified && (
@@ -300,9 +327,9 @@ export function PhoneVerificationStep({
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button 
-          onClick={submissionComplete ? onNext : handleSubmitLoanApplication} 
-          disabled={!pinVerified || isSubmitting} 
+        <Button
+          onClick={submissionComplete ? onNext : handleSubmitLoanApplication}
+          disabled={!pinVerified || isSubmitting}
           className="flex-1">
           {isSubmitting ? (
             <>

@@ -3,14 +3,15 @@
 import type React from 'react'
 import { useState } from 'react'
 
+import amphurData from '@src/data/amphur.json'
+import provinceData from '@src/data/province.json'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@src/shared/ui/tooltip'
-import { Camera, FileText, Info, Upload, X, Loader2 } from 'lucide-react'
-import { TitleDeedManualInputModal } from '../title-deed-manual-input-modal'
-import provinceData from '@src/data/province.json'
-import amphurData from '@src/data/amphur.json'
+import { Camera, FileText, Info, Loader2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
+
+import { TitleDeedManualInputModal } from '../title-deed-manual-input-modal'
 
 interface TitleDeedUploadStepProps {
   data: any
@@ -121,13 +122,21 @@ export function TitleDeedUploadStep({
       }
     } catch (error) {
       console.error('[TitleDeed] Upload/analysis failed:', error)
-      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการวิเคราะห์โฉนด')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'เกิดข้อผิดพลาดในการวิเคราะห์โฉนด'
+      )
     } finally {
       setIsAnalyzing(false)
     }
   }
 
-  const handleManualConfirm = async (manualData: { pvCode: string; amCode: string; parcelNo: string }) => {
+  const handleManualConfirm = async (manualData: {
+    pvCode: string
+    amCode: string
+    parcelNo: string
+  }) => {
     try {
       console.log('[TitleDeed] Manual lookup:', manualData)
 
@@ -158,11 +167,19 @@ export function TitleDeedUploadStep({
       onNext() // Proceed to next step
     } catch (error) {
       console.error('[TitleDeed] Manual lookup failed:', error)
-      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการค้นหาข้อมูลโฉนด')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'เกิดข้อผิดพลาดในการค้นหาข้อมูลโฉนด'
+      )
     }
   }
 
-  const handleManualSkip = (formData?: { pvCode: string; amCode: string; parcelNo: string }) => {
+  const handleManualSkip = (formData?: {
+    pvCode: string
+    amCode: string
+    parcelNo: string
+  }) => {
     // If form data is provided, save it as manual analysis result
     if (formData && (formData.pvCode || formData.amCode || formData.parcelNo)) {
       const manualAnalysisResult = {
@@ -174,8 +191,12 @@ export function TitleDeedUploadStep({
       }
 
       // Find province and amphur names for display
-      const provinceName = provinceData.find(p => p.pvcode === formData.pvCode)?.pvnamethai || ''
-      const amphurName = amphurData.find(a => a.pvcode === formData.pvCode && a.amcode === formData.amCode)?.amnamethai || ''
+      const provinceName =
+        provinceData.find((p) => p.pvcode === formData.pvCode)?.pvnamethai || ''
+      const amphurName =
+        amphurData.find(
+          (a) => a.pvcode === formData.pvCode && a.amcode === formData.amCode
+        )?.amnamethai || ''
 
       onUpdate({
         ...data,
@@ -190,7 +211,7 @@ export function TitleDeedUploadStep({
           parcelNo: formData.parcelNo,
           pvName: provinceName,
           amName: amphurName,
-        }
+        },
       })
 
       toast.info('บันทึกข้อมูลโฉนดที่กรอกไว้แล้ว')
@@ -213,8 +234,8 @@ export function TitleDeedUploadStep({
   }
 
   const removeImage = () => {
-    onUpdate({ 
-      titleDeedImage: null, 
+    onUpdate({
+      titleDeedImage: null,
       titleDeedData: null,
       titleDeedAnalysis: null,
       titleDeedImageUrl: null,
@@ -264,7 +285,11 @@ export function TitleDeedUploadStep({
             </p>
 
             <div className="flex gap-2 justify-center">
-              <Button variant="outline" size="sm" asChild disabled={isAnalyzing}>
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                disabled={isAnalyzing}>
                 <label className="cursor-pointer">
                   {isAnalyzing ? (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -321,7 +346,10 @@ export function TitleDeedUploadStep({
             ย้อนกลับ
           </Button>
         )}
-        <Button onClick={handleNextStep} disabled={!canProceed || isAnalyzing} className="flex-1">
+        <Button
+          onClick={handleNextStep}
+          disabled={!canProceed || isAnalyzing}
+          className="flex-1">
           {isAnalyzing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

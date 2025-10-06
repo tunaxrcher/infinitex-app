@@ -13,49 +13,66 @@ export type TitleDeedAnalysisSchema = z.infer<typeof titleDeedAnalysisSchema>
 
 // Property valuation schema
 export const propertyValuationSchema = z.object({
-  estimatedValue: z.number().min(0).describe('มูลค่าประเมินของทรัพย์สินในหน่วยบาท'),
-  reasoning: z.string().describe('เหตุผลและการวิเคราะห์ที่ใช้ในการประเมินมูลค่า'),
-  confidence: z.number().min(0).max(100).describe('ระดับความมั่นใจในการประเมิน (0-100)'),
+  estimatedValue: z
+    .number()
+    .min(0)
+    .describe('มูลค่าประเมินของทรัพย์สินในหน่วยบาท'),
+  reasoning: z
+    .string()
+    .describe('เหตุผลและการวิเคราะห์ที่ใช้ในการประเมินมูลค่า'),
+  confidence: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe('ระดับความมั่นใจในการประเมิน (0-100)'),
 })
 
 export type PropertyValuationSchema = z.infer<typeof propertyValuationSchema>
 
 // Loan application submission schema
 export const loanApplicationSubmissionSchema = z.object({
-  phoneNumber: z.string().min(10, 'เบอร์โทรศัพท์ต้องมีอย่างน้อย 10 หลัก'),
+  phoneNumber: z
+    .string()
+    .length(10, 'เบอร์โทรศัพท์ต้องมี 10 หลักเท่านั้น')
+    .regex(/^[0-9]+$/, 'เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น'),
   pin: z.string().length(4, 'PIN ต้องมี 4 หลัก').optional(),
-  
+
   // Title deed information
   titleDeedImage: z.string().nullable().optional(),
   titleDeedImageUrl: z.string().url().nullable().optional(),
   titleDeedImageKey: z.string().nullable().optional(),
   titleDeedData: z.any().nullable().optional(),
   titleDeedAnalysis: titleDeedAnalysisSchema.nullable().optional(),
-  titleDeedManualData: z.object({
-    pvCode: z.string(),
-    amCode: z.string(),
-    parcelNo: z.string(),
-    pvName: z.string(),
-    amName: z.string(),
-  }).nullable().optional(),
-  
+  titleDeedManualData: z
+    .object({
+      pvCode: z.string(),
+      amCode: z.string(),
+      parcelNo: z.string(),
+      pvName: z.string(),
+      amName: z.string(),
+    })
+    .nullable()
+    .optional(),
+
   // Supporting images
   supportingImages: z.array(z.string()).default([]),
-  
+
   // ID Card
   idCardImage: z.string().nullable().optional(),
   idCardImageUrl: z.string().url().nullable().optional(),
   idCardImageKey: z.string().nullable().optional(),
-  
+
   // Loan amount
   requestedLoanAmount: z.number().min(1, 'ยอดเงินที่ขอต้องมากกว่า 0'),
   loanAmount: z.number().min(0).default(0),
-  
+
   // Property valuation
   propertyValuation: propertyValuationSchema.nullable().optional(),
 })
 
-export type LoanApplicationSubmissionSchema = z.infer<typeof loanApplicationSubmissionSchema>
+export type LoanApplicationSubmissionSchema = z.infer<
+  typeof loanApplicationSubmissionSchema
+>
 
 // Manual lookup schema
 export const manualLookupSchema = z.object({

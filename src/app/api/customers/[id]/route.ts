@@ -13,7 +13,7 @@ export async function GET(
   } catch (error) {
     console.error(`GET /api/customers/${params.id} error:`, error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' }, 
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     )
   }
@@ -25,24 +25,24 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
-    
+
     // Validate request body
     const validatedData = customerUpdateSchema.parse(body)
-    
+
     const result = await customerService.update(params.id, validatedData)
     return NextResponse.json(result)
   } catch (error) {
     console.error(`PUT /api/customers/${params.id} error:`, error)
-    
+
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(
-        { error: 'ข้อมูลไม่ถูกต้อง', details: error.message }, 
+        { error: 'ข้อมูลไม่ถูกต้อง', details: error.message },
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' }, 
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     )
   }
@@ -58,7 +58,7 @@ export async function DELETE(
   } catch (error) {
     console.error(`DELETE /api/customers/${params.id} error:`, error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' }, 
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     )
   }

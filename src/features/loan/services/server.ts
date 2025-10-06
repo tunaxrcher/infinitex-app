@@ -1,14 +1,17 @@
-import 'server-only'
-
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-import { loanApplicationRepository } from '../repositories/loanApplicationRepository'
-import { type LoanApplicationSubmissionSchema, type ManualLookupSchema } from '../validations'
+import amphurData from '@src/data/amphur.json'
+import provinceData from '@src/data/province.json'
+import LandsMapsAPI from '@src/shared/lib/LandsMapsAPI'
 import { aiService } from '@src/shared/lib/ai-services'
 import { storage } from '@src/shared/lib/storage'
-import LandsMapsAPI from '@src/shared/lib/LandsMapsAPI'
-import provinceData from '@src/data/province.json'
-import amphurData from '@src/data/amphur.json'
+import bcrypt from 'bcryptjs'
+import 'server-only'
+
+import { loanApplicationRepository } from '../repositories/loanApplicationRepository'
+import {
+  type LoanApplicationSubmissionSchema,
+  type ManualLookupSchema,
+} from '../validations'
 
 const prisma = new PrismaClient()
 
@@ -16,7 +19,10 @@ export const loanService = {
   /**
    * Submit loan application with complete workflow
    */
-  async submitApplication(data: LoanApplicationSubmissionSchema, agentId?: string) {
+  async submitApplication(
+    data: LoanApplicationSubmissionSchema,
+    agentId?: string
+  ) {
     console.log('[LoanService] Starting loan application submission')
 
     const isSubmittedByAgent = !!agentId
@@ -24,7 +30,7 @@ export const loanService = {
     // Step 1: Handle user creation/update
     let user = await prisma.user.findUnique({
       where: { phoneNumber: data.phoneNumber },
-      include: { profile: true }
+      include: { profile: true },
     })
 
     let isNewUser = false
@@ -32,26 +38,26 @@ export const loanService = {
     if (!user) {
       console.log('[LoanService] Creating new user')
       isNewUser = true
-      
+
       const hashedPin = data.pin ? await bcrypt.hash(data.pin, 10) : null
-      
+
       user = await prisma.user.create({
         data: {
           phoneNumber: data.phoneNumber,
           pin: hashedPin,
           userType: 'CUSTOMER',
           profile: {
-            create: {}
-          }
+            create: {},
+          },
         },
-        include: { profile: true }
+        include: { profile: true },
       })
     } else if (data.pin) {
       console.log('[LoanService] Updating existing user PIN')
       const hashedPin = await bcrypt.hash(data.pin, 10)
       await prisma.user.update({
         where: { id: user.id },
-        data: { pin: hashedPin }
+        data: { pin: hashedPin },
       })
     }
 
@@ -72,25 +78,25 @@ export const loanService = {
       completedSteps: [1, 2, 3, 4, 5],
       isNewUser,
       submittedByAgent: isSubmittedByAgent,
-      
+
       // Title deed information
       titleDeedImage: data.titleDeedImageUrl,
       titleDeedData: data.titleDeedData || {},
-      
+
       // Supporting documents
       supportingImages: data.supportingImages,
-      
+
       // ID Card
       idCardFrontImage: data.idCardImageUrl,
-      
+
       // Loan amount
       requestedAmount: data.requestedLoanAmount,
       maxApprovedAmount: data.loanAmount,
-      
+
       // Property information
       ...propertyInfo,
       propertyValue: data.propertyValuation?.estimatedValue,
-      
+
       // Submission timestamp
       submittedAt: new Date(),
     })
@@ -111,11 +117,14 @@ export const loanService = {
         where: { id: user.profile.id },
         data: {
           idCardFrontImage: data.idCardImageUrl,
-        }
+        },
       })
     }
 
-    console.log('[LoanService] Loan application created successfully:', loanApplication.id)
+    console.log(
+      '[LoanService] Loan application created successfully:',
+      loanApplication.id
+    )
 
     return {
       loanApplicationId: loanApplication.id,
@@ -139,14 +148,10 @@ export const loanService = {
     // Step 1: Upload to storage
     let uploadResult
     try {
-      uploadResult = await storage.uploadFile(
-        buffer,
-        file.type,
-        {
-          folder: 'title-deeds',
-          filename: `title_deed_${Date.now()}_${file.name}`,
-        }
-      )
+      uploadResult = await storage.uploadFile(buffer, file.type, {
+        folder: 'title-deeds',
+        filename: `title_deed_${Date.now()}_${file.name}`,
+      })
     } catch (uploadError) {
       console.error('[LoanService] Storage upload failed:', uploadError)
       uploadResult = {
@@ -180,7 +185,7 @@ export const loanService = {
 
     const apiKey = process.env.ZENROWS_API_KEY
     const landsMapsAPI = new LandsMapsAPI(apiKey)
-    
+
     const titleDeedData = await landsMapsAPI.getParcelInfoComplete(
       parseInt(data.pvCode),
       data.amCode,
@@ -203,14 +208,10 @@ export const loanService = {
     const buffer = Buffer.from(arrayBuffer)
 
     try {
-      const uploadResult = await storage.uploadFile(
-        buffer,
-        file.type,
-        {
-          folder: 'id-cards',
-          filename: `id_card_${Date.now()}_${file.name}`,
-        }
-      )
+      const uploadResult = await storage.uploadFile(buffer, file.type, {
+        folder: 'id-cards',
+        filename: `id_card_${Date.now()}_${file.name}`,
+      })
 
       return {
         success: true,
@@ -219,7 +220,7 @@ export const loanService = {
       }
     } catch (uploadError) {
       console.error('[LoanService] ID card upload failed:', uploadError)
-      
+
       const fallbackResult = {
         url: `data:${file.type};base64,${buffer.toString('base64')}`,
         key: `temp_${Date.now()}_${file.name}`,
@@ -244,7 +245,8 @@ export const loanService = {
     console.log('[LoanService] Starting property valuation')
 
     // Check if we have sufficient data
-    const hasTitleDeedData = titleDeedData && titleDeedData.result && titleDeedData.result.length > 0
+    const hasTitleDeedData =
+      titleDeedData && titleDeedData.result && titleDeedData.result.length > 0
     const hasSupportingImages = supportingImages && supportingImages.length > 0
 
     if (!hasTitleDeedData && !hasSupportingImages) {
@@ -253,9 +255,10 @@ export const loanService = {
         error: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน',
         valuation: {
           estimatedValue: 0,
-          reasoning: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
+          reasoning:
+            'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
           confidence: 0,
-        }
+        },
       }
     }
 
@@ -287,35 +290,43 @@ export const loanService = {
   /**
    * Extract property information from various sources
    */
-  extractPropertyInfo(titleDeedData: any, titleDeedManualData: any, titleDeedAnalysis: any) {
+  extractPropertyInfo(
+    titleDeedData: any,
+    titleDeedManualData: any,
+    titleDeedAnalysis: any
+  ) {
     let propertyInfo: any = {}
-    
+
     // From title deed data (LandsMapsAPI)
     if (titleDeedData && titleDeedData.result && titleDeedData.result[0]) {
       const deed = titleDeedData.result[0]
       propertyInfo = {
-        propertyLocation: `${deed.tumbolname || ''} ${deed.amphurname || ''} ${deed.provname || ''}`.trim(),
+        propertyLocation:
+          `${deed.tumbolname || ''} ${deed.amphurname || ''} ${deed.provname || ''}`.trim(),
         propertyArea: `${deed.rai || 0} ไร่ ${deed.ngan || 0} งาน ${deed.wa || 0} ตารางวา`,
         landNumber: deed.parcelno || '',
         ownerName: deed.owner_name || '',
         propertyType: deed.land_type || 'ที่ดิน',
       }
     }
-    
+
     // From manual data
     if (titleDeedManualData) {
       propertyInfo = {
         ...propertyInfo,
-        propertyLocation: `${titleDeedManualData.amName || ''} ${titleDeedManualData.pvName || ''}`.trim(),
+        propertyLocation:
+          `${titleDeedManualData.amName || ''} ${titleDeedManualData.pvName || ''}`.trim(),
         landNumber: titleDeedManualData.parcelNo || '',
       }
     }
-    
+
     // From AI analysis
     if (titleDeedAnalysis) {
       propertyInfo = {
         ...propertyInfo,
-        propertyLocation: propertyInfo.propertyLocation || `${titleDeedAnalysis.amName || ''} ${titleDeedAnalysis.pvName || ''}`.trim(),
+        propertyLocation:
+          propertyInfo.propertyLocation ||
+          `${titleDeedAnalysis.amName || ''} ${titleDeedAnalysis.pvName || ''}`.trim(),
         landNumber: propertyInfo.landNumber || titleDeedAnalysis.parcelNo || '',
       }
     }
@@ -372,7 +383,7 @@ export const loanService = {
               try {
                 const apiKey = process.env.ZENROWS_API_KEY
                 const landsMapsAPI = new LandsMapsAPI(apiKey)
-                
+
                 const titleDeedData = await landsMapsAPI.getParcelInfoComplete(
                   parseInt(amphurSearchResult.pvCode),
                   amphurSearchResult.amCode,
@@ -381,8 +392,11 @@ export const loanService = {
 
                 finalResult.titleDeedData = titleDeedData
               } catch (landsMapError) {
-                console.error('[LoanService] LandsMapsAPI failed:', landsMapError)
-                
+                console.error(
+                  '[LoanService] LandsMapsAPI failed:',
+                  landsMapError
+                )
+
                 finalResult.needsManualInput = true
                 finalResult.manualInputType = 'full'
                 finalResult.analysisResult = {
@@ -391,7 +405,8 @@ export const loanService = {
                   amCode: amphurSearchResult.amCode,
                   parcelNo: amphurSearchResult.parcelNo,
                 }
-                finalResult.errorMessage = 'ไม่สามารถค้นหาข้อมูลโฉนดจากระบบกรมที่ดินได้ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง'
+                finalResult.errorMessage =
+                  'ไม่สามารถค้นหาข้อมูลโฉนดจากระบบกรมที่ดินได้ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง'
               }
             }
           } catch (amphurError) {
@@ -434,7 +449,7 @@ export const loanService = {
         },
         ipAddress: 'unknown', // Will be set by API route
         userAgent: 'unknown', // Will be set by API route
-      }
+      },
     })
   },
 
@@ -459,7 +474,17 @@ export const loanService = {
   /**
    * Update loan application status
    */
-  async updateStatus(id: string, status: any, reviewedBy?: string, reviewNotes?: string) {
-    return loanApplicationRepository.updateStatus(id, status, reviewedBy, reviewNotes)
+  async updateStatus(
+    id: string,
+    status: any,
+    reviewedBy?: string,
+    reviewNotes?: string
+  ) {
+    return loanApplicationRepository.updateStatus(
+      id,
+      status,
+      reviewedBy,
+      reviewNotes
+    )
   },
 }

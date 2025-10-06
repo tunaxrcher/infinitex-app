@@ -9,9 +9,9 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
   // Find customers by agent ID
   async findByAgentId(agentId: string) {
     return prisma.agentCustomer.findMany({
-      where: { 
+      where: {
         agentId,
-        isActive: true 
+        isActive: true,
       },
       include: {
         customer: {
@@ -24,22 +24,22 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
                 createdAt: true,
               },
               orderBy: {
-                createdAt: 'desc'
-              }
+                createdAt: 'desc',
+              },
             },
             loans: {
               select: {
                 id: true,
                 status: true,
                 loanNumber: true,
-              }
-            }
-          }
-        }
+              },
+            },
+          },
+        },
       },
       orderBy: {
-        assignedAt: 'desc'
-      }
+        assignedAt: 'desc',
+      },
     })
   }
 
@@ -50,22 +50,22 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
       include: {
         profile: true,
         loanApplications: {
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
         },
         loans: {
-          orderBy: { createdAt: 'desc' }
+          orderBy: { createdAt: 'desc' },
         },
         customerAgents: {
           where: { isActive: true },
           include: {
             agent: {
               include: {
-                profile: true
-              }
-            }
-          }
-        }
-      }
+                profile: true,
+              },
+            },
+          },
+        },
+      },
     })
   }
 
@@ -76,12 +76,12 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
         ...customerData,
         userType: 'CUSTOMER',
         profile: {
-          create: profileData
-        }
+          create: profileData,
+        },
       },
       include: {
-        profile: true
-      }
+        profile: true,
+      },
     })
   }
 
@@ -92,26 +92,26 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
       OR: [
         {
           phoneNumber: {
-            contains: searchTerm
-          }
+            contains: searchTerm,
+          },
         },
         {
           profile: {
             OR: [
               {
                 firstName: {
-                  contains: searchTerm
-                }
+                  contains: searchTerm,
+                },
               },
               {
                 lastName: {
-                  contains: searchTerm
-                }
-              }
-            ]
-          }
-        }
-      ]
+                  contains: searchTerm,
+                },
+              },
+            ],
+          },
+        },
+      ],
     }
 
     // If agentId is provided, filter by agent's customers
@@ -119,8 +119,8 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
       whereClause.customerAgents = {
         some: {
           agentId,
-          isActive: true
-        }
+          isActive: true,
+        },
       }
     }
 
@@ -132,18 +132,18 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
           select: {
             id: true,
             status: true,
-          }
+          },
         },
         loans: {
           select: {
             id: true,
             status: true,
-          }
-        }
+          },
+        },
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        createdAt: 'desc',
+      },
     })
   }
 
@@ -152,8 +152,8 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
     return this.model.findUnique({
       where: { phoneNumber },
       include: {
-        profile: true
-      }
+        profile: true,
+      },
     })
   }
 }

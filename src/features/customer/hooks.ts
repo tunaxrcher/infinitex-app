@@ -6,10 +6,13 @@ import { type CustomerFiltersSchema } from './validations'
 
 export const customerKeys = {
   all: () => ['customer'] as const,
-  list: (filters?: CustomerFiltersSchema) => ['customer', 'list', filters] as const,
-  listByAgent: (agentId: string, filters?: any) => ['customer', 'list', 'agent', agentId, filters] as const,
+  list: (filters?: CustomerFiltersSchema) =>
+    ['customer', 'list', filters] as const,
+  listByAgent: (agentId: string, filters?: any) =>
+    ['customer', 'list', 'agent', agentId, filters] as const,
   detail: (id: string) => ['customer', 'detail', id] as const,
-  search: (searchTerm: string, agentId?: string) => ['customer', 'search', searchTerm, agentId] as const,
+  search: (searchTerm: string, agentId?: string) =>
+    ['customer', 'search', searchTerm, agentId] as const,
 }
 
 export const useGetCustomerListByAgent = (filters: any = {}) => {
@@ -51,7 +54,8 @@ export const useCreateCustomer = () => {
 export const useUpdateCustomer = () => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => customerApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      customerApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) })
       queryClient.invalidateQueries({ queryKey: customerKeys.all() })

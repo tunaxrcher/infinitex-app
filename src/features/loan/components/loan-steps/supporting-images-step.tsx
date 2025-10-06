@@ -63,9 +63,7 @@ export function SupportingImagesStep({
 
   const removeImage = (index: number) => {
     const currentImages = data.supportingImages || []
-    const newImages = currentImages.filter(
-      (_: any, i: number) => i !== index
-    )
+    const newImages = currentImages.filter((_: any, i: number) => i !== index)
     onUpdate({ supportingImages: newImages })
   }
 
@@ -73,43 +71,88 @@ export function SupportingImagesStep({
 
   return (
     <div className="space-y-6">
-      {data.titleDeedData && data.titleDeedData.result && data.titleDeedData.result[0] && (
-        <Alert>
-          <CheckCircle className="h-4 w-4" />
-          <AlertDescription>
-            <div className="space-y-1">
-              <p className="font-medium">ข้อมูลจากโฉนดที่ดิน:</p>
-              <div className="grid grid-cols-1 gap-2 text-sm">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p><span className="font-medium">เลขโฉนดที่ดิน:</span> {data.titleDeedData.result[0].parcelno || 'ไม่พบข้อมูล'}</p>
-                    <p><span className="font-medium">หน้าสำรวจ:</span> {data.titleDeedData.result[0].surveyno || 'ไม่พบข้อมูล'}</p>
-                    <p><span className="font-medium">เลขที่ดิน:</span> {data.titleDeedData.result[0].landno || 'ไม่พบข้อมูล'}</p>
-                    <p><span className="font-medium">ระวาง:</span> {data.titleDeedData.result[0].utm || 'ไม่พบข้อมูล'}</p>
+      {data.titleDeedData &&
+        data.titleDeedData.result &&
+        data.titleDeedData.result[0] && (
+          <Alert>
+            <CheckCircle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-1">
+                <p className="font-medium">ข้อมูลจากโฉนดที่ดิน:</p>
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p>
+                        <span className="font-medium">เลขโฉนดที่ดิน:</span>{' '}
+                        {data.titleDeedData.result[0].parcelno || 'ไม่พบข้อมูล'}
+                      </p>
+                      <p>
+                        <span className="font-medium">หน้าสำรวจ:</span>{' '}
+                        {data.titleDeedData.result[0].surveyno || 'ไม่พบข้อมูล'}
+                      </p>
+                      <p>
+                        <span className="font-medium">เลขที่ดิน:</span>{' '}
+                        {data.titleDeedData.result[0].landno || 'ไม่พบข้อมูล'}
+                      </p>
+                      <p>
+                        <span className="font-medium">ระวาง:</span>{' '}
+                        {data.titleDeedData.result[0].utm || 'ไม่พบข้อมูล'}
+                      </p>
+                    </div>
+                    <div>
+                      <p>
+                        <span className="font-medium">ตำบล:</span>{' '}
+                        {data.titleDeedData.result[0].tumbolname ||
+                          'ไม่พบข้อมูล'}
+                      </p>
+                      <p>
+                        <span className="font-medium">อำเภอ:</span>{' '}
+                        {data.titleDeedData.result[0].amphurname ||
+                          'ไม่พบข้อมูล'}
+                      </p>
+                      <p>
+                        <span className="font-medium">จังหวัด:</span>{' '}
+                        {data.titleDeedData.result[0].provname || 'ไม่พบข้อมูล'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p><span className="font-medium">ตำบล:</span> {data.titleDeedData.result[0].tumbolname || 'ไม่พบข้อมูล'}</p>
-                    <p><span className="font-medium">อำเภอ:</span> {data.titleDeedData.result[0].amphurname || 'ไม่พบข้อมูล'}</p>
-                    <p><span className="font-medium">จังหวัด:</span> {data.titleDeedData.result[0].provname || 'ไม่พบข้อมูล'}</p>
-                  </div>
-                </div>
-                <hr className="my-2" />
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p><span className="font-medium">เนื้อที่:</span> {data.titleDeedData.result[0].rai || '0'} ไร่ {data.titleDeedData.result[0].ngan || '0'} งาน {data.titleDeedData.result[0].wa || '0'} ตารางวา</p>
-                    <p><span className="font-medium">ราคาประเมิน:</span> {data.titleDeedData.result[0].landprice ? `${data.titleDeedData.result[0].landprice} บาท/ตร.วา` : 'ไม่พบข้อมูล'}</p>
-                  </div>
-                  <div>
-                    <p><span className="font-medium">พิกัดแปลง:</span></p>
-                    <p className="text-xs">Lat: {data.titleDeedData.result[0].parcellat || 'ไม่พบข้อมูล'}</p>
-                    <p className="text-xs">Lon: {data.titleDeedData.result[0].parcellon || 'ไม่พบข้อมูล'}</p>
+                  <hr className="my-2" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p>
+                        <span className="font-medium">เนื้อที่:</span>{' '}
+                        {data.titleDeedData.result[0].rai || '0'} ไร่{' '}
+                        {data.titleDeedData.result[0].ngan || '0'} งาน{' '}
+                        {data.titleDeedData.result[0].wa || '0'} ตารางวา
+                      </p>
+                      <p>
+                        <span className="font-medium">ราคาประเมิน:</span>{' '}
+                        {data.titleDeedData.result[0].landprice
+                          ? `${data.titleDeedData.result[0].landprice} บาท/ตร.วา`
+                          : 'ไม่พบข้อมูล'}
+                      </p>
+                    </div>
+                    <div>
+                      <p>
+                        <span className="font-medium">พิกัดแปลง:</span>
+                      </p>
+                      <p className="text-xs">
+                        Lat:{' '}
+                        {data.titleDeedData.result[0].parcellat ||
+                          'ไม่พบข้อมูล'}
+                      </p>
+                      <p className="text-xs">
+                        Lon:{' '}
+                        {data.titleDeedData.result[0].parcellon ||
+                          'ไม่พบข้อมูล'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+            </AlertDescription>
+          </Alert>
+        )}
 
       {data.titleDeedAnalysis && !data.titleDeedData && (
         <Alert>
@@ -118,16 +161,23 @@ export function SupportingImagesStep({
             <div className="space-y-1">
               <p className="font-medium">ข้อมูลที่วิเคราะห์ได้จากโฉนด:</p>
               {data.titleDeedAnalysis.pvName && (
-                <p className="text-sm">จังหวัด: {data.titleDeedAnalysis.pvName}</p>
+                <p className="text-sm">
+                  จังหวัด: {data.titleDeedAnalysis.pvName}
+                </p>
               )}
               {data.titleDeedAnalysis.amName && (
-                <p className="text-sm">อำเภอ: {data.titleDeedAnalysis.amName}</p>
+                <p className="text-sm">
+                  อำเภอ: {data.titleDeedAnalysis.amName}
+                </p>
               )}
               {data.titleDeedAnalysis.parcelNo && (
-                <p className="text-sm">เลขโฉนด: {data.titleDeedAnalysis.parcelNo}</p>
+                <p className="text-sm">
+                  เลขโฉนด: {data.titleDeedAnalysis.parcelNo}
+                </p>
               )}
               <p className="text-xs text-muted-foreground mt-2">
-                * ไม่สามารถดึงข้อมูลรายละเอียดเพิ่มเติมได้ แต่สามารถดำเนินการต่อได้
+                * ไม่สามารถดึงข้อมูลรายละเอียดเพิ่มเติมได้
+                แต่สามารถดำเนินการต่อได้
               </p>
             </div>
           </AlertDescription>

@@ -60,7 +60,10 @@ export async function apiMiddleware(
     )
   }
 
-  if (isRouteMatch(pathname, agentOnlyApiRoutes) && token.userType !== 'AGENT') {
+  if (
+    isRouteMatch(pathname, agentOnlyApiRoutes) &&
+    token.userType !== 'AGENT'
+  ) {
     return NextResponse.json(
       { error: 'Forbidden', message: 'Agent access required' },
       { status: 403 }

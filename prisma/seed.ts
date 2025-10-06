@@ -1083,7 +1083,10 @@ async function main() {
         totalAmount,
         isPaid,
         paidDate: isPaid
-          ? new Date(dueDate.getTime() - Math.floor(Math.random() * 3) * 24 * 60 * 60 * 1000)
+          ? new Date(
+              dueDate.getTime() -
+                Math.floor(Math.random() * 3) * 24 * 60 * 60 * 1000
+            )
           : null,
         paidAmount: isPaid ? totalAmount : null,
         isLate: false,
@@ -1112,7 +1115,10 @@ async function main() {
         interestAmount,
         totalAmount,
         isPaid,
-        paidDate: new Date(dueDate.getTime() - Math.floor(Math.random() * 5) * 24 * 60 * 60 * 1000),
+        paidDate: new Date(
+          dueDate.getTime() -
+            Math.floor(Math.random() * 5) * 24 * 60 * 60 * 1000
+        ),
         paidAmount: totalAmount,
         isLate: false,
       },

@@ -5,7 +5,7 @@ import { useState } from 'react'
 
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import { AlertCircle, Camera, CreditCard, Upload, Loader2 } from 'lucide-react'
+import { AlertCircle, Camera, CreditCard, Loader2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface IdCardStepProps {
@@ -41,10 +41,10 @@ export function IdCardStep({
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0]
-      
+
       // Store file immediately
       onUpdate({ idCardImage: file })
-      
+
       // Upload file to storage
       await handleFileUpload(file)
     }
@@ -53,10 +53,10 @@ export function IdCardStep({
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      
+
       // Store file immediately
       onUpdate({ idCardImage: file })
-      
+
       // Upload file to storage
       await handleFileUpload(file)
     }
@@ -94,15 +94,23 @@ export function IdCardStep({
       toast.success('อัพโหลดบัตรประชาชนสำเร็จ')
     } catch (error) {
       console.error('[IdCard] Upload failed:', error)
-      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการอัพโหลดบัตรประชาชน')
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'เกิดข้อผิดพลาดในการอัพโหลดบัตรประชาชน'
+      )
     }
   }
 
   const handlePropertyValuation = async () => {
     // Check if we have sufficient data for valuation
-    const hasTitleDeedData = data.titleDeedData && data.titleDeedData.result && data.titleDeedData.result.length > 0
-    const hasSupportingImages = data.supportingImages && data.supportingImages.length > 0
-    
+    const hasTitleDeedData =
+      data.titleDeedData &&
+      data.titleDeedData.result &&
+      data.titleDeedData.result.length > 0
+    const hasSupportingImages =
+      data.supportingImages && data.supportingImages.length > 0
+
     // Skip valuation if we only have title deed image without additional data
     if (!data.titleDeedImage || (!hasTitleDeedData && !hasSupportingImages)) {
       console.log('[IdCard] Insufficient data for valuation, skipping...', {
@@ -110,7 +118,7 @@ export function IdCardStep({
         hasTitleDeedData,
         hasSupportingImages,
       })
-      
+
       // Set empty valuation result to indicate no valuation was performed
       onUpdate({
         ...data,
@@ -161,7 +169,7 @@ export function IdCardStep({
           onNext()
           return
         }
-        
+
         throw new Error(result.error || 'การประเมินมูลค่าล้มเหลว')
       }
 
@@ -175,8 +183,12 @@ export function IdCardStep({
       onNext()
     } catch (error) {
       console.error('[IdCard] Property valuation failed:', error)
-      toast.error(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการประเมินมูลค่า')
-      
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'เกิดข้อผิดพลาดในการประเมินมูลค่า'
+      )
+
       // Continue without valuation
       onUpdate({
         ...data,
@@ -305,7 +317,10 @@ export function IdCardStep({
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button onClick={handlePropertyValuation} disabled={!canProceed} className="flex-1">
+        <Button
+          onClick={handlePropertyValuation}
+          disabled={!canProceed}
+          className="flex-1">
           {isEvaluating ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

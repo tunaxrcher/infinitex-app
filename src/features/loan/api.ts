@@ -1,4 +1,5 @@
 import { api } from '@src/shared/lib/api-client'
+
 import { loanService } from './services/server'
 
 export const loanApi = {
@@ -15,14 +16,18 @@ export const loanApi = {
   analyzeTitleDeed: async (file: File): Promise<any> => {
     const formData = new FormData()
     formData.append('file', file)
-    
+
     return api.post('/api/loans/title-deed/analyze', formData)
   },
 
   /**
    * Manual title deed lookup
    */
-  manualTitleDeedLookup: async (data: { pvCode: string; amCode: string; parcelNo: string }): Promise<any> => {
+  manualTitleDeedLookup: async (data: {
+    pvCode: string
+    amCode: string
+    parcelNo: string
+  }): Promise<any> => {
     return api.post('/api/loans/title-deed/manual-lookup', data)
   },
 
@@ -32,7 +37,7 @@ export const loanApi = {
   uploadIdCard: async (file: File): Promise<any> => {
     const formData = new FormData()
     formData.append('file', file)
-    
+
     return api.post('/api/loans/id-card/upload', formData)
   },
 
@@ -46,17 +51,17 @@ export const loanApi = {
   ): Promise<any> => {
     const formData = new FormData()
     formData.append('titleDeedImage', titleDeedImage)
-    
+
     if (titleDeedData) {
       formData.append('titleDeedData', JSON.stringify(titleDeedData))
     }
-    
+
     if (supportingImages) {
       supportingImages.forEach((image, index) => {
         formData.append(`supportingImage_${index}`, image)
       })
     }
-    
+
     return api.post('/api/loans/property/valuation', formData)
   },
 
@@ -77,7 +82,11 @@ export const loanApi = {
   /**
    * Update loan application status
    */
-  updateStatus: async (id: string, status: string, reviewNotes?: string): Promise<any> => {
+  updateStatus: async (
+    id: string,
+    status: string,
+    reviewNotes?: string
+  ): Promise<any> => {
     return api.patch(`/api/loans/${id}/status`, { status, reviewNotes })
   },
 }

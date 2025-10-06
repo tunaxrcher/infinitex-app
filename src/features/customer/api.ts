@@ -3,7 +3,9 @@ import { api } from '@src/shared/lib/api-client'
 import { customerService } from './services/server'
 
 export const customerApi = {
-  getListByAgent: async (filters: any = {}): Promise<ReturnType<typeof customerService.getListByAgent>> => {
+  getListByAgent: async (
+    filters: any = {}
+  ): Promise<ReturnType<typeof customerService.getListByAgent>> => {
     const searchParams = new URLSearchParams()
 
     Object.entries(filters).forEach(([key, value]) => {
@@ -31,7 +33,10 @@ export const customerApi = {
     return api.delete(`/api/customers/${id}`)
   },
 
-  assignToAgent: async (data: { customerId: string; agentId: string }): Promise<void> => {
+  assignToAgent: async (data: {
+    customerId: string
+    agentId: string
+  }): Promise<void> => {
     return api.post(`/api/customers/assign-agent`, data)
   },
 

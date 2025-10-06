@@ -7,13 +7,16 @@ export const api = {
         'Content-Type': 'application/json',
       },
     })
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      const errorMessage =
+        errorData.error ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`
       throw new Error(errorMessage)
     }
-    
+
     return response.json()
   },
 
@@ -25,13 +28,16 @@ export const api = {
       },
       body: JSON.stringify(data),
     })
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      const errorMessage =
+        errorData.error ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`
       throw new Error(errorMessage)
     }
-    
+
     return response.json()
   },
 
@@ -43,13 +49,16 @@ export const api = {
       },
       body: JSON.stringify(data),
     })
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      const errorMessage =
+        errorData.error ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`
       throw new Error(errorMessage)
     }
-    
+
     return response.json()
   },
 
@@ -61,13 +70,16 @@ export const api = {
       },
       body: data ? JSON.stringify(data) : undefined,
     })
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      const errorMessage =
+        errorData.error ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`
       throw new Error(errorMessage)
     }
-    
+
     return response.json()
   },
 
@@ -78,13 +90,16 @@ export const api = {
         'Content-Type': 'application/json',
       },
     })
-    
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`
+      const errorMessage =
+        errorData.error ||
+        errorData.message ||
+        `HTTP error! status: ${response.status}`
       throw new Error(errorMessage)
     }
-    
+
     return response.json()
   },
 }

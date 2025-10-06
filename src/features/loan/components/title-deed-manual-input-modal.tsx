@@ -39,8 +39,16 @@ interface Amphur {
 interface TitleDeedManualInputModalProps {
   isOpen: boolean
   onClose: () => void
-  onSkip: (formData?: { pvCode: string; amCode: string; parcelNo: string }) => void
-  onConfirm: (data: { pvCode: string; amCode: string; parcelNo: string }) => Promise<void>
+  onSkip: (formData?: {
+    pvCode: string
+    amCode: string
+    parcelNo: string
+  }) => void
+  onConfirm: (data: {
+    pvCode: string
+    amCode: string
+    parcelNo: string
+  }) => Promise<void>
   initialData?: {
     pvCode?: string
     amCode?: string
@@ -61,14 +69,20 @@ export function TitleDeedManualInputModal({
   provinces,
   amphurs,
 }: TitleDeedManualInputModalProps) {
-  const [selectedProvince, setSelectedProvince] = useState<string>(initialData?.pvCode || '')
-  const [selectedAmphur, setSelectedAmphur] = useState<string>(initialData?.amCode || '')
-  const [parcelNumber, setParcelNumber] = useState<string>(initialData?.parcelNo || '')
+  const [selectedProvince, setSelectedProvince] = useState<string>(
+    initialData?.pvCode || ''
+  )
+  const [selectedAmphur, setSelectedAmphur] = useState<string>(
+    initialData?.amCode || ''
+  )
+  const [parcelNumber, setParcelNumber] = useState<string>(
+    initialData?.parcelNo || ''
+  )
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
   // Filter amphurs based on selected province
-  const filteredAmphurs = amphurs.filter(amphur => 
-    amphur.pvcode === selectedProvince && amphur.amcode !== '00'
+  const filteredAmphurs = amphurs.filter(
+    (amphur) => amphur.pvcode === selectedProvince && amphur.amcode !== '00'
   )
 
   // Reset amphur when province changes (but not if we have initial amCode)
@@ -87,7 +101,10 @@ export function TitleDeedManualInputModal({
     try {
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('การค้นหาข้อมูลใช้เวลานานเกินไป')), 30000)
+        setTimeout(
+          () => reject(new Error('การค้นหาข้อมูลใช้เวลานานเกินไป')),
+          30000
+        )
       )
 
       await Promise.race([
@@ -96,7 +113,7 @@ export function TitleDeedManualInputModal({
           amCode: selectedAmphur,
           parcelNo: parcelNumber.trim(),
         }),
-        timeoutPromise
+        timeoutPromise,
       ])
     } catch (error) {
       console.error('[Modal] Confirm failed:', error)
@@ -119,14 +136,18 @@ export function TitleDeedManualInputModal({
     }
   }
 
-  const canConfirm = selectedProvince && selectedAmphur && parcelNumber.trim() && !isLoading
+  const canConfirm =
+    selectedProvince && selectedAmphur && parcelNumber.trim() && !isLoading
 
   // Get province name for display
-  const selectedProvinceName = provinces.find(p => p.pvcode === selectedProvince)?.pvnamethai || ''
+  const selectedProvinceName =
+    provinces.find((p) => p.pvcode === selectedProvince)?.pvnamethai || ''
 
   return (
     <Dialog open={isOpen} onOpenChange={isLoading ? undefined : onClose}>
-      <DialogContent className="sm:max-w-md">        {isLoading && (
+      <DialogContent className="sm:max-w-md">
+        {' '}
+        {isLoading && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
             <div className="flex flex-col items-center gap-3 text-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -137,7 +158,13 @@ export function TitleDeedManualInputModal({
                 </p>
                 <div className="text-xs text-muted-foreground mt-2 space-y-1">
                   <p>จังหวัด: {selectedProvinceName}</p>
-                  <p>อำเภอ: {filteredAmphurs.find(a => a.amcode === selectedAmphur)?.amnamethai}</p>
+                  <p>
+                    อำเภอ:{' '}
+                    {
+                      filteredAmphurs.find((a) => a.amcode === selectedAmphur)
+                        ?.amnamethai
+                    }
+                  </p>
                   <p>เลขโฉนด: {parcelNumber}</p>
                 </div>
               </div>
@@ -150,14 +177,14 @@ export function TitleDeedManualInputModal({
             ไม่พบข้อมูลโฉนดที่ดิน
           </DialogTitle>
           <DialogDescription>
-            {isLoading 
+            {isLoading
               ? 'กำลังค้นหาข้อมูลโฉนดจากระบบกรมที่ดิน กรุณารอสักครู่...'
-              : errorMessage || 'ระบบไม่สามารถอ่านข้อมูลจากโฉนดได้ กรุณากรอกข้อมูลด้วยตนเอง'
-            }
+              : errorMessage ||
+                'ระบบไม่สามารถอ่านข้อมูลจากโฉนดได้ กรุณากรอกข้อมูลด้วยตนเอง'}
           </DialogDescription>
         </DialogHeader>
-
-        <div className={`space-y-4 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div
+          className={`space-y-4 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
           {/* Province Select - Always shown first */}
           <div className="space-y-2">
             <Label htmlFor="province">จังหวัด *</Label>
@@ -170,7 +197,7 @@ export function TitleDeedManualInputModal({
               </SelectTrigger>
               <SelectContent>
                 {provinces
-                  .filter(province => province.pvcode !== '00')
+                  .filter((province) => province.pvcode !== '00')
                   .map((province) => (
                     <SelectItem key={province.pvcode} value={province.pvcode}>
                       {province.pvnamethai}
@@ -180,7 +207,8 @@ export function TitleDeedManualInputModal({
             </Select>
             {initialData?.pvCode && (
               <p className="text-xs text-muted-foreground">
-                จังหวัดถูกเลือกอัตโนมัติจากการวิเคราะห์รูป: {selectedProvinceName}
+                จังหวัดถูกเลือกอัตโนมัติจากการวิเคราะห์รูป:{' '}
+                {selectedProvinceName}
               </p>
             )}
             {!selectedProvince && !initialData?.pvCode && !isLoading && (
@@ -194,7 +222,7 @@ export function TitleDeedManualInputModal({
           {selectedProvince && (
             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
               <Label htmlFor="amphur">
-                อำเภอ * 
+                อำเภอ *
                 {filteredAmphurs.length > 0 && (
                   <span className="text-xs text-muted-foreground font-normal">
                     ({filteredAmphurs.length} อำเภอ)
@@ -218,7 +246,11 @@ export function TitleDeedManualInputModal({
               </Select>
               {initialData?.amCode && selectedAmphur === initialData.amCode && (
                 <p className="text-xs text-muted-foreground">
-                  อำเภอถูกเลือกอัตโนมัติจากการวิเคราะห์รูป: {filteredAmphurs.find(a => a.amcode === selectedAmphur)?.amnamethai}
+                  อำเภอถูกเลือกอัตโนมัติจากการวิเคราะห์รูป:{' '}
+                  {
+                    filteredAmphurs.find((a) => a.amcode === selectedAmphur)
+                      ?.amnamethai
+                  }
                 </p>
               )}
               {filteredAmphurs.length === 0 && (
@@ -227,9 +259,7 @@ export function TitleDeedManualInputModal({
                 </p>
               )}
               {!selectedAmphur && filteredAmphurs.length > 0 && !isLoading && (
-                <p className="text-xs text-muted-foreground">
-                  กรุณาเลือกอำเภอ
-                </p>
+                <p className="text-xs text-muted-foreground">กรุณาเลือกอำเภอ</p>
               )}
             </div>
           )}
@@ -251,11 +281,12 @@ export function TitleDeedManualInputModal({
                 disabled={isLoading}
                 autoFocus
               />
-              {initialData?.parcelNo && parcelNumber === initialData.parcelNo && (
-                <p className="text-xs text-muted-foreground">
-                  เลขโฉนดจากการวิเคราะห์รูป: {parcelNumber}
-                </p>
-              )}
+              {initialData?.parcelNo &&
+                parcelNumber === initialData.parcelNo && (
+                  <p className="text-xs text-muted-foreground">
+                    เลขโฉนดจากการวิเคราะห์รูป: {parcelNumber}
+                  </p>
+                )}
               {!parcelNumber.trim() && !isLoading && (
                 <p className="text-xs text-muted-foreground">
                   กรอกเลขโฉนดเพื่อค้นหาข้อมูล
@@ -265,16 +296,25 @@ export function TitleDeedManualInputModal({
           )}
 
           {/* Summary - Show when all fields are filled */}
-          {selectedProvince && selectedAmphur && parcelNumber.trim() && !isLoading && (
-            <div className="bg-muted/50 rounded-lg p-3 animate-in slide-in-from-top-2 duration-300">
-              <p className="text-sm font-medium mb-2">ข้อมูลที่จะค้นหา:</p>
-              <div className="text-xs space-y-1">
-                <p>จังหวัด: {selectedProvinceName}</p>
-                <p>อำเภอ: {filteredAmphurs.find(a => a.amcode === selectedAmphur)?.amnamethai}</p>
-                <p>เลขโฉนด: {parcelNumber}</p>
+          {selectedProvince &&
+            selectedAmphur &&
+            parcelNumber.trim() &&
+            !isLoading && (
+              <div className="bg-muted/50 rounded-lg p-3 animate-in slide-in-from-top-2 duration-300">
+                <p className="text-sm font-medium mb-2">ข้อมูลที่จะค้นหา:</p>
+                <div className="text-xs space-y-1">
+                  <p>จังหวัด: {selectedProvinceName}</p>
+                  <p>
+                    อำเภอ:{' '}
+                    {
+                      filteredAmphurs.find((a) => a.amcode === selectedAmphur)
+                        ?.amnamethai
+                    }
+                  </p>
+                  <p>เลขโฉนด: {parcelNumber}</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Loading state message */}
           {isLoading && (
@@ -285,7 +325,6 @@ export function TitleDeedManualInputModal({
             </div>
           )}
         </div>
-
         <DialogFooter className="flex gap-2">
           <Button
             variant="outline"
@@ -294,7 +333,7 @@ export function TitleDeedManualInputModal({
             className="flex-1">
             ข้าม
           </Button>
-          
+
           {/* Show confirm button only when all fields are filled */}
           {selectedProvince && selectedAmphur && parcelNumber.trim() && (
             <Button
@@ -311,20 +350,20 @@ export function TitleDeedManualInputModal({
               )}
             </Button>
           )}
-          
+
           {/* Show helper text when not all fields are filled */}
-          {(!selectedProvince || !selectedAmphur || !parcelNumber.trim()) && !isLoading && (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-xs text-muted-foreground text-center">
-                {!selectedProvince 
-                  ? 'เลือกจังหวัดเพื่อดำเนินการต่อ'
-                  : !selectedAmphur 
-                  ? 'เลือกอำเภอเพื่อดำเนินการต่อ'
-                  : 'กรอกเลขโฉนดเพื่อค้นหาข้อมูล'
-                }
-              </p>
-            </div>
-          )}
+          {(!selectedProvince || !selectedAmphur || !parcelNumber.trim()) &&
+            !isLoading && (
+              <div className="flex-1 flex items-center justify-center">
+                <p className="text-xs text-muted-foreground text-center">
+                  {!selectedProvince
+                    ? 'เลือกจังหวัดเพื่อดำเนินการต่อ'
+                    : !selectedAmphur
+                      ? 'เลือกอำเภอเพื่อดำเนินการต่อ'
+                      : 'กรอกเลขโฉนดเพื่อค้นหาข้อมูล'}
+                </p>
+              </div>
+            )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

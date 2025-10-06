@@ -1,5 +1,6 @@
 // src/app/api/loans/statistics/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+
 import { loanService } from '../../../../features/products/services/server'
 
 export async function GET(request: NextRequest) {

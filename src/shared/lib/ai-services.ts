@@ -1,30 +1,45 @@
-import { google, createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createGoogleGenerativeAI, google } from '@ai-sdk/google'
 import { generateObject } from 'ai'
 import { z } from 'zod'
-import { findProvinceCodeManual, findAmphurCodeManual } from './manual-search'
+
+import { findAmphurCodeManual, findProvinceCodeManual } from './manual-search'
 
 // Zod schemas for type safety and structured outputs
 const titleDeedAnalysisSchema = z.object({
-  pvName: z.string().describe('ชื่อจังหวัดที่พบในโฉนดที่ดิน หากไม่พบให้ใส่ค่าว่าง'),
-  amName: z.string().describe('ชื่ออำเภอที่พบในโฉนดที่ดิน หากไม่พบให้ใส่ค่าว่าง'),
+  pvName: z
+    .string()
+    .describe('ชื่อจังหวัดที่พบในโฉนดที่ดิน หากไม่พบให้ใส่ค่าว่าง'),
+  amName: z
+    .string()
+    .describe('ชื่ออำเภอที่พบในโฉนดที่ดิน หากไม่พบให้ใส่ค่าว่าง'),
   parcelNo: z.string().describe('เลขโฉนดที่ดินที่พบ หากไม่พบให้ใส่ค่าว่าง'),
 })
 
 const provinceSearchSchema = z.object({
-  pvCode: z.string().describe('รหัสจังหวัดที่ตรงกับชื่อจังหวัดที่ให้มา หากไม่พบให้ใส่ค่าว่าง'),
+  pvCode: z
+    .string()
+    .describe('รหัสจังหวัดที่ตรงกับชื่อจังหวัดที่ให้มา หากไม่พบให้ใส่ค่าว่าง'),
 })
 
 const amphurSearchSchema = z.object({
   pvCode: z.string().describe('รหัสจังหวัด'),
-  amCode: z.string().describe('รหัสอำเภอที่ตรงกับชื่ออำเภอที่ให้มา หากไม่พบให้ใส่ค่าว่าง'),
+  amCode: z
+    .string()
+    .describe('รหัสอำเภอที่ตรงกับชื่ออำเภอที่ให้มา หากไม่พบให้ใส่ค่าว่าง'),
   parcelNo: z.string().describe('เลขโฉนดที่ดิน'),
 })
 
 // Property valuation schema
 const propertyValuationSchema = z.object({
   estimatedValue: z.number().describe('มูลค่าประเมินของทรัพย์สินในหน่วยบาท'),
-  reasoning: z.string().describe('เหตุผลและการวิเคราะห์ที่ใช้ในการประเมินมูลค่า'),
-  confidence: z.number().min(0).max(100).describe('ระดับความมั่นใจในการประเมิน (0-100)'),
+  reasoning: z
+    .string()
+    .describe('เหตุผลและการวิเคราะห์ที่ใช้ในการประเมินมูลค่า'),
+  confidence: z
+    .number()
+    .min(0)
+    .max(100)
+    .describe('ระดับความมั่นใจในการประเมิน (0-100)'),
 })
 
 // Type definitions from schemas
@@ -37,8 +52,11 @@ class AIService {
   private googleProvider: ReturnType<typeof createGoogleGenerativeAI>
 
   constructor() {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || 'AIzaSyAofGMt2DSd27lHPwN1ykPRSBHTutfMLZc'
-    
+    const apiKey =
+      process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      'AIzaSyAofGMt2DSd27lHPwN1ykPRSBHTutfMLZc'
+
     if (!apiKey) {
       throw new Error('Google Generative AI API key is required')
     }
@@ -55,9 +73,9 @@ class AIService {
   private getModel(needsVision: boolean = false) {
     // Use the latest Gemini 2.5 models as recommended in AI SDK v5
     const modelName = needsVision ? 'gemini-2.5-flash' : 'gemini-2.5-flash'
-    
+
     console.log(`[AI] Using latest model: ${modelName}`)
-    
+
     return this.googleProvider(modelName)
   }
 
@@ -65,7 +83,10 @@ class AIService {
    * วิเคราะห์รูปโฉนดที่ดินเพื่อหาชื่อจังหวัด อำเภอ และเลขโฉนด
    * ใช้ generateObject สำหรับ structured output ที่แม่นยำกว่า
    */
-  async analyzeTitleDeedImage(imageBuffer: Buffer, mimeType: string): Promise<TitleDeedAnalysisResult> {
+  async analyzeTitleDeedImage(
+    imageBuffer: Buffer,
+    mimeType: string
+  ): Promise<TitleDeedAnalysisResult> {
     try {
       console.log('[AI] Analyzing title deed image with Gemini 2.5...')
 
@@ -107,7 +128,7 @@ class AIService {
     } catch (error) {
       console.error('[AI] Title deed analysis failed:', error)
       console.log('[AI] Falling back to manual input...')
-      
+
       // Fallback: return empty result to trigger manual input
       return {
         pvName: '',
@@ -121,7 +142,10 @@ class AIService {
    * หารหัสจังหวัดจากชื่อจังหวัด
    * ใช้ generateObject สำหรับ structured output
    */
-  async findProvinceCode(provinceName: string, provinceData: any[]): Promise<ProvinceSearchResult> {
+  async findProvinceCode(
+    provinceName: string,
+    provinceData: any[]
+  ): Promise<ProvinceSearchResult> {
     try {
       console.log('[AI] Finding province code for:', provinceName)
 
@@ -147,7 +171,7 @@ class AIService {
     } catch (error) {
       console.error('[AI] Province search failed:', error)
       console.log('[AI] Falling back to manual search...')
-      
+
       // Fallback to manual search
       const pvCode = findProvinceCodeManual(provinceName, provinceData)
       return { pvCode }
@@ -168,7 +192,9 @@ class AIService {
       console.log('[AI] Finding amphur code for:', { amphurName, provinceCode })
 
       // Filter amphur data by province code
-      const filteredAmphurs = amphurData.filter(amphur => amphur.pvcode === provinceCode)
+      const filteredAmphurs = amphurData.filter(
+        (amphur) => amphur.pvcode === provinceCode
+      )
 
       const model = this.getModel(false)
 
@@ -199,7 +225,7 @@ class AIService {
     } catch (error) {
       console.error('[AI] Amphur search failed:', error)
       console.log('[AI] Falling back to manual amphur search...')
-      
+
       // Fallback to manual search
       const amCode = findAmphurCodeManual(amphurName, provinceCode, amphurData)
       return {
@@ -226,11 +252,17 @@ class AIService {
       })
 
       // Validate that we have sufficient data beyond just the title deed image
-      if (!titleDeedData && (!supportingImages || supportingImages.length === 0)) {
-        console.log('[AI] Insufficient data for valuation - only title deed image provided')
+      if (
+        !titleDeedData &&
+        (!supportingImages || supportingImages.length === 0)
+      ) {
+        console.log(
+          '[AI] Insufficient data for valuation - only title deed image provided'
+        )
         return {
           estimatedValue: 0,
-          reasoning: 'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
+          reasoning:
+            'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
           confidence: 0,
         }
       }
@@ -290,7 +322,7 @@ ${titleDeedData ? JSON.stringify(titleDeedData, null, 2) : 'ไม่มีข�
       }
     } catch (error) {
       console.error('[AI] Property valuation failed:', error)
-      
+
       // Return fallback result
       return {
         estimatedValue: 0,

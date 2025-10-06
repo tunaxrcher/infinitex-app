@@ -18,11 +18,11 @@ export function formatThaiNumber(
   options: Intl.NumberFormatOptions = { minimumFractionDigits: 2 }
 ): string {
   const numValue = typeof value === 'string' ? parseFloat(value) : value
-  
+
   if (isNaN(numValue)) {
     return '0'
   }
-  
+
   return numValue.toLocaleString('th-TH', options)
 }
 
@@ -42,6 +42,6 @@ export function formatThaiCurrency(
     minimumFractionDigits: showDecimals ? 2 : 0,
     maximumFractionDigits: showDecimals ? 2 : 0,
   })
-  
+
   return `${formatted} บาท`
 }

@@ -1,7 +1,7 @@
 // src/features/products/services/server.ts
+import { prisma } from '@src/shared/lib/db'
 import 'server-only'
 
-import { prisma } from '@src/shared/lib/db'
 import { loanRepository } from '../repositories/loanRepository'
 import { type LoanCreateSchema, type LoanUpdateSchema } from '../validations'
 
@@ -142,8 +142,9 @@ export const loanService = {
     ]
 
     // Sort by creation date (newest first)
-    return combinedData.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return combinedData.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
   },
 
@@ -195,8 +196,9 @@ export const loanService = {
     ]
 
     // Sort by creation date (newest first)
-    return combinedData.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return combinedData.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     )
   },
 
@@ -207,8 +209,10 @@ export const loanService = {
 
     // Calculate monthly payment (simple calculation)
     const monthlyInterestRate = data.interestRate / 100 / 12
-    const monthlyPayment = 
-      (data.principalAmount * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, data.termMonths)) /
+    const monthlyPayment =
+      (data.principalAmount *
+        monthlyInterestRate *
+        Math.pow(1 + monthlyInterestRate, data.termMonths)) /
       (Math.pow(1 + monthlyInterestRate, data.termMonths) - 1)
 
     return loanRepository.create({
@@ -224,7 +228,9 @@ export const loanService = {
         remainingBalance: data.principalAmount,
         nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         contractDate: new Date(),
-        expiryDate: new Date(Date.now() + data.termMonths * 30 * 24 * 60 * 60 * 1000),
+        expiryDate: new Date(
+          Date.now() + data.termMonths * 30 * 24 * 60 * 60 * 1000
+        ),
         titleDeedNumber: data.titleDeedNumber,
         collateralValue: data.collateralValue,
         collateralDetails: data.collateralDetails,
@@ -235,17 +241,19 @@ export const loanService = {
 
   async update(id: string, data: LoanUpdateSchema, updatedBy?: string) {
     const existingLoan = await this.getById(id)
-    
+
     // Recalculate monthly payment if principal amount, interest rate, or term changed
     let monthlyPayment = existingLoan.monthlyPayment
     if (data.principalAmount || data.interestRate || data.termMonths) {
       const principal = data.principalAmount || existingLoan.principalAmount
       const rate = data.interestRate || existingLoan.interestRate
       const term = data.termMonths || existingLoan.termMonths
-      
+
       const monthlyInterestRate = Number(rate) / 100 / 12
-      monthlyPayment = 
-        (Number(principal) * monthlyInterestRate * Math.pow(1 + monthlyInterestRate, term)) /
+      monthlyPayment =
+        (Number(principal) *
+          monthlyInterestRate *
+          Math.pow(1 + monthlyInterestRate, term)) /
         (Math.pow(1 + monthlyInterestRate, term) - 1)
       monthlyPayment = Math.round(monthlyPayment * 100) / 100
     }

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
 
 import Link from 'next/link'
 
@@ -15,9 +14,10 @@ import {
   ChevronDown,
   ChevronUp,
   CreditCard,
-  TrendingUp,
   Loader2,
+  TrendingUp,
 } from 'lucide-react'
+import { useSession } from 'next-auth/react'
 
 import { useGetLoansByCustomerId } from '../hooks'
 
@@ -71,7 +71,9 @@ const mockLoans = [
 
 export function LoansList() {
   const { data: session } = useSession()
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  )
 
   // Use real data if available, fallback to mock data
   const { data: loansData, isLoading } = useGetLoansByCustomerId(
@@ -115,12 +117,47 @@ export function LoansList() {
     }
   }
 
-const getStatusInfo = (status: string, type?: string) => {
-  // Handle Loan statuses
-  if (type === 'LOAN') {
+  const getStatusInfo = (status: string, type?: string) => {
+    // Handle Loan statuses
+    if (type === 'LOAN') {
+      switch (status) {
+        case 'ACTIVE':
+          return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
+        case 'COMPLETED':
+          return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
+        case 'DEFAULTED':
+          return { text: 'ค้างชำระ', color: 'destructive', showBadge: true }
+        case 'CANCELLED':
+          return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
+        default:
+          return { text: '', color: 'success', showBadge: false }
+      }
+    }
+
+    // Handle LoanApplication statuses
+    if (type === 'APPLICATION') {
+      switch (status) {
+        case 'DRAFT':
+          return { text: 'ร่าง', color: 'secondary', showBadge: true }
+        case 'SUBMITTED':
+          return { text: 'รอตรวจสอบ', color: 'warning', showBadge: true }
+        case 'UNDER_REVIEW':
+          return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
+        case 'APPROVED':
+          return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
+        case 'REJECTED':
+          return { text: 'ไม่อนุมัติ', color: 'destructive', showBadge: true }
+        case 'CANCELLED':
+          return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
+        default:
+          return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
+      }
+    }
+
+    // Fallback for backward compatibility
     switch (status) {
       case 'ACTIVE':
-        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
+        return { text: '', color: 'success', showBadge: false }
       case 'COMPLETED':
         return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
       case 'DEFAULTED':
@@ -128,44 +165,9 @@ const getStatusInfo = (status: string, type?: string) => {
       case 'CANCELLED':
         return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
       default:
-        return { text: '', color: 'success', showBadge: false }
-    }
-  }
-  
-  // Handle LoanApplication statuses
-  if (type === 'APPLICATION') {
-    switch (status) {
-      case 'DRAFT':
-        return { text: 'ร่าง', color: 'secondary', showBadge: true }
-      case 'SUBMITTED':
-        return { text: 'รอตรวจสอบ', color: 'warning', showBadge: true }
-      case 'UNDER_REVIEW':
-        return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
-      case 'APPROVED':
-        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
-      case 'REJECTED':
-        return { text: 'ไม่อนุมัติ', color: 'destructive', showBadge: true }
-      case 'CANCELLED':
-        return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
-      default:
         return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
     }
   }
-
-  // Fallback for backward compatibility
-  switch (status) {
-    case 'ACTIVE':
-      return { text: '', color: 'success', showBadge: false }
-    case 'COMPLETED':
-      return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
-    case 'DEFAULTED':
-      return { text: 'ค้างชำระ', color: 'destructive', showBadge: true }
-    case 'CANCELLED':
-      return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
-    default:
-      return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
-  }
-}
 
   if (isLoading) {
     return (
@@ -176,20 +178,20 @@ const getStatusInfo = (status: string, type?: string) => {
     )
   }
 
-const getBadgeVariant = (statusColor: string) => {
-  switch (statusColor) {
-    case 'success':
-      return 'default'
-    case 'warning':
-      return 'outline'
-    case 'destructive':
-      return 'destructive'
-    case 'secondary':
-      return 'secondary'
-    default:
-      return 'default'
+  const getBadgeVariant = (statusColor: string) => {
+    switch (statusColor) {
+      case 'success':
+        return 'default'
+      case 'warning':
+        return 'outline'
+      case 'destructive':
+        return 'destructive'
+      case 'secondary':
+        return 'secondary'
+      default:
+        return 'default'
+    }
   }
-}
 
   const getBadgeClassName = (statusColor: string) => {
     if (statusColor === 'warning') {
@@ -214,13 +216,17 @@ const getBadgeVariant = (statusColor: string) => {
 
       <div className="space-y-4">
         {loans.map((loan) => {
-          const progress = loan.totalInstallments > 0 
-            ? (loan.currentInstallment / loan.totalInstallments) * 100 
-            : 0
+          const progress =
+            loan.totalInstallments > 0
+              ? (loan.currentInstallment / loan.totalInstallments) * 100
+              : 0
           const nextPaymentDays = getDaysUntilPayment(loan.nextPaymentDate)
           const isOverdue = nextPaymentDays < 0 && loan.type === 'LOAN'
           const isExpanded = expandedCards[loan.id] || false
-          const statusInfo = getStatusInfo(loan.displayStatus || loan.status, loan.type)
+          const statusInfo = getStatusInfo(
+            loan.displayStatus || loan.status,
+            loan.type
+          )
           const loanTypeName = getLoanTypeName(loan.loanType)
           const isApplication = loan.type === 'APPLICATION'
 
@@ -319,18 +325,20 @@ const getBadgeVariant = (statusColor: string) => {
 
               {(statusInfo.showBadge || isApplication) && isExpanded && (
                 <CardContent className="space-y-4 pt-0">
-                  {statusInfo.text === 'รออนุมัติ' || statusInfo.text === 'รอตรวจสอบ' ? (
+                  {statusInfo.text === 'รออนุมัติ' ||
+                  statusInfo.text === 'รอตรวจสอบ' ? (
                     <div className="flex items-center gap-2 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />
                       <div>
                         <p className="text-sm font-medium text-yellow-800">
-                          {statusInfo.text === 'รออนุมัติ' ? 'กำลังตรวจสอบ' : 'รอตรวจสอบ'}
+                          {statusInfo.text === 'รออนุมัติ'
+                            ? 'กำลังตรวจสอบ'
+                            : 'รอตรวจสอบ'}
                         </p>
                         <p className="text-xs text-yellow-600">
-                          {statusInfo.text === 'รออนุมัติ' 
+                          {statusInfo.text === 'รออนุมัติ'
                             ? 'เอกสารของคุณอยู่ระหว่างการพิจารณา กรุณารอผลการอนุมัติ'
-                            : 'ใบสมัครของคุณได้รับการส่งแล้ว รอการตรวจสอบจากเจ้าหน้าที่'
-                          }
+                            : 'ใบสมัครของคุณได้รับการส่งแล้ว รอการตรวจสอบจากเจ้าหน้าที่'}
                         </p>
                       </div>
                     </div>
@@ -343,7 +351,8 @@ const getBadgeVariant = (statusColor: string) => {
                             เหตุผลที่ไม่อนุมัติ
                           </p>
                           <p className="text-xs text-red-600">
-                            {loan.reviewNotes || 'รายได้ไม่เพียงพอตามเกณฑ์ที่กำหนด และเอกสารหลักฐานไม่ครบถ้วน'}
+                            {loan.reviewNotes ||
+                              'รายได้ไม่เพียงพอตามเกณฑ์ที่กำหนด และเอกสารหลักฐานไม่ครบถ้วน'}
                           </p>
                         </div>
                       </div>
@@ -366,9 +375,7 @@ const getBadgeVariant = (statusColor: string) => {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        className="w-full"
-                        variant="default">
+                      <Button className="w-full" variant="default">
                         ดำเนินการต่อ
                       </Button>
                     </div>
@@ -380,11 +387,13 @@ const getBadgeVariant = (statusColor: string) => {
                           อนุมัติแล้ว
                         </p>
                         <p className="text-xs text-green-600">
-                          ใบสมัครของคุณได้รับการอนุมัติแล้ว กำลังดำเนินการสร้างสัญญา
+                          ใบสมัครของคุณได้รับการอนุมัติแล้ว
+                          กำลังดำเนินการสร้างสัญญา
                         </p>
                       </div>
                     </div>
-                  ) : statusInfo.text === 'ยกเลิก' || statusInfo.text === 'ค้างชำระ' ? (
+                  ) : statusInfo.text === 'ยกเลิก' ||
+                    statusInfo.text === 'ค้างชำระ' ? (
                     <div className="space-y-3">
                       <div className="flex items-start gap-2 p-4 bg-red-50 border border-red-200 rounded-lg">
                         <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />

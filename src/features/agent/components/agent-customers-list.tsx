@@ -1,31 +1,30 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useSession } from 'next-auth/react'
+import { useMemo, useState } from 'react'
 
 import Link from 'next/link'
 
+import { useGetLoansByAgentId } from '@src/features/products/hooks'
+import { formatThaiCurrency } from '@src/shared/lib/utils'
 import { Badge } from '@src/shared/ui/badge'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import { Progress } from '@src/shared/ui/progress'
 import { Input } from '@src/shared/ui/input'
+import { Progress } from '@src/shared/ui/progress'
 import {
   AlertCircle,
   Calendar,
   ChevronDown,
   ChevronUp,
   CreditCard,
-  TrendingUp,
-  Users,
   Loader2,
-  Search,
   Phone,
+  Search,
+  TrendingUp,
   User,
+  Users,
 } from 'lucide-react'
-
-import { useGetLoansByAgentId } from '@src/features/products/hooks'
-import { formatThaiCurrency } from '@src/shared/lib/utils'
+import { useSession } from 'next-auth/react'
 
 // Mock data สำหรับ fallback
 const mockCustomerLoans = [
@@ -216,7 +215,7 @@ const getStatusInfo = (status: string, type?: string) => {
         return { text: '', color: 'success', showBadge: false }
     }
   }
-  
+
   // Handle LoanApplication statuses
   if (type === 'APPLICATION') {
     switch (status) {
@@ -276,16 +275,22 @@ const getBadgeClassName = (statusColor: string) => {
 
 export function AgentCustomersList() {
   const { data: session } = useSession()
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({})
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
+    {}
+  )
   const [searchTerm, setSearchTerm] = useState('')
 
   // Use real data if available, fallback to mock data
   const agentId = session?.user?.id
-  const { data: loansData, isLoading, error } = useGetLoansByAgentId(agentId || '')
-  
+  const {
+    data: loansData,
+    isLoading,
+    error,
+  } = useGetLoansByAgentId(agentId || '')
+
   // Use only real data from database
-  const allLoans = (loansData?.success && loansData?.data) ? loansData.data : []
-  
+  const allLoans = loansData?.success && loansData?.data ? loansData.data : []
+
   // Debug logging (remove in production)
   if (process.env.NODE_ENV === 'development') {
     console.log('Agent Session:', session?.user)
@@ -295,8 +300,14 @@ export function AgentCustomersList() {
     console.log('All Loans Length:', allLoans?.length)
     if (allLoans?.length > 0) {
       console.log('Sample Loan:', allLoans[0])
-      console.log('Sample remainingBalance type:', typeof allLoans[0]?.remainingBalance)
-      console.log('Sample remainingBalance value:', allLoans[0]?.remainingBalance)
+      console.log(
+        'Sample remainingBalance type:',
+        typeof allLoans[0]?.remainingBalance
+      )
+      console.log(
+        'Sample remainingBalance value:',
+        allLoans[0]?.remainingBalance
+      )
     }
     if (error) console.log('API Error:', error)
   }
@@ -323,7 +334,11 @@ export function AgentCustomersList() {
       const customer = customerMap.get(customerId)
       customer.loans.push(loan)
       // Add to balance for active loans with remaining balance (ensure numeric calculation)
-      if (loan.type === 'LOAN' && ['ACTIVE', 'DEFAULTED'].includes(loan.status) && Number(loan.remainingBalance) > 0) {
+      if (
+        loan.type === 'LOAN' &&
+        ['ACTIVE', 'DEFAULTED'].includes(loan.status) &&
+        Number(loan.remainingBalance) > 0
+      ) {
         customer.totalBalance += Number(loan.remainingBalance) || 0
       } else if (loan.type === 'APPLICATION' && loan.status === 'APPROVED') {
         customer.totalBalance += Number(loan.principalAmount) || 0
@@ -406,7 +421,9 @@ export function AgentCustomersList() {
             (loan) => loan.type === 'LOAN' && loan.status === 'COMPLETED'
           )
           const hasPendingApplications = customer.loans.some(
-            (loan) => loan.type === 'APPLICATION' && ['UNDER_REVIEW', 'SUBMITTED'].includes(loan.status)
+            (loan) =>
+              loan.type === 'APPLICATION' &&
+              ['UNDER_REVIEW', 'SUBMITTED'].includes(loan.status)
           )
           const hasRejectedApplications = customer.loans.some(
             (loan) => loan.type === 'APPLICATION' && loan.status === 'REJECTED'
@@ -449,21 +466,34 @@ export function AgentCustomersList() {
                         ไม่อนุมัติ
                       </Badge>
                     )}
-                    {!hasOverdueLoans && !hasRejectedApplications && hasPendingApplications && (
-                      <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200">
-                        รออนุมัติ
-                      </Badge>
-                    )}
-                    {!hasOverdueLoans && !hasRejectedApplications && !hasPendingApplications && hasCompletedLoans && (
-                      <Badge variant="default" className="text-xs bg-green-100 text-green-800 border-green-200">
-                        ชำระครบแล้ว
-                      </Badge>
-                    )}
-                    {!hasOverdueLoans && !hasRejectedApplications && !hasPendingApplications && !hasCompletedLoans && hasActiveLoans && (
-                      <Badge variant="default" className="text-xs">
-                        มีสินเชื่อ
-                      </Badge>
-                    )}
+                    {!hasOverdueLoans &&
+                      !hasRejectedApplications &&
+                      hasPendingApplications && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200">
+                          รออนุมัติ
+                        </Badge>
+                      )}
+                    {!hasOverdueLoans &&
+                      !hasRejectedApplications &&
+                      !hasPendingApplications &&
+                      hasCompletedLoans && (
+                        <Badge
+                          variant="default"
+                          className="text-xs bg-green-100 text-green-800 border-green-200">
+                          ชำระครบแล้ว
+                        </Badge>
+                      )}
+                    {!hasOverdueLoans &&
+                      !hasRejectedApplications &&
+                      !hasPendingApplications &&
+                      !hasCompletedLoans &&
+                      hasActiveLoans && (
+                        <Badge variant="default" className="text-xs">
+                          มีสินเชื่อ
+                        </Badge>
+                      )}
                   </div>
                 </div>
               </CardHeader>
@@ -492,14 +522,20 @@ export function AgentCustomersList() {
                 <CardContent className="space-y-4 pt-0">
                   <div className="space-y-3">
                     {customer.loans.map((loan) => {
-                      const progress = loan.totalInstallments > 0 
-                        ? (loan.currentInstallment / loan.totalInstallments) * 100 
-                        : 0
+                      const progress =
+                        loan.totalInstallments > 0
+                          ? (loan.currentInstallment / loan.totalInstallments) *
+                            100
+                          : 0
                       const nextPaymentDays = getDaysUntilPayment(
                         loan.nextPaymentDate
                       )
-                      const isOverdue = nextPaymentDays < 0 && loan.type === 'LOAN'
-                      const statusInfo = getStatusInfo(loan.displayStatus || loan.status, loan.type)
+                      const isOverdue =
+                        nextPaymentDays < 0 && loan.type === 'LOAN'
+                      const statusInfo = getStatusInfo(
+                        loan.displayStatus || loan.status,
+                        loan.type
+                      )
                       const loanTypeName = getLoanTypeName(loan.loanType)
                       const isApplication = loan.type === 'APPLICATION'
 
@@ -549,7 +585,8 @@ export function AgentCustomersList() {
                                 ใบสมัครสินเชื่อ
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                จำนวนเงินที่ขอ: {formatThaiCurrency(loan.principalAmount)}
+                                จำนวนเงินที่ขอ:{' '}
+                                {formatThaiCurrency(loan.principalAmount)}
                               </p>
                               {loan.reviewNotes && (
                                 <p className="text-xs text-red-600 mt-1">
@@ -621,16 +658,16 @@ export function AgentCustomersList() {
                               className="flex-1"
                               variant={isOverdue ? 'default' : 'outline'}>
                               <Link
-                                href={isApplication 
-                                  ? `/agent/customers/${customer.id}/applications/${loan.id}`
-                                  : `/agent/customers/${customer.id}/loans/${loan.id}`
+                                href={
+                                  isApplication
+                                    ? `/agent/customers/${customer.id}/applications/${loan.id}`
+                                    : `/agent/customers/${customer.id}/loans/${loan.id}`
                                 }>
-                                {isApplication 
+                                {isApplication
                                   ? 'ดูใบสมัคร'
-                                  : isOverdue 
-                                    ? 'ติดตามการชำระ' 
-                                    : 'ดูรายละเอียด'
-                                }
+                                  : isOverdue
+                                    ? 'ติดตามการชำระ'
+                                    : 'ดูรายละเอียด'}
                               </Link>
                             </Button>
                             <Button variant="ghost" size="icon" asChild>
@@ -679,26 +716,37 @@ export function AgentCustomersList() {
                   {(() => {
                     const totalBalance = allLoans.reduce((sum, loan) => {
                       const currentSum = Number(sum)
-                      if (loan.type === 'LOAN' && ['ACTIVE', 'DEFAULTED'].includes(loan.status) && Number(loan.remainingBalance) > 0) {
+                      if (
+                        loan.type === 'LOAN' &&
+                        ['ACTIVE', 'DEFAULTED'].includes(loan.status) &&
+                        Number(loan.remainingBalance) > 0
+                      ) {
                         const amount = Number(loan.remainingBalance || 0)
                         if (process.env.NODE_ENV === 'development') {
-                          console.log(`Adding LOAN ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`)
+                          console.log(
+                            `Adding LOAN ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
+                          )
                         }
                         return currentSum + amount
-                      } else if (loan.type === 'APPLICATION' && loan.status === 'APPROVED') {
+                      } else if (
+                        loan.type === 'APPLICATION' &&
+                        loan.status === 'APPROVED'
+                      ) {
                         const amount = Number(loan.principalAmount || 0)
                         if (process.env.NODE_ENV === 'development') {
-                          console.log(`Adding APPLICATION ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`)
+                          console.log(
+                            `Adding APPLICATION ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
+                          )
                         }
                         return currentSum + amount
                       }
                       return currentSum
                     }, 0)
-                    
+
                     if (process.env.NODE_ENV === 'development') {
                       console.log('Final Total Balance:', totalBalance)
                     }
-                    
+
                     return formatThaiCurrency(totalBalance)
                   })()}
                 </p>

@@ -1,5 +1,6 @@
 // src/app/api/loans/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+
 import { loanService } from '../../../features/products/services/server'
 import { productsFiltersSchema } from '../../../features/products/validations'
 

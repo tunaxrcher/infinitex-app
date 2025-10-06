@@ -20,12 +20,15 @@ class DigitalOceanStorage {
     this.cdnUrl = `https://${this.bucketName}.sgp1.digitaloceanspaces.com`
 
     // Configure DigitalOcean Spaces
-    const endpoint = process.env.DO_SPACES_ENDPOINT || 'https://sgp1.digitaloceanspaces.com'
-    
+    const endpoint =
+      process.env.DO_SPACES_ENDPOINT || 'https://sgp1.digitaloceanspaces.com'
+
     this.s3 = new AWS.S3({
       endpoint,
       accessKeyId: process.env.DO_SPACES_KEY || 'DO00RZJHU8XCYZPY2ZTU',
-      secretAccessKey: process.env.DO_SPACES_SECRET || 'p/zvSgK/Z6MlKcS3IV00CJ2xU6TdZ9dLfdsjlFL4etA',
+      secretAccessKey:
+        process.env.DO_SPACES_SECRET ||
+        'p/zvSgK/Z6MlKcS3IV00CJ2xU6TdZ9dLfdsjlFL4etA',
       s3ForcePathStyle: true, // Use path-style URLs to avoid subdomain certificate issues
       signatureVersion: 'v4',
       region: 'sgp1',
@@ -49,7 +52,7 @@ class DigitalOceanStorage {
     try {
       const timestamp = Date.now()
       const randomString = Math.random().toString(36).substring(2, 15)
-      
+
       const folder = options.folder || 'uploads'
       const filename = options.filename || `file_${timestamp}_${randomString}`
       const key = `${folder}/${filename}`
@@ -58,7 +61,7 @@ class DigitalOceanStorage {
         endpoint: this.s3.endpoint?.href,
         bucketName: this.bucketName,
         key,
-        contentType
+        contentType,
       })
 
       const uploadParams = {
@@ -71,14 +74,14 @@ class DigitalOceanStorage {
 
       console.log('[Storage] Starting upload...')
       const result = await this.s3.upload(uploadParams).promise()
-      
+
       // Use CDN URL instead of the returned Location to avoid certificate issues
       const publicUrl = `${this.cdnUrl}/${key}`
-      
-      console.log('[Storage] Upload successful:', { 
-        originalUrl: result.Location, 
+
+      console.log('[Storage] Upload successful:', {
+        originalUrl: result.Location,
         publicUrl,
-        key 
+        key,
       })
 
       return {
@@ -93,7 +96,9 @@ class DigitalOceanStorage {
         statusCode: (error as any)?.statusCode,
         hostname: (error as any)?.hostname,
       })
-      throw new Error(`การอัพโหลดไฟล์ล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `การอัพโหลดไฟล์ล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -104,15 +109,19 @@ class DigitalOceanStorage {
     try {
       console.log('[Storage] Deleting file:', key)
 
-      await this.s3.deleteObject({
-        Bucket: this.bucketName,
-        Key: key,
-      }).promise()
+      await this.s3
+        .deleteObject({
+          Bucket: this.bucketName,
+          Key: key,
+        })
+        .promise()
 
       console.log('[Storage] Delete successful:', key)
     } catch (error) {
       console.error('[Storage] Delete failed:', error)
-      throw new Error(`การลบไฟล์ล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `การลบไฟล์ล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -130,7 +139,9 @@ class DigitalOceanStorage {
       return url
     } catch (error) {
       console.error('[Storage] Get signed URL failed:', error)
-      throw new Error(`การสร้าง URL ล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `การสร้าง URL ล้มเหลว: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 }

@@ -9,15 +9,21 @@ export async function GET(request: NextRequest) {
     const agentId = searchParams.get('agentId')
 
     if (!searchTerm || searchTerm.length < 2) {
-      return NextResponse.json({ error: 'Search term must be at least 2 characters' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Search term must be at least 2 characters' },
+        { status: 400 }
+      )
     }
 
-    const result = await customerService.searchCustomers(searchTerm, agentId || undefined)
+    const result = await customerService.searchCustomers(
+      searchTerm,
+      agentId || undefined
+    )
     return NextResponse.json(result)
   } catch (error) {
     console.error('GET /api/customers/search error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' }, 
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     )
   }

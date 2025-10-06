@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+
 import { loanService } from '@src/features/loan/services/server'
 import { manualLookupSchema } from '@src/features/loan/validations'
 
@@ -7,7 +8,7 @@ export async function POST(request: NextRequest) {
     console.log('[API] Manual title deed lookup started')
 
     const body = await request.json()
-    
+
     // Validate request body
     const validatedData = manualLookupSchema.parse(body)
 
@@ -19,19 +20,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     console.error('[API] Manual title deed lookup failed:', error)
-    
+
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(
-        { 
-          error: 'ข้อมูลไม่ถูกต้อง', 
-          details: error.message 
-        }, 
+        {
+          error: 'ข้อมูลไม่ถูกต้อง',
+          details: error.message,
+        },
         { status: 400 }
       )
     }
-    
+
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการค้นหาข้อมูลโฉนด' },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'เกิดข้อผิดพลาดในการค้นหาข้อมูลโฉนด',
+      },
       { status: 500 }
     )
   }
