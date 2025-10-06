@@ -1,113 +1,100 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { google, createGoogleGenerativeAI } from '@ai-sdk/google'
+import { generateObject } from 'ai'
+import { z } from 'zod'
 import { findProvinceCodeManual, findAmphurCodeManual } from './manual-search'
 
-interface TitleDeedAnalysisResult {
-  pvName: string
-  amName: string
-  parcelNo: string
-}
+// Zod schemas for type safety and structured outputs
+const titleDeedAnalysisSchema = z.object({
+  pvName: z.string().describe('ชื่อจังหวัดที่พบในโฉนดที่ดิน หากไม่พบให้ใส่ค่าว่าง'),
+  amName: z.string().describe('ชื่ออำเภอที่พบในโฉนดที่ดิน หากไม่พบให้ใส่ค่าว่าง'),
+  parcelNo: z.string().describe('เลขโฉนดที่ดินที่พบ หากไม่พบให้ใส่ค่าว่าง'),
+})
 
-interface ProvinceSearchResult {
-  pvCode: string
-}
+const provinceSearchSchema = z.object({
+  pvCode: z.string().describe('รหัสจังหวัดที่ตรงกับชื่อจังหวัดที่ให้มา หากไม่พบให้ใส่ค่าว่าง'),
+})
 
-interface AmphurSearchResult {
-  pvCode: string
-  amCode: string
-  parcelNo: string
-}
+const amphurSearchSchema = z.object({
+  pvCode: z.string().describe('รหัสจังหวัด'),
+  amCode: z.string().describe('รหัสอำเภอที่ตรงกับชื่ออำเภอที่ให้มา หากไม่พบให้ใส่ค่าว่าง'),
+  parcelNo: z.string().describe('เลขโฉนดที่ดิน'),
+})
+
+// Type definitions from schemas
+type TitleDeedAnalysisResult = z.infer<typeof titleDeedAnalysisSchema>
+type ProvinceSearchResult = z.infer<typeof provinceSearchSchema>
+type AmphurSearchResult = z.infer<typeof amphurSearchSchema>
 
 class AIService {
-  private genAI: GoogleGenerativeAI
-  private availableModels: string[]
+  private googleProvider: ReturnType<typeof createGoogleGenerativeAI>
 
   constructor() {
-    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyAofGMt2DSd27lHPwN1ykPRSBHTutfMLZc'
-    this.genAI = new GoogleGenerativeAI(apiKey)
-    // List of models to try in order of preference
-    this.availableModels = [
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-pro-vision',
-      'gemini-pro'
-    ]
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || 'AIzaSyAofGMt2DSd27lHPwN1ykPRSBHTutfMLZc'
+    
+    if (!apiKey) {
+      throw new Error('Google Generative AI API key is required')
+    }
+
+    // Create Google provider instance with API key as per AI SDK v5 documentation
+    this.googleProvider = createGoogleGenerativeAI({
+      apiKey,
+    })
   }
 
   /**
-   * Get the best available model for the task
+   * Get the Google AI model instance with latest Gemini 2.5 models
    */
-  private async getModel(needsVision: boolean = false) {
-    // Simplified model selection - use known working models
-    const modelName = needsVision ? 'gemini-pro-vision' : 'gemini-pro'
+  private getModel(needsVision: boolean = false) {
+    // Use the latest Gemini 2.5 models as recommended in AI SDK v5
+    const modelName = needsVision ? 'gemini-2.5-flash' : 'gemini-2.5-flash'
     
-    try {
-      console.log(`[AI] Using model: ${modelName}`)
-      const model = this.genAI.getGenerativeModel({ model: modelName })
-      return model
-    } catch (error) {
-      console.error(`[AI] Failed to initialize model ${modelName}:`, error)
-      throw new Error(`ไม่สามารถเชื่อมต่อ AI model ได้: ${(error as any)?.message}`)
-    }
+    console.log(`[AI] Using latest model: ${modelName}`)
+    
+    return this.googleProvider(modelName)
   }
 
   /**
    * วิเคราะห์รูปโฉนดที่ดินเพื่อหาชื่อจังหวัด อำเภอ และเลขโฉนด
+   * ใช้ generateObject สำหรับ structured output ที่แม่นยำกว่า
    */
   async analyzeTitleDeedImage(imageBuffer: Buffer, mimeType: string): Promise<TitleDeedAnalysisResult> {
     try {
-      console.log('[AI] Analyzing title deed image...')
+      console.log('[AI] Analyzing title deed image with Gemini 2.5...')
 
-      const model = await this.getModel(true)
+      const model = this.getModel(true)
 
-      const prompt = `
-        วิเคราะห์รูปโฉนดที่ดินนี้และหาข้อมูลดังต่อไปนี้:
-        1. ชื่อจังหวัด
-        2. ชื่ออำเภอ
-        3. เลขโฉนด
+      const { object } = await generateObject({
+        model,
+        schema: titleDeedAnalysisSchema,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `วิเคราะห์รูปโฉนดที่ดินนี้และหาข้อมูลดังต่อไปนี้:
+                1. ชื่อจังหวัด (pvName)
+                2. ชื่ออำเภอ (amName) 
+                3. เลขโฉนด (parcelNo)
+                
+                หากไม่พบข้อมูลใดให้ใส่ค่าว่าง "" สำหรับฟิลด์นั้น ๆ
+                กรุณาอ่านข้อความในรูปอย่างละเอียดและระบุข้อมูลที่ถูกต้อง`,
+              },
+              {
+                type: 'image',
+                image: imageBuffer,
+              },
+            ],
+          },
+        ],
+      })
 
-        กรุณาตอบกลับเป็น JSON format เท่านั้น ตามรูปแบบนี้:
-        {
-          "pvName": "ชื่อจังหวัด",
-          "amName": "ชื่ออำเภอ",
-          "parcelNo": "เลขโฉนด"
-        }
-
-        หากไม่พบข้อมูลใดให้ใส่ค่าว่าง "" สำหรับฟิลด์นั้น ๆ
-        ตัวอย่าง: หากไม่เจอจังหวัดและอำเภอ แต่เจอเลขโฉนด 1234
-        {
-          "pvName": "",
-          "amName": "",
-          "parcelNo": "1234"
-        }
-      `
-
-      const imagePart = {
-        inlineData: {
-          data: imageBuffer.toString('base64'),
-          mimeType: mimeType,
-        },
-      }
-
-      const result = await model.generateContent([prompt, imagePart])
-      const response = await result.response
-      const text = response.text()
-
-      console.log('[AI] Raw response:', text)
-
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
-        throw new Error('ไม่สามารถแปลงผลลัพธ์เป็น JSON ได้')
-      }
-
-      const analysisResult = JSON.parse(jsonMatch[0]) as TitleDeedAnalysisResult
-
-      console.log('[AI] Analysis result:', analysisResult)
+      console.log('[AI] Structured analysis result:', object)
 
       return {
-        pvName: analysisResult.pvName || '',
-        amName: analysisResult.amName || '',
-        parcelNo: analysisResult.parcelNo || '',
+        pvName: object.pvName || '',
+        amName: object.amName || '',
+        parcelNo: object.parcelNo || '',
       }
     } catch (error) {
       console.error('[AI] Title deed analysis failed:', error)
@@ -124,48 +111,30 @@ class AIService {
 
   /**
    * หารหัสจังหวัดจากชื่อจังหวัด
+   * ใช้ generateObject สำหรับ structured output
    */
   async findProvinceCode(provinceName: string, provinceData: any[]): Promise<ProvinceSearchResult> {
     try {
       console.log('[AI] Finding province code for:', provinceName)
 
-      const model = await this.getModel(false)
+      const model = this.getModel(false)
 
-      const prompt = `
-        จากชื่อจังหวัด "${provinceName}" และข้อมูลจังหวัดต่อไปนี้:
+      const { object } = await generateObject({
+        model,
+        schema: provinceSearchSchema,
+        prompt: `จากชื่อจังหวัด "${provinceName}" และข้อมูลจังหวัดต่อไปนี้:
         ${JSON.stringify(provinceData, null, 2)}
 
         กรุณาหารหัสจังหวัด (pvcode) ที่ตรงกับชื่อจังหวัดที่ให้มา
-        ตอบกลับเป็น JSON format เท่านั้น:
-        {
-          "pvCode": "รหัสจังหวัด"
-        }
+        หากไม่พบให้ใส่ค่าว่าง ""
+        
+        หมายเหตุ: ให้ค้นหาแบบยืดหยุ่น เช่น "ชลบุรี" ควรตรงกับ "ชลบุรี" ใน pvnamethai`,
+      })
 
-        หากไม่พบให้ตอบ:
-        {
-          "pvCode": ""
-        }
-
-        หมายเหตุ: ให้ค้นหาแบบยืดหยุ่น เช่น "ชลบุรี" ควรตรงกับ "ชลบุรี" ใน pvnamethai
-      `
-
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      const text = response.text()
-
-      console.log('[AI] Province search raw response:', text)
-
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
-        throw new Error('ไม่สามารถแปลงผลลัพธ์เป็น JSON ได้')
-      }
-
-      const searchResult = JSON.parse(jsonMatch[0]) as ProvinceSearchResult
-
-      console.log('[AI] Province search result:', searchResult)
+      console.log('[AI] Province search structured result:', object)
 
       return {
-        pvCode: searchResult.pvCode || '',
+        pvCode: object.pvCode || '',
       }
     } catch (error) {
       console.error('[AI] Province search failed:', error)
@@ -179,6 +148,7 @@ class AIService {
 
   /**
    * หารหัสอำเภอจากชื่ออำเภอและรหัสจังหวัด
+   * ใช้ generateObject สำหรับ structured output
    */
   async findAmphurCode(
     amphurName: string,
@@ -192,49 +162,31 @@ class AIService {
       // Filter amphur data by province code
       const filteredAmphurs = amphurData.filter(amphur => amphur.pvcode === provinceCode)
 
-      const model = await this.getModel(false)
+      const model = this.getModel(false)
 
-      const prompt = `
-        จากชื่ออำเภอ "${amphurName}" และข้อมูลอำเภอในจังหวัดรหัส "${provinceCode}":
+      const { object } = await generateObject({
+        model,
+        schema: amphurSearchSchema,
+        prompt: `จากชื่ออำเภอ "${amphurName}" และข้อมูลอำเภอในจังหวัดรหัส "${provinceCode}":
         ${JSON.stringify(filteredAmphurs, null, 2)}
 
         กรุณาหารหัสอำเภอ (amcode) ที่ตรงกับชื่ออำเภอที่ให้มา
-        ตอบกลับเป็น JSON format เท่านั้น:
-        {
-          "pvCode": "${provinceCode}",
-          "amCode": "รหัสอำเภอ",
-          "parcelNo": "${parcelNo}"
-        }
+        หากไม่พบให้ใส่ค่าว่าง ""
+        
+        ข้อมูลที่ต้องส่งคืน:
+        - pvCode: "${provinceCode}"
+        - amCode: รหัสอำเภอที่พบ หรือค่าว่างหากไม่พบ
+        - parcelNo: "${parcelNo}"
+        
+        หมายเหตุ: ให้ค้นหาแบบยืดหยุ่น เช่น "ศรีราชา" ควรตรงกับ "ศรีราชา" ใน amnamethai`,
+      })
 
-        หากไม่พบให้ตอบ:
-        {
-          "pvCode": "${provinceCode}",
-          "amCode": "",
-          "parcelNo": "${parcelNo}"
-        }
-
-        หมายเหตุ: ให้ค้นหาแบบยืดหยุ่น เช่น "ศรีราชา" ควรตรงกับ "ศรีราชา" ใน amnamethai
-      `
-
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      const text = response.text()
-
-      console.log('[AI] Amphur search raw response:', text)
-
-      const jsonMatch = text.match(/\{[\s\S]*\}/)
-      if (!jsonMatch) {
-        throw new Error('ไม่สามารถแปลงผลลัพธ์เป็น JSON ได้')
-      }
-
-      const searchResult = JSON.parse(jsonMatch[0]) as AmphurSearchResult
-
-      console.log('[AI] Amphur search result:', searchResult)
+      console.log('[AI] Amphur search structured result:', object)
 
       return {
-        pvCode: searchResult.pvCode || provinceCode,
-        amCode: searchResult.amCode || '',
-        parcelNo: searchResult.parcelNo || parcelNo,
+        pvCode: object.pvCode || provinceCode,
+        amCode: object.amCode || '',
+        parcelNo: object.parcelNo || parcelNo,
       }
     } catch (error) {
       console.error('[AI] Amphur search failed:', error)
