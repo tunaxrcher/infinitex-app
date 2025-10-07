@@ -227,7 +227,12 @@ export function TitleDeedManualInputModal({
             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
               <Label htmlFor="amphur">
                 อำเภอ *
-                {filteredAmphurs.length > 0 && (
+                {initialData?.amCode && (
+                  <span className="text-xs text-amber-600 font-normal ml-2">
+                    (กรุณาตรวจเช็คความถูกต้อง)
+                  </span>
+                )}
+                {filteredAmphurs.length > 0 && !initialData?.amCode && (
                   <span className="text-xs text-muted-foreground font-normal">
                     ({filteredAmphurs.length} อำเภอ)
                   </span>
@@ -248,7 +253,7 @@ export function TitleDeedManualInputModal({
                   ))}
                 </SelectContent>
               </Select>
-              {initialData?.amCode && selectedAmphur === initialData.amCode && (
+              {/* {initialData?.amCode && selectedAmphur === initialData.amCode && (
                 <p className="text-xs text-blue-600">
                   ✓ ระบบวิเคราะห์ได้:{' '}
                   {
@@ -256,7 +261,7 @@ export function TitleDeedManualInputModal({
                       ?.amnamethai
                   }
                 </p>
-              )}
+              )} */}
               {filteredAmphurs.length === 0 && (
                 <p className="text-xs text-amber-600">
                   ไม่พบข้อมูลอำเภอในจังหวัดนี้
@@ -271,7 +276,14 @@ export function TitleDeedManualInputModal({
           {/* Parcel Number Input - Show only after amphur is selected */}
           {selectedProvince && selectedAmphur && (
             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-              <Label htmlFor="parcelNo">เลขโฉนด *</Label>
+              <Label htmlFor="parcelNo">
+                เลขโฉนด *
+                {initialData?.parcelNo && (
+                  <span className="text-xs text-amber-600 font-normal ml-2">
+                    (กรุณาตรวจเช็คความถูกต้อง)
+                  </span>
+                )}
+              </Label>
               <Input
                 id="parcelNo"
                 value={parcelNumber}
@@ -285,12 +297,12 @@ export function TitleDeedManualInputModal({
                 disabled={isLoading}
                 autoFocus
               />
-              {initialData?.parcelNo &&
+              {/* {initialData?.parcelNo &&
                 parcelNumber === initialData.parcelNo && (
                   <p className="text-xs text-blue-600">
                     ✓ ระบบวิเคราะห์ได้: {parcelNumber}
                   </p>
-                )}
+                )} */}
               {!parcelNumber.trim() && !isLoading && (
                 <p className="text-xs text-muted-foreground">
                   กรอกเลขโฉนดเพื่อค้นหาข้อมูล
@@ -299,6 +311,7 @@ export function TitleDeedManualInputModal({
             </div>
           )}
 
+<hr />
           {/* Summary - Show when all fields are filled */}
           {selectedProvince &&
             selectedAmphur &&
