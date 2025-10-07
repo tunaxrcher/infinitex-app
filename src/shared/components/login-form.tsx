@@ -152,136 +152,142 @@ export function LoginForm() {
               ยินดีต้อนรับ
             </h1>
             <p className="text-muted-foreground">
-              เข้าสู่ระบบเพื่อดำเนินการต่อ (demo)
+              เข้าสู่ระบบเพื่อดำเนินการต่อ
             </p>
           </div>
 
-          <Card className="shadow-lg">
-            <CardContent className="pt-6">
-              <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                {/* Phone Number Input */}
-                <div className="space-y-2">
-                  <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="08X-XXX-XXXX"
-                      value={phoneNumber}
-                      onChange={handlePhoneChange}
-                      className="pl-10"
-                      required
-                    />
+          <form onSubmit={handlePhoneSubmit} className="space-y-4">
+            <Card className="shadow-lg">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  {/* Phone Number Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">เบอร์โทรศัพท์ (demo)</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="08X-XXX-XXXX"
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* User Type Selection */}
-                <div className="space-y-3">
-                  <Label>ประเภทผู้ใช้</Label>
-                  <RadioGroup
-                    value={userType}
-                    onValueChange={(value) => setUserType(value as UserType)}
-                    className="grid grid-cols-2 gap-4">
-                    <div>
-                      <RadioGroupItem
-                        value="CUSTOMER"
-                        id="customer"
-                        className="sr-only"
-                      />
-                      <Label
-                        htmlFor="customer"
-                        className={cn(
-                          'relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors',
-                          userType === 'CUSTOMER' &&
-                            'border-primary bg-primary/5 text-primary'
-                        )}>
-                        <UserRound className="h-5 w-5" />
-                        ลูกค้า
-                      </Label>
-                    </div>
-                    <div>
-                      <RadioGroupItem
-                        value="AGENT"
-                        id="agent"
-                        className="sr-only"
-                      />
-                      <Label
-                        htmlFor="agent"
-                        className={cn(
-                          'relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors',
-                          userType === 'AGENT' &&
-                            'border-primary bg-primary/5 text-primary'
-                        )}>
-                        <Shield className="h-5 w-5" />
-                        เอเจนต์
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <hr />
-
-                {/* Demo Info */}
-                <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 space-y-3">
-                  <p className="text-sm font-semibold text-primary flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    ข้อมูลสำหรับทดสอบระบบ
-                  </p>
-                  <div className="">
-                    <div className="flex items-center justify-between bg-background/50 rounded-lg py-0 pb-3">
-                      <div className="text-sm">
-                        <div className="font-medium text-foreground">
+                  {/* User Type Selection */}
+                  <div className="space-y-3">
+                    <Label>ประเภทผู้ใช้</Label>
+                    <RadioGroup
+                      value={userType}
+                      onValueChange={(value) => setUserType(value as UserType)}
+                      className="grid grid-cols-2 gap-4">
+                      <div>
+                        <RadioGroupItem
+                          value="CUSTOMER"
+                          id="customer"
+                          className="sr-only"
+                        />
+                        <Label
+                          htmlFor="customer"
+                          className={cn(
+                            'relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors',
+                            userType === 'CUSTOMER' &&
+                              'border-primary bg-primary/5 text-primary'
+                          )}>
+                          {userType === 'CUSTOMER' && (
+                            <CheckCircle className="absolute top-2 right-2 h-4 w-4" />
+                          )}
+                          <UserRound className="mb-3 h-6 w-6" />
                           ลูกค้า
-                        </div>
-                        <div className="text-muted-foreground">
-                          080-123-4567 | PIN: 1234
-                        </div>
+                        </Label>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-primary/10"
-                        onClick={() =>
-                          copyToClipboard('080-123-4567', 'เบอร์ลูกค้า')
-                        }>
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between bg-background/50 rounded-lg py-0">
-                      <div className="text-sm">
-                        <div className="font-medium text-foreground">
+                      <div>
+                        <RadioGroupItem
+                          value="AGENT"
+                          id="agent"
+                          className="sr-only"
+                        />
+                        <Label
+                          htmlFor="agent"
+                          className={cn(
+                            'relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors',
+                            userType === 'AGENT' &&
+                              'border-primary bg-primary/5 text-primary'
+                          )}>
+                          {userType === 'AGENT' && (
+                            <CheckCircle className="absolute top-2 right-2 h-4 w-4" />
+                          )}
+                          <Briefcase className="mb-3 h-6 w-6" />
                           เอเจนต์
-                        </div>
-                        <div className="text-muted-foreground">
-                          089-123-4567 | PIN: 9999
-                        </div>
+                        </Label>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-primary/10"
-                        onClick={() =>
-                          copyToClipboard('089-123-4567', 'เบอร์เอเจนต์')
-                        }>
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                    </RadioGroup>
+                  </div>
+
+                  {/* Demo Info */}
+                  <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      ข้อมูลสำหรับทดสอบระบบ
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between bg-background/50 rounded-lg p-3">
+                        <div className="text-sm">
+                          <div className="font-medium text-foreground">
+                            ลูกค้า
+                          </div>
+                          <div className="text-muted-foreground">
+                            080-123-4567 | PIN: 1234
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-primary/10"
+                          onClick={() =>
+                            copyToClipboard('080-123-4567', 'เบอร์ลูกค้า')
+                          }>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center justify-between bg-background/50 rounded-lg p-3">
+                        <div className="text-sm">
+                          <div className="font-medium text-foreground">
+                            เอเจนต์
+                          </div>
+                          <div className="text-muted-foreground">
+                            089-123-4567 | PIN: 9999
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-primary/10"
+                          onClick={() =>
+                            copyToClipboard('089-123-4567', 'เบอร์เอเจนต์')
+                          }>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={phoneNumber.length < 12}>
-                  ถัดไป
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={phoneNumber.length < 12}>
+              ถัดไป
+            </Button>
+          </form>
           <div className="text-center">
             <p className="text-xs text-gray-500">
               <a href="#" className="hover:underline">
@@ -311,7 +317,9 @@ export function LoginForm() {
                   priority
                 />
               </div>
-              <h2 className="text-lg font-semibold ai-gradient-text">กรอก PIN ของคุณ</h2>
+              <h2 className="text-lg font-semibold ai-gradient-text">
+                กรอก PIN ของคุณ
+              </h2>
               <hr />
             </div>
 
