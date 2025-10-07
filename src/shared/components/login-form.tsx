@@ -6,7 +6,16 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import { type UserType, useAuth } from '@src/shared/contexts/auth-context'
+import { cn } from '@src/shared/lib/utils'
 import { Button } from '@src/shared/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@src/shared/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +25,17 @@ import {
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
 import { RadioGroup, RadioGroupItem } from '@src/shared/ui/radio-group'
-import { Copy, Eye, EyeOff, Phone } from 'lucide-react'
+import {
+  Briefcase,
+  CheckCircle,
+  Copy,
+  Eye,
+  EyeOff,
+  Phone,
+  Shield,
+  Sparkles,
+  UserRound,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export function LoginForm() {
@@ -116,116 +135,154 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-accent/20">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
         <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-4">
-            <div className="w-20 h-10 mx-auto">
+          <div className="text-center">
+            <div className="w-24 h-12 mx-auto mb-4">
               <Image
                 src="/images/logo.png"
                 alt="InfiniteX Logo"
-                width={80}
-                height={80}
+                width={100}
+                height={100}
                 className="w-full h-full object-contain"
                 priority
               />
             </div>
-            <hr className="border-border" />
-            <h1 className="text-2xl font-bold text-foreground">
-              เข้าสู่ระบบ (Demo)
+            <h1 className="text-2xl font-bold text-foreground ai-gradient-text">
+              ยินดีต้อนรับ
             </h1>
+            <p className="text-muted-foreground">
+              เข้าสู่ระบบเพื่อดำเนินการต่อ (demo)
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <form onSubmit={handlePhoneSubmit} className="space-y-4">
-              {/* Phone Number Input */}
-              <div className="space-y-2">
-                <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="08X-XXX-XXXX"
-                    value={phoneNumber}
-                    onChange={handlePhoneChange}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* User Type Selection */}
-              <div className="space-y-3">
-                <Label>ประเภทผู้ใช้</Label>
-                <RadioGroup
-                  value={userType}
-                  onValueChange={(value) => setUserType(value as UserType)}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="CUSTOMER" id="customer" />
-                    <Label htmlFor="customer" className="cursor-pointer">
-                      ลูกค้า
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="AGENT" id="agent" />
-                    <Label htmlFor="agent" className="cursor-pointer">
-                      เอเจนต์
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              <hr />
-
-              {/* Demo Info */}
-              <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                <p className="text-xs text-muted-foreground font-medium mb-2">
-                  สำหรับทดสอบระบบ:
-                </p>
-                <div className="text-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <strong>ลูกค้า:</strong> 080-123-4567 | PIN: 1234
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                      onClick={() =>
-                        copyToClipboard('080-123-4567', 'เบอร์ลูกค้า')
-                      }>
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <strong>เอเจนต์:</strong> 089-123-4567 | PIN: 9999
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 px-2 text-xs"
-                      onClick={() =>
-                        copyToClipboard('089-123-4567', 'เบอร์เอเจนต์')
-                      }>
-                      <Copy className="h-3 w-3" />
-                    </Button>
+          <Card className="shadow-lg">
+            <CardContent className="pt-6">
+              <form onSubmit={handlePhoneSubmit} className="space-y-4">
+                {/* Phone Number Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="08X-XXX-XXXX"
+                      value={phoneNumber}
+                      onChange={handlePhoneChange}
+                      className="pl-10"
+                      required
+                    />
                   </div>
                 </div>
-              </div>
 
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={phoneNumber.length < 12}>
-                ถัดไป
-              </Button>
-            </form>
-          </div>
+                {/* User Type Selection */}
+                <div className="space-y-3">
+                  <Label>ประเภทผู้ใช้</Label>
+                  <RadioGroup
+                    value={userType}
+                    onValueChange={(value) => setUserType(value as UserType)}
+                    className="grid grid-cols-2 gap-4">
+                    <div>
+                      <RadioGroupItem
+                        value="CUSTOMER"
+                        id="customer"
+                        className="sr-only"
+                      />
+                      <Label
+                        htmlFor="customer"
+                        className={cn(
+                          'relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors',
+                          userType === 'CUSTOMER' &&
+                            'border-primary bg-primary/5 text-primary'
+                        )}>
+                        <UserRound className="h-5 w-5" />
+                        ลูกค้า
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem
+                        value="AGENT"
+                        id="agent"
+                        className="sr-only"
+                      />
+                      <Label
+                        htmlFor="agent"
+                        className={cn(
+                          'relative flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors',
+                          userType === 'AGENT' &&
+                            'border-primary bg-primary/5 text-primary'
+                        )}>
+                        <Shield className="h-5 w-5" />
+                        เอเจนต์
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-          <div className="text-center mt-8">
+                <hr />
+
+                {/* Demo Info */}
+                <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 space-y-3">
+                  <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    ข้อมูลสำหรับทดสอบระบบ
+                  </p>
+                  <div className="">
+                    <div className="flex items-center justify-between bg-background/50 rounded-lg py-0 pb-3">
+                      <div className="text-sm">
+                        <div className="font-medium text-foreground">
+                          ลูกค้า
+                        </div>
+                        <div className="text-muted-foreground">
+                          080-123-4567 | PIN: 1234
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-primary/10"
+                        onClick={() =>
+                          copyToClipboard('080-123-4567', 'เบอร์ลูกค้า')
+                        }>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between bg-background/50 rounded-lg py-0">
+                      <div className="text-sm">
+                        <div className="font-medium text-foreground">
+                          เอเจนต์
+                        </div>
+                        <div className="text-muted-foreground">
+                          089-123-4567 | PIN: 9999
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-primary/10"
+                        onClick={() =>
+                          copyToClipboard('089-123-4567', 'เบอร์เอเจนต์')
+                        }>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={phoneNumber.length < 12}>
+                  ถัดไป
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+          <div className="text-center">
             <p className="text-xs text-gray-500">
               <a href="#" className="hover:underline">
                 Terms of Use
