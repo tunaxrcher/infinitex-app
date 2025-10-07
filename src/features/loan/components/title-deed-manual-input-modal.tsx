@@ -2,7 +2,7 @@
 
 import type React from 'react'
 import { useEffect, useState } from 'react'
-
+import Image from 'next/image'
 import { Button } from '@src/shared/ui/button'
 import {
   Dialog,
@@ -146,7 +146,25 @@ export function TitleDeedManualInputModal({
   return (
     <Dialog open={isOpen} onOpenChange={isLoading ? undefined : onClose}>
       <DialogContent className="sm:max-w-md">
-        {' '}
+      <div className="space-y-4 text-center">
+              <div className="w-20 h-10 mx-auto">
+                <Image
+                  src="/images/logo.png"
+                  alt="InfiniteX Logo"
+                  width={100}
+                  height={100}
+                  className="w-full h-full object-contain"
+                  priority
+                />
+              </div>
+              <h2 className="text-lg font-semibold ai-gradient-text">
+              
+            {initialData?.pvCode || initialData?.amCode || initialData?.parcelNo
+              ? 'ตรวจสอบข้อมูลโฉนดที่ดิน'
+              : 'กรอกข้อมูลโฉนดที่ดิน'}
+              </h2>
+              <hr />
+            </div>
         {isLoading && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
             <div className="flex flex-col items-center gap-3 text-center">
@@ -172,13 +190,8 @@ export function TitleDeedManualInputModal({
           </div>
         )}
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            {initialData?.pvCode || initialData?.amCode || initialData?.parcelNo
-              ? 'ตรวจสอบข้อมูลโฉนดที่ดิน'
-              : 'กรอกข้อมูลโฉนดที่ดิน'}
-          </DialogTitle>
-          <DialogDescription>
+ 
+          <DialogDescription className='text-center'>
             {isLoading
               ? 'กำลังค้นหาข้อมูลโฉนดจากระบบกรมที่ดิน กรุณารอสักครู่...'
               : initialData?.pvCode || initialData?.amCode || initialData?.parcelNo
