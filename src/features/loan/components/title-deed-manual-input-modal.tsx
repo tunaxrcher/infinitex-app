@@ -16,6 +16,7 @@ import {
 } from '@src/shared/ui/dialog'
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
+import { Progress } from '@src/shared/ui/progress'
 import {
   Select,
   SelectContent,
@@ -24,7 +25,6 @@ import {
   SelectValue,
 } from '@src/shared/ui/select'
 import { AlertTriangle, Check, Loader2, Sparkles } from 'lucide-react'
-import { Progress } from '@src/shared/ui/progress'
 
 interface Province {
   pvcode: string
@@ -141,10 +141,10 @@ export function TitleDeedManualInputModal({
         }),
         timeoutPromise,
       ])
-      
+
       // Complete the progress bar after receiving response
       setSearchProgress(100)
-      
+
       // Show 100% completion for a moment before closing
       await new Promise((resolve) => setTimeout(resolve, 800))
     } catch (error) {
@@ -203,13 +203,13 @@ export function TitleDeedManualInputModal({
             <div className="flex flex-col items-center space-y-6 text-center px-6 py-8">
               {/* AI Loading Animation */}
               <Image
-              src="/images/logo.png"
-              alt="InfiniteX Logo"
-              width={50}
-              height={50}
-              className="w-50 h-50 object-contain"
-              priority
-            />
+                src="/images/logo.png"
+                alt="InfiniteX Logo"
+                width={50}
+                height={50}
+                className="w-50 h-50 object-contain"
+                priority
+              />
               {/* Title */}
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold ai-gradient-text">
@@ -235,7 +235,9 @@ export function TitleDeedManualInputModal({
                   <span className="text-muted-foreground">
                     กำลังดำเนินการ...
                   </span>
-                  <span className="font-medium">{Math.round(searchProgress)}%</span>
+                  <span className="font-medium">
+                    {Math.round(searchProgress)}%
+                  </span>
                 </div>
                 <Progress value={searchProgress} className="h-2" />
 

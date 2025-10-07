@@ -98,7 +98,7 @@ export function PhoneVerificationStep({
     e.preventDefault()
     const pastedData = e.clipboardData.getData('text/plain')
     const digits = pastedData.replace(/\D/g, '').slice(0, 4).split('')
-    
+
     if (digits.length > 0) {
       const newPinDigits = [...pinDigits]
       digits.forEach((digit, i) => {
@@ -107,7 +107,7 @@ export function PhoneVerificationStep({
         }
       })
       setPinDigits(newPinDigits)
-      
+
       // Focus the last filled input or the next empty one
       const focusIndex = Math.min(digits.length, 3)
       requestAnimationFrame(() => {

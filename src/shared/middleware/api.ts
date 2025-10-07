@@ -34,18 +34,28 @@ export async function apiMiddleware(
 ): Promise<NextResponse> {
   const { pathname } = request.nextUrl
 
-  // Allow public API routes
-  if (isRouteMatch(pathname, publicApiRoutes)) {
-    return NextResponse.next()
-  }
-
-  // Get token for protected API routes
+  // Get token first (for both public and protected routes)
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   })
 
-  // Return 401 if not authenticated
+  // Allow public API routes - but still set user headers if token exists
+  if (isRouteMatch(pathname, publicApiRoutes)) {
+    const response = NextResponse.next()
+
+    // If user is authenticated, add their info to headers even for public routes
+    // This allows public routes to optionally use user context (e.g., agent submitting loan)
+    if (token) {
+      response.headers.set('x-user-id', token.id as string)
+      response.headers.set('x-user-type', token.userType as string)
+      response.headers.set('x-user-phone', token.phoneNumber as string)
+    }
+
+    return response
+  }
+
+  // Return 401 if not authenticated for protected routes
   if (!token) {
     return NextResponse.json(
       { error: 'Unauthorized', message: 'Authentication required' },
