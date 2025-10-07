@@ -196,19 +196,20 @@ export function TitleDeedManualInputModal({
           <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
             <div className="flex flex-col items-center space-y-6 text-center px-6 py-8">
               {/* AI Loading Animation */}
-              <div className="relative w-20 h-20">
-                <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
-                <div className="absolute inset-2 rounded-full bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 animate-pulse"></div>
-                <div className="absolute inset-[10px] rounded-full bg-card flex items-center justify-center">
-                  <Sparkles className="h-8 w-8 text-blue-400" />
-                </div>
-              </div>
-
+              <Image
+              src="/images/logo.png"
+              alt="InfiniteX Logo"
+              width={50}
+              height={50}
+              className="w-50 h-50 object-contain"
+              priority
+            />
               {/* Title */}
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">
+                <h3 className="text-lg font-semibol ai-gradient-text">
                   AI กำลังค้นหาข้อมูลโฉนดที่ดิน
                 </h3>
+                <hr />
                 <p className="text-sm text-muted-foreground">
                   กำลังเชื่อมต่อกับระบบกรมที่ดิน กรุณารอสักครู่...
                 </p>
@@ -244,7 +245,7 @@ export function TitleDeedManualInputModal({
                   {searchProgress > 55 && (
                     <div className="flex items-center animate-in fade-in slide-in-from-left-2">
                       <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
-                      <span>กำลังดึงข้อมูลผู้ถือกรรมสิทธิ์</span>
+                      <span>กำลังดึงข้อมูล</span>
                     </div>
                   )}
                   {searchProgress > 75 && (
