@@ -141,11 +141,17 @@ export function TitleDeedManualInputModal({
         }),
         timeoutPromise,
       ])
-      // Complete the progress bar
+      
+      // Complete the progress bar after receiving response
       setSearchProgress(100)
+      
+      // Show 100% completion for a moment before closing
+      await new Promise((resolve) => setTimeout(resolve, 800))
     } catch (error) {
       console.error('[Modal] Confirm failed:', error)
       // Error handling is done in the parent component
+      // Reset progress on error
+      setSearchProgress(0)
     } finally {
       setIsLoading(false)
     }
@@ -206,12 +212,20 @@ export function TitleDeedManualInputModal({
             />
               {/* Title */}
               <div className="space-y-2">
-                <h3 className="text-lg font-semibol ai-gradient-text">
-                  AI กำลังค้นหาข้อมูลโฉนดที่ดิน
+                <h3 className="text-lg font-semibold ai-gradient-text">
+                  {searchProgress >= 100
+                    ? 'ค้นหาข้อมูลสำเร็จ!'
+                    : searchProgress >= 97
+                      ? 'กำลังรอผลตอบกลับ...'
+                      : 'AI กำลังค้นหาข้อมูลโฉนดที่ดิน'}
                 </h3>
                 <hr />
                 <p className="text-sm text-muted-foreground">
-                  กำลังเชื่อมต่อกับระบบกรมที่ดิน กรุณารอสักครู่...
+                  {searchProgress >= 100
+                    ? 'พบข้อมูลโฉนดที่ดินในระบบเรียบร้อยแล้ว'
+                    : searchProgress >= 97
+                      ? 'รอผลการตรวจสอบจากระบบกรมที่ดิน...'
+                      : 'กำลังเชื่อมต่อกับระบบกรมที่ดิน กรุณารอสักครู่...'}
                 </p>
               </div>
 
@@ -254,10 +268,24 @@ export function TitleDeedManualInputModal({
                       <span>กำลังคำนวณข้อมูลพื้นที่</span>
                     </div>
                   )}
-                  {searchProgress > 90 && (
+                  {searchProgress > 90 && searchProgress < 97 && (
                     <div className="flex items-center animate-in fade-in slide-in-from-left-2">
                       <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
                       <span>เกือบเสร็จสิ้น...</span>
+                    </div>
+                  )}
+                  {searchProgress >= 97 && searchProgress < 100 && (
+                    <div className="flex items-center animate-in fade-in slide-in-from-left-2">
+                      <Loader2 className="h-3 w-3 mr-2 text-blue-400 flex-shrink-0 animate-spin" />
+                      <span>กำลังรอผลตอบกลับจากระบบ...</span>
+                    </div>
+                  )}
+                  {searchProgress >= 100 && (
+                    <div className="flex items-center animate-in fade-in slide-in-from-left-2">
+                      <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
+                      <span className="font-medium text-green-400">
+                        ค้นหาข้อมูลสำเร็จ!
+                      </span>
                     </div>
                   )}
                 </div>
