@@ -23,7 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/shared/ui/select'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { AlertTriangle, Check, Loader2, Sparkles } from 'lucide-react'
+import { Progress } from '@src/shared/ui/progress'
 
 interface Province {
   pvcode: string
@@ -81,6 +82,7 @@ export function TitleDeedManualInputModal({
     initialData?.parcelNo || ''
   )
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [searchProgress, setSearchProgress] = useState<number>(0)
 
   // Filter amphurs based on selected province
   const filteredAmphurs = amphurs.filter(
@@ -93,6 +95,28 @@ export function TitleDeedManualInputModal({
       setSelectedAmphur('')
     }
   }, [selectedProvince, initialData?.pvCode, initialData?.amCode])
+
+  // Simulate progress bar during search
+  useEffect(() => {
+    if (isLoading) {
+      setSearchProgress(0)
+      const interval = setInterval(() => {
+        setSearchProgress((prev) => {
+          if (prev >= 97) {
+            clearInterval(interval)
+            return 97 // Wait at 97% until response
+          }
+          // Progress faster at start, slower near end
+          const increment = prev < 50 ? 8 : prev < 80 ? 4 : 2
+          return Math.min(prev + increment, 97)
+        })
+      }, 300)
+
+      return () => clearInterval(interval)
+    } else {
+      setSearchProgress(0)
+    }
+  }, [isLoading])
 
   const handleConfirm = async () => {
     if (!selectedProvince || !selectedAmphur || !parcelNumber.trim()) {
@@ -117,6 +141,8 @@ export function TitleDeedManualInputModal({
         }),
         timeoutPromise,
       ])
+      // Complete the progress bar
+      setSearchProgress(100)
     } catch (error) {
       console.error('[Modal] Confirm failed:', error)
       // Error handling is done in the parent component
@@ -167,24 +193,72 @@ export function TitleDeedManualInputModal({
           <hr />
         </div>
         {isLoading && (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
-            <div className="flex flex-col items-center gap-3 text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">กำลังค้นหาข้อมูลโฉนด</p>
-                <p className="text-xs text-muted-foreground">
+          <div className="absolute inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
+            <div className="flex flex-col items-center space-y-6 text-center px-6 py-8">
+              {/* AI Loading Animation */}
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping"></div>
+                <div className="absolute inset-2 rounded-full bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 animate-pulse"></div>
+                <div className="absolute inset-[10px] rounded-full bg-card flex items-center justify-center">
+                  <Sparkles className="h-8 w-8 text-blue-400" />
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">
+                  AI กำลังค้นหาข้อมูลโฉนดที่ดิน
+                </h3>
+                <p className="text-sm text-muted-foreground">
                   กำลังเชื่อมต่อกับระบบกรมที่ดิน กรุณารอสักครู่...
                 </p>
-                <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                  <p>จังหวัด: {selectedProvinceName}</p>
-                  <p>
-                    อำเภอ:{' '}
-                    {
-                      filteredAmphurs.find((a) => a.amcode === selectedAmphur)
-                        ?.amnamethai
-                    }
-                  </p>
-                  <p>เลขโฉนด: {parcelNumber}</p>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full max-w-xs space-y-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">
+                    กำลังดำเนินการ...
+                  </span>
+                  <span className="font-medium">{Math.round(searchProgress)}%</span>
+                </div>
+                <Progress value={searchProgress} className="h-2" />
+
+                {/* Progress Steps */}
+                <div className="text-xs text-muted-foreground space-y-2 text-left">
+                  {searchProgress > 10 && (
+                    <div className="flex items-center animate-in fade-in slide-in-from-left-2">
+                      <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
+                      <span>เชื่อมต่อกับระบบกรมที่ดิน</span>
+                    </div>
+                  )}
+                  {searchProgress > 30 && (
+                    <div className="flex items-center animate-in fade-in slide-in-from-left-2">
+                      <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
+                      <span>
+                        ตรวจสอบโฉนดเลขที่ {parcelNumber} จังหวัด{' '}
+                        {selectedProvinceName}
+                      </span>
+                    </div>
+                  )}
+                  {searchProgress > 55 && (
+                    <div className="flex items-center animate-in fade-in slide-in-from-left-2">
+                      <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
+                      <span>กำลังดึงข้อมูลผู้ถือกรรมสิทธิ์</span>
+                    </div>
+                  )}
+                  {searchProgress > 75 && (
+                    <div className="flex items-center animate-in fade-in slide-in-from-left-2">
+                      <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
+                      <span>กำลังคำนวณข้อมูลพื้นที่</span>
+                    </div>
+                  )}
+                  {searchProgress > 90 && (
+                    <div className="flex items-center animate-in fade-in slide-in-from-left-2">
+                      <Check className="h-3 w-3 mr-2 text-green-400 flex-shrink-0" />
+                      <span>เกือบเสร็จสิ้น...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
