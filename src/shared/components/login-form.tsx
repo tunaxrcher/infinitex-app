@@ -298,22 +298,34 @@ export function LoginForm() {
 
       {/* PIN Modal */}
       <Dialog open={showPinModal} onOpenChange={setShowPinModal}>
-        <DialogContent className="w-[90vw] max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">กรอก PIN</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="w-[90vw] max-w-md [&>button]:hidden">
+          <form onSubmit={handlePinSubmit} className="space-y-6">
+            <div className="space-y-4 text-center">
+              <div className="w-20 h-10 mx-auto">
+                <Image
+                  src="/images/logo.png"
+                  alt="InfiniteX Logo"
+                  width={100}
+                  height={100}
+                  className="w-full h-full object-contain"
+                  priority
+                />
+              </div>
+              <h2 className="text-lg font-semibold ai-gradient-text">กรอก PIN ของคุณ</h2>
+              <hr />
+            </div>
 
-          <form onSubmit={handlePinSubmit} className="space-y-4">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-1">
               <p className="text-sm text-muted-foreground">
-                ส่ง PIN 4 หลักไปยัง
+                รหัส 4 หลักถูกส่งไปที่เบอร์ {phoneNumber}
               </p>
-              <p className="font-medium text-foreground">{phoneNumber}</p>
             </div>
 
             {/* PIN Input */}
             <div className="space-y-2">
-              <Label htmlFor="modal-pin">PIN (4 หลัก)</Label>
+              <Label htmlFor="modal-pin" className="sr-only">
+                PIN (4 หลัก)
+              </Label>
               <div className="relative">
                 <Input
                   id="modal-pin"
@@ -349,28 +361,19 @@ export function LoginForm() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closePinModal}
-                className="flex-1 bg-transparent">
-                ยกเลิก
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={isLoading || pin.length < 4}>
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    กำลังเข้าสู่ระบบ...
-                  </div>
-                ) : (
-                  'เข้าสู่ระบบ'
-                )}
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoading || pin.length < 4}>
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  กำลังเข้าสู่ระบบ...
+                </div>
+              ) : (
+                'ยืนยัน'
+              )}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
