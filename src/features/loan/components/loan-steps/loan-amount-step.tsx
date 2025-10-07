@@ -81,12 +81,12 @@ export function LoanAmountStep({
 
                   {data.propertyValuation.reasoning && (
                     <div className="pt-2 border-t">
-                      <p className="text-sm font-medium mb-1">
+                      <p className="text-sm font-medium mb-2">
                         เหตุผลการประเมิน:
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed max-h-60 overflow-y-auto">
                         {data.propertyValuation.reasoning}
-                      </p>
+                      </div>
                     </div>
                   )}
 

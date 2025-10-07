@@ -70,13 +70,49 @@ export function PhoneVerificationStep({
 
     // Auto-focus next field if digit entered
     if (digit && index < 3) {
-      pinInputRefs.current[index + 1]?.focus()
+      // Use requestAnimationFrame for better timing
+      requestAnimationFrame(() => {
+        const nextInput = pinInputRefs.current[index + 1]
+        if (nextInput) {
+          nextInput.focus()
+          nextInput.select()
+        }
+      })
     }
   }
 
   const handlePinKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === 'Backspace' && !pinDigits[index] && index > 0) {
-      pinInputRefs.current[index - 1]?.focus()
+      // Focus previous input on backspace
+      requestAnimationFrame(() => {
+        const prevInput = pinInputRefs.current[index - 1]
+        if (prevInput) {
+          prevInput.focus()
+          prevInput.select()
+        }
+      })
+    }
+  }
+
+  const handlePinPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData('text/plain')
+    const digits = pastedData.replace(/\D/g, '').slice(0, 4).split('')
+    
+    if (digits.length > 0) {
+      const newPinDigits = [...pinDigits]
+      digits.forEach((digit, i) => {
+        if (i < 4) {
+          newPinDigits[i] = digit
+        }
+      })
+      setPinDigits(newPinDigits)
+      
+      // Focus the last filled input or the next empty one
+      const focusIndex = Math.min(digits.length, 3)
+      requestAnimationFrame(() => {
+        pinInputRefs.current[focusIndex]?.focus()
+      })
     }
   }
 
@@ -316,12 +352,15 @@ export function PhoneVerificationStep({
                     <Input
                       ref={(el) => (pinInputRefs.current[index] = el)}
                       type={showPin ? 'text' : 'password'}
+                      inputMode="numeric"
                       maxLength={1}
                       value={digit}
                       onChange={(e) => handlePinChange(index, e.target.value)}
                       onKeyDown={(e) => handlePinKeyDown(index, e)}
+                      onPaste={index === 0 ? handlePinPaste : undefined}
                       className="w-12 h-12 text-center text-lg font-semibold"
                       placeholder="•"
+                      autoComplete="off"
                     />
                   </div>
                 ))}
