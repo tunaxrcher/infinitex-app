@@ -293,7 +293,7 @@ export function TitleDeedUploadStep({
                   ) : (
                     <Upload className="h-4 w-4 mr-2" />
                   )}
-                  {isAnalyzing ? 'กำลังวิเคราะห์...' : 'เลือกไฟล์'}
+                  {isAnalyzing ? 'กำลังตรวจสอบ...' : 'เลือกไฟล์'}
                   <input
                     type="file"
                     accept="image/*"
@@ -350,7 +350,7 @@ export function TitleDeedUploadStep({
           {isAnalyzing ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              กำลังวิเคราะห์...
+              กำลังตรวจสอบ...
             </>
           ) : (
             'ถัดไป'
