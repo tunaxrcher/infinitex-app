@@ -174,13 +174,17 @@ export function TitleDeedManualInputModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            ไม่พบข้อมูลโฉนดที่ดิน
+            {initialData?.pvCode || initialData?.amCode || initialData?.parcelNo
+              ? 'ตรวจสอบข้อมูลโฉนดที่ดิน'
+              : 'กรอกข้อมูลโฉนดที่ดิน'}
           </DialogTitle>
           <DialogDescription>
             {isLoading
               ? 'กำลังค้นหาข้อมูลโฉนดจากระบบกรมที่ดิน กรุณารอสักครู่...'
-              : errorMessage ||
-                'ระบบไม่สามารถอ่านข้อมูลจากโฉนดได้ กรุณากรอกข้อมูลด้วยตนเอง'}
+              : initialData?.pvCode || initialData?.amCode || initialData?.parcelNo
+                ? 'ระบบได้ตรวจสอบข้อมูลจากโฉนดแล้ว กรุณาตรวจสอบความถูกต้องเพิ่มเติมเพื่อยืนยันการค้นหาข้อมูล'
+                : errorMessage ||
+                  'ระบบไม่สามารถอ่านข้อมูลจากโฉนดได้ กรุณากรอกข้อมูลด้วยตนเอง'}
           </DialogDescription>
         </DialogHeader>
         <div
@@ -205,18 +209,18 @@ export function TitleDeedManualInputModal({
                   ))}
               </SelectContent>
             </Select>
-            {initialData?.pvCode && (
-              <p className="text-xs text-muted-foreground">
-                จังหวัดถูกเลือกอัตโนมัติจากการวิเคราะห์รูป:{' '}
-                {selectedProvinceName}
+            {/* {initialData?.pvCode && (
+              <p className="text-xs text-blue-600">
+                ✓ ระบบวิเคราะห์ได้: {selectedProvinceName}
               </p>
-            )}
+            )} */}
             {!selectedProvince && !initialData?.pvCode && !isLoading && (
               <p className="text-xs text-muted-foreground">
                 กรุณาเลือกจังหวัดเพื่อดำเนินการต่อ
               </p>
             )}
           </div>
+          <hr />
 
           {/* Amphur Select - Show only after province is selected */}
           {selectedProvince && (
@@ -245,8 +249,8 @@ export function TitleDeedManualInputModal({
                 </SelectContent>
               </Select>
               {initialData?.amCode && selectedAmphur === initialData.amCode && (
-                <p className="text-xs text-muted-foreground">
-                  อำเภอถูกเลือกอัตโนมัติจากการวิเคราะห์รูป:{' '}
+                <p className="text-xs text-blue-600">
+                  ✓ ระบบวิเคราะห์ได้:{' '}
                   {
                     filteredAmphurs.find((a) => a.amcode === selectedAmphur)
                       ?.amnamethai
@@ -283,8 +287,8 @@ export function TitleDeedManualInputModal({
               />
               {initialData?.parcelNo &&
                 parcelNumber === initialData.parcelNo && (
-                  <p className="text-xs text-muted-foreground">
-                    เลขโฉนดจากการวิเคราะห์รูป: {parcelNumber}
+                  <p className="text-xs text-blue-600">
+                    ✓ ระบบวิเคราะห์ได้: {parcelNumber}
                   </p>
                 )}
               {!parcelNumber.trim() && !isLoading && (

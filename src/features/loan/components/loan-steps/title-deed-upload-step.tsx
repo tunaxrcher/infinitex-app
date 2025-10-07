@@ -101,7 +101,7 @@ export function TitleDeedUploadStep({
         titleDeedData: result.titleDeedData,
       })
 
-      // Handle manual input cases
+      // Always show modal for user to verify the data
       if (result.needsManualInput) {
         setManualInputData({
           type: result.manualInputType,
@@ -111,13 +111,10 @@ export function TitleDeedUploadStep({
           errorMessage: result.errorMessage,
         })
         setShowManualModal(true)
-      } else if (result.titleDeedData) {
-        toast.success('วิเคราะห์โฉนดสำเร็จ')
-        // Auto proceed to next step when successful
-        setTimeout(() => onNext(), 1000)
+        toast.success('วิเคราะห์โฉนดเสร็จสิ้น กรุณาตรวจสอบข้อมูล')
       } else {
-        toast.warning('วิเคราะห์โฉนดเสร็จสิ้น แต่ไม่พบข้อมูลรายละเอียด')
-        // Auto proceed to next step
+        // Fallback case (should rarely happen now)
+        toast.warning('วิเคราะห์โฉนดเสร็จสิ้น')
         setTimeout(() => onNext(), 1000)
       }
     } catch (error) {

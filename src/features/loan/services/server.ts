@@ -396,35 +396,17 @@ export const loanService = {
                 pvCode: provinceSearchResult.pvCode,
               }
             } else {
-              // Try to fetch title deed data
-              try {
-                const apiKey = process.env.ZENROWS_API_KEY
-                const landsMapsAPI = new LandsMapsAPI(apiKey)
-
-                const titleDeedData = await landsMapsAPI.getParcelInfoComplete(
-                  parseInt(amphurSearchResult.pvCode),
-                  amphurSearchResult.amCode,
-                  parseInt(amphurSearchResult.parcelNo)
-                )
-
-                finalResult.titleDeedData = titleDeedData
-              } catch (landsMapError) {
-                console.error(
-                  '[LoanService] LandsMapsAPI failed:',
-                  landsMapError
-                )
-
-                finalResult.needsManualInput = true
-                finalResult.manualInputType = 'full'
-                finalResult.analysisResult = {
-                  ...finalResult.analysisResult,
-                  pvCode: amphurSearchResult.pvCode,
-                  amCode: amphurSearchResult.amCode,
-                  parcelNo: amphurSearchResult.parcelNo,
-                }
-                finalResult.errorMessage =
-                  'ไม่สามารถค้นหาข้อมูลโฉนดจากระบบกรมที่ดินได้ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง'
+              // Successfully found all codes, show modal for user confirmation
+              finalResult.needsManualInput = true
+              finalResult.manualInputType = 'full'
+              finalResult.analysisResult = {
+                ...finalResult.analysisResult,
+                pvCode: amphurSearchResult.pvCode,
+                amCode: amphurSearchResult.amCode,
+                parcelNo: amphurSearchResult.parcelNo,
               }
+              finalResult.errorMessage =
+                'กรุณาตรวจสอบความถูกต้องของข้อมูลที่ระบบวิเคราะห์ได้'
             }
           } catch (amphurError) {
             finalResult.needsManualInput = true
