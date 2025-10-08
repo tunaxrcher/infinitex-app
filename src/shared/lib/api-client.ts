@@ -23,7 +23,7 @@ export const api = {
   post: async (url: string, data: any) => {
     // Check if data is FormData
     const isFormData = data instanceof FormData
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: isFormData

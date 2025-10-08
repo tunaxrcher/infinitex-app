@@ -348,10 +348,7 @@ export function IdCardStep({
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button
-          onClick={handleNext}
-          disabled={!canProceed}
-          className="flex-1">
+        <Button onClick={handleNext} disabled={!canProceed} className="flex-1">
           {isUploading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

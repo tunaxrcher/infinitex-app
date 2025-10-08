@@ -7,8 +7,15 @@ import amphurData from '@src/data/amphur.json'
 import provinceData from '@src/data/province.json'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@src/shared/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@src/shared/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@src/shared/ui/tooltip'
-import { Camera, FileText, Info, Loader2, Upload, X } from 'lucide-react'
+import { Camera, Eye, FileText, Info, Loader2, Upload, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { TitleDeedManualInputModal } from '../title-deed-manual-input-modal'
@@ -31,6 +38,7 @@ export function TitleDeedUploadStep({
   const [dragActive, setDragActive] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showManualModal, setShowManualModal] = useState(false)
+  const [showExampleModal, setShowExampleModal] = useState(false)
   const [manualInputData, setManualInputData] = useState<{
     type: 'full' | 'amphur_only'
     pvCode?: string
@@ -246,20 +254,30 @@ export function TitleDeedUploadStep({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            อัพโหลดโฉนดที่ดิน
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground hover:text-primary cursor-help transition-colors" />
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                <p className="text-center">
-                  หลังจากยืนยันระบบจะตรวจสอบโฉนด และประเมินข้อมูลเบื้องต้น
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              อัพโหลดโฉนดที่ดิน
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground hover:text-primary cursor-help transition-colors" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-center">
+                    หลังจากยืนยันระบบจะตรวจสอบโฉนด และประเมินข้อมูลเบื้องต้น
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExampleModal(true)}
+              className="gap-1">
+              <Eye className="h-4 w-4" />
+              <span className="hidden sm:inline">ดูตัวอย่าง</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* File Upload Area */}
@@ -357,6 +375,59 @@ export function TitleDeedUploadStep({
           )}
         </Button>
       </div>
+
+      {/* Example Document Modal */}
+      <Dialog open={showExampleModal} onOpenChange={setShowExampleModal}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              ตัวอย่างเอกสารโฉนดที่ดิน
+            </DialogTitle>
+          </DialogHeader>
+          <Tabs defaultValue="example1" className="w-full mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="example1">ตัวอย่างที่ 1</TabsTrigger>
+              <TabsTrigger value="example2">ตัวอย่างที่ 2</TabsTrigger>
+            </TabsList>
+            <TabsContent value="example1" className="space-y-3 mt-4">
+              <div
+                className="w-full bg-muted rounded-lg overflow-hidden flex items-center justify-center"
+                style={{ maxHeight: '400px' }}>
+                <img
+                  src="/images/title-deed-example1.jpg"
+                  alt="ตัวอย่างโฉนดที่ดินแบบที่ 1"
+                  className="w-auto h-auto max-w-full max-h-[400px]"
+                  style={{ objectFit: 'contain' }}
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="example2" className="space-y-3 mt-4">
+              <div
+                className="w-full bg-muted rounded-lg overflow-hidden flex items-center justify-center"
+                style={{ maxHeight: '400px' }}>
+                <img
+                  src="/images/title-deed-example2.jpg"
+                  alt="ตัวอย่างโฉนดที่ดินแบบที่ 2"
+                  className="w-auto h-auto max-w-full max-h-[400px]"
+                  style={{ objectFit: 'contain' }}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
+            <h4 className="text-sm font-medium text-foreground mb-2">
+              💡 คำแนะนำ
+            </h4>
+            <ul className="text-xs text-muted-foreground space-y-1">
+              <li>• ถ่ายรูปให้เห็นข้อมูลทั้งหมดชัดเจน</li>
+              <li>• หลีกเลี่ยงการสะท้อนแสงหรือเงา</li>
+              <li>• ถ่ายในที่แสงสว่างเพียงพอ</li>
+              <li>• ให้ข้อมูลเลขที่โฉนด จังหวัด และอำเภอ ชัดเจน</li>
+            </ul>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Manual Input Modal */}
       {showManualModal && manualInputData && (

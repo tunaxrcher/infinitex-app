@@ -272,7 +272,10 @@ export const loanService = {
         imageKey: uploadResult.key,
       }
     } catch (uploadError) {
-      console.error('[LoanService] Supporting image upload failed:', uploadError)
+      console.error(
+        '[LoanService] Supporting image upload failed:',
+        uploadError
+      )
 
       // Fallback to base64 if upload fails
       const fallbackResult = {
