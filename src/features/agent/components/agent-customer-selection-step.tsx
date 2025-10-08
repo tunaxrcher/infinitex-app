@@ -207,7 +207,7 @@ export function AgentCustomerSelectionStep({
             </Button>
           ) : (
             <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="p-4 space-y-3">
+              <CardContent className="px-4 space-y-3">
                 <h4 className="text-sm font-medium text-foreground">
                   เพิ่มลูกค้าใหม่
                 </h4>
