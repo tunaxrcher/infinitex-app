@@ -3,9 +3,18 @@
 import type React from 'react'
 import { useState } from 'react'
 
+import { loanApi } from '@src/features/loan/api'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import { AlertCircle, Camera, CreditCard, Loader2, Upload } from 'lucide-react'
+import {
+  AlertCircle,
+  Camera,
+  CheckCircle,
+  CreditCard,
+  FileText,
+  Loader2,
+  Upload,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 interface IdCardStepProps {
@@ -22,6 +31,7 @@ export function IdCardStep({
   onPrev,
 }: IdCardStepProps) {
   const [dragActive, setDragActive] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
 
   const handleDrag = (e: React.DragEvent) => {
@@ -34,7 +44,7 @@ export function IdCardStep({
     }
   }
 
-  const handleDrop = async (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
@@ -42,64 +52,72 @@ export function IdCardStep({
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0]
 
-      // Store file immediately
-      onUpdate({ idCardImage: file })
+      // Only validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('กรุณาเลือกเฉพาะไฟล์รูปภาพ')
+        return
+      }
 
-      // Upload file to storage
-      await handleFileUpload(file)
+      // Just store the file, don't upload yet
+      onUpdate({ idCardImage: file })
     }
   }
 
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
 
-      // Store file immediately
+      // Only validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('กรุณาเลือกเฉพาะไฟล์รูปภาพ')
+        return
+      }
+
+      // Just store the file, don't upload yet
       onUpdate({ idCardImage: file })
 
-      // Upload file to storage
-      await handleFileUpload(file)
+      // Reset input
+      e.target.value = ''
     }
   }
 
-  const handleFileUpload = async (file: File) => {
-    try {
-      console.log('[IdCard] Starting file upload:', file.name)
+  const handleNext = async () => {
+    // Step 1: Upload ID card if not uploaded yet
+    if (data.idCardImage && !data.idCardImageUrl) {
+      setIsUploading(true)
+      try {
+        console.log('[IdCard] Uploading ID card:', data.idCardImage.name)
 
-      // Create FormData for file upload
-      const formData = new FormData()
-      formData.append('file', file)
+        const result = await loanApi.uploadIdCard(data.idCardImage)
 
-      // Call API to upload ID card
-      const response = await fetch('/api/loans/id-card/upload', {
-        method: 'POST',
-        body: formData,
-      })
+        if (result.success) {
+          // Update with upload result
+          onUpdate({
+            idCardImage: data.idCardImage,
+            idCardImageUrl: result.imageUrl,
+            idCardImageKey: result.imageKey,
+          })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'การอัพโหลดบัตรประชาชนล้มเหลว')
+          console.log('[IdCard] ID card uploaded successfully')
+        } else {
+          throw new Error('การอัพโหลดล้มเหลว')
+        }
+      } catch (error) {
+        console.error('[IdCard] Upload failed:', error)
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'เกิดข้อผิดพลาดในการอัพโหลดบัตรประชาชน'
+        )
+        setIsUploading(false)
+        return
+      } finally {
+        setIsUploading(false)
       }
-
-      const result = await response.json()
-      console.log('[IdCard] Upload result:', result)
-
-      // Update component data with upload result
-      onUpdate({
-        idCardImage: file,
-        idCardImageUrl: result.imageUrl,
-        idCardImageKey: result.imageKey,
-      })
-
-      toast.success('อัพโหลดบัตรประชาชนสำเร็จ')
-    } catch (error) {
-      console.error('[IdCard] Upload failed:', error)
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'เกิดข้อผิดพลาดในการอัพโหลดบัตรประชาชน'
-      )
     }
+
+    // Step 2: Proceed with property valuation
+    await handlePropertyValuation()
   }
 
   const handlePropertyValuation = async () => {
@@ -206,7 +224,8 @@ export function IdCardStep({
     }
   }
 
-  const canProceed = data.idCardImage && !isEvaluating
+  const canProceed = data.idCardImage && !isUploading && !isEvaluating
+  const isProcessing = isUploading || isEvaluating
 
   return (
     <div className="space-y-6">
@@ -244,16 +263,21 @@ export function IdCardStep({
             onDrop={handleDrop}>
             {data.idCardImage ? (
               <div className="space-y-3">
-                <CreditCard className="h-12 w-12 text-success mx-auto" />
+                <CheckCircle className="h-12 w-12 text-primary mx-auto" />
                 <div>
-                  <p className="text-sm font-medium text-success">
-                    อัพโหลดสำเร็จ
+                  <p className="text-sm font-medium text-foreground">
+                    เลือกไฟล์แล้ว
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+                    <FileText className="h-3 w-3" />
                     {data.idCardImage.name}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isUploading || isEvaluating}
+                  asChild>
                   <label className="cursor-pointer">
                     เปลี่ยนรูป
                     <input
@@ -320,14 +344,20 @@ export function IdCardStep({
         <Button
           variant="outline"
           onClick={onPrev}
+          disabled={isProcessing}
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
         <Button
-          onClick={handlePropertyValuation}
+          onClick={handleNext}
           disabled={!canProceed}
           className="flex-1">
-          {isEvaluating ? (
+          {isUploading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              กำลังอัพโหลด...
+            </>
+          ) : isEvaluating ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               กำลังประเมินมูลค่า...
