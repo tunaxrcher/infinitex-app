@@ -132,8 +132,8 @@ export function PhoneVerificationStep({
 
       // Prepare submission data
       const submissionData = {
-        phoneNumber: session?.user?.phoneNumber || data.phoneNumber,
-        pin: session?.user ? undefined : data.pin, // Don't send PIN for logged-in users
+        phoneNumber: data.phoneNumber, // Always use the phone number from the form (customer's phone)
+        pin: session?.user ? undefined : data.pin, // Send PIN if provided, otherwise server will generate default
 
         // Title deed information
         titleDeedImage: data.titleDeedImage?.name || null,
@@ -165,6 +165,9 @@ export function PhoneVerificationStep({
         hasTitleDeedData: !!submissionData.titleDeedData,
         hasPropertyValuation: !!submissionData.propertyValuation,
         requestedAmount: submissionData.requestedLoanAmount,
+        isAgentFlow,
+        sessionUserPhone: session?.user?.phoneNumber,
+        dataPhoneNumber: data.phoneNumber,
       })
 
       // Submit to API
@@ -346,6 +349,11 @@ export function PhoneVerificationStep({
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>PIN 4 หลัก (สำหรับเข้าสู่ระบบ)</Label>
+              {isAgentFlow && (
+                <p className="text-xs text-muted-foreground">
+                  หากไม่กรอก ระบบจะใช้เลข 4 หลักท้ายของเบอร์โทรเป็น PIN เริ่มต้น
+                </p>
+              )}
               <div className="flex gap-3 justify-center">
                 {pinDigits.map((digit, index) => (
                   <div key={index} className="relative">

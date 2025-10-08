@@ -25,6 +25,13 @@ export const loanService = {
     customerId?: string
   ) {
     console.log('[LoanService] Starting loan application submission')
+    console.log('[LoanService] Submission context:', {
+      agentId,
+      customerId,
+      phoneNumber: data.phoneNumber,
+      isSubmittedByAgent: !!agentId,
+      isSubmittedByLoggedInCustomer: !!customerId,
+    })
 
     const isSubmittedByAgent = !!agentId
     const isSubmittedByLoggedInCustomer = !!customerId
@@ -45,17 +52,37 @@ export const loanService = {
         throw new Error('ไม่พบข้อมูลผู้ใช้ที่เข้าสู่ระบบ')
       }
     } else {
-      // Handle phone-based user creation/update
+      // Handle phone-based user creation/update (for both agent and customer flows)
+      console.log(
+        '[LoanService] Looking up user by phone number:',
+        data.phoneNumber
+      )
       user = await prisma.user.findUnique({
         where: { phoneNumber: data.phoneNumber },
         include: { profile: true },
       })
 
       if (!user) {
-        console.log('[LoanService] Creating new user')
+        console.log(
+          '[LoanService] Creating new user for phone:',
+          data.phoneNumber
+        )
         isNewUser = true
 
-        const hashedPin = data.pin ? await bcrypt.hash(data.pin, 10) : null
+        // Generate PIN based on flow type
+        let hashedPin = null
+        if (data.pin) {
+          // Customer provided PIN
+          hashedPin = await bcrypt.hash(data.pin, 10)
+        } else if (isSubmittedByAgent) {
+          // Agent flow - generate default PIN (last 4 digits of phone number)
+          const defaultPin = data.phoneNumber.slice(-4)
+          hashedPin = await bcrypt.hash(defaultPin, 10)
+          console.log(
+            '[LoanService] Generated default PIN for agent flow:',
+            defaultPin
+          )
+        }
 
         user = await prisma.user.create({
           data: {
@@ -75,8 +102,28 @@ export const loanService = {
           where: { id: user.id },
           data: { pin: hashedPin },
         })
+      } else if (isSubmittedByAgent && !user.pin) {
+        // Agent flow - set default PIN for existing user who doesn't have PIN
+        const defaultPin = data.phoneNumber.slice(-4)
+        const hashedPin = await bcrypt.hash(defaultPin, 10)
+        console.log(
+          '[LoanService] Setting default PIN for existing user in agent flow:',
+          defaultPin
+        )
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { pin: hashedPin },
+        })
       }
     }
+
+    console.log('[LoanService] Final user for loan application:', {
+      userId: user.id,
+      phoneNumber: user.phoneNumber,
+      userType: user.userType,
+      isNewUser,
+      isSubmittedByAgent,
+    })
 
     // Step 2: Prepare property information
     const propertyInfo = this.extractPropertyInfo(
