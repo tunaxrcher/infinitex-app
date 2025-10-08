@@ -252,6 +252,112 @@ export const loanService = {
   },
 
   /**
+   * Upload supporting image (single file - kept for backward compatibility)
+   */
+  async uploadSupportingImage(file: File) {
+    console.log('[LoanService] Uploading supporting image')
+
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    try {
+      const uploadResult = await storage.uploadFile(buffer, file.type, {
+        folder: 'supporting-images',
+        filename: `supporting_${Date.now()}_${file.name}`,
+      })
+
+      return {
+        success: true,
+        imageUrl: uploadResult.url,
+        imageKey: uploadResult.key,
+      }
+    } catch (uploadError) {
+      console.error('[LoanService] Supporting image upload failed:', uploadError)
+
+      // Fallback to base64 if upload fails
+      const fallbackResult = {
+        url: `data:${file.type};base64,${buffer.toString('base64')}`,
+        key: `temp_${Date.now()}_${file.name}`,
+      }
+
+      return {
+        success: true,
+        imageUrl: fallbackResult.url,
+        imageKey: fallbackResult.key,
+      }
+    }
+  },
+
+  /**
+   * Upload multiple supporting images in batch
+   */
+  async uploadSupportingImages(files: File[]) {
+    console.log(`[LoanService] Uploading ${files.length} supporting images`)
+
+    const uploadResults = await Promise.allSettled(
+      files.map(async (file, index) => {
+        const arrayBuffer = await file.arrayBuffer()
+        const buffer = Buffer.from(arrayBuffer)
+
+        try {
+          const uploadResult = await storage.uploadFile(buffer, file.type, {
+            folder: 'supporting-images',
+            filename: `supporting_${Date.now()}_${index}_${file.name}`,
+          })
+
+          return {
+            success: true,
+            imageUrl: uploadResult.url,
+            imageKey: uploadResult.key,
+            fileName: file.name,
+          }
+        } catch (uploadError) {
+          console.error(
+            `[LoanService] Supporting image upload failed for ${file.name}:`,
+            uploadError
+          )
+
+          // Fallback to base64 if upload fails
+          const fallbackResult = {
+            url: `data:${file.type};base64,${buffer.toString('base64')}`,
+            key: `temp_${Date.now()}_${index}_${file.name}`,
+          }
+
+          return {
+            success: true,
+            imageUrl: fallbackResult.url,
+            imageKey: fallbackResult.key,
+            fileName: file.name,
+          }
+        }
+      })
+    )
+
+    // Process results
+    const successfulUploads = uploadResults
+      .filter((result) => result.status === 'fulfilled')
+      .map((result) => (result as PromiseFulfilledResult<any>).value)
+
+    const failedUploads = uploadResults
+      .filter((result) => result.status === 'rejected')
+      .map((result) => (result as PromiseRejectedResult).reason)
+
+    if (failedUploads.length > 0) {
+      console.error(
+        `[LoanService] ${failedUploads.length} uploads failed:`,
+        failedUploads
+      )
+    }
+
+    return {
+      success: true,
+      uploadedCount: successfulUploads.length,
+      totalCount: files.length,
+      images: successfulUploads,
+    }
+  },
+
+  /**
    * Evaluate property value with AI
    */
   async evaluatePropertyValue(

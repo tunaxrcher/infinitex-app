@@ -42,6 +42,28 @@ export const loanApi = {
   },
 
   /**
+   * Upload supporting image (single file)
+   */
+  uploadSupportingImage: async (file: File): Promise<any> => {
+    const formData = new FormData()
+    formData.append('file_0', file)
+
+    return api.post('/api/loans/supporting-images/upload', formData)
+  },
+
+  /**
+   * Upload multiple supporting images in one request
+   */
+  uploadSupportingImages: async (files: File[]): Promise<any> => {
+    const formData = new FormData()
+    files.forEach((file, index) => {
+      formData.append(`file_${index}`, file)
+    })
+
+    return api.post('/api/loans/supporting-images/upload', formData)
+  },
+
+  /**
    * Evaluate property value
    */
   evaluatePropertyValue: async (

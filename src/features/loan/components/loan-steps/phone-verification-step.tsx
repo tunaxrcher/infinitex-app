@@ -143,9 +143,9 @@ export function PhoneVerificationStep({
         titleDeedAnalysis: data.titleDeedAnalysis || null,
         titleDeedManualData: data.titleDeedManualData || null,
 
-        // Supporting images
+        // Supporting images - now sending URLs instead of file names
         supportingImages:
-          data.supportingImages?.map((img: File) => img.name) || [],
+          data.supportingImages?.map((img: any) => img.url || img) || [],
 
         // ID Card
         idCardImage: data.idCardImage?.name || null,
@@ -350,7 +350,9 @@ export function PhoneVerificationStep({
                 {pinDigits.map((digit, index) => (
                   <div key={index} className="relative">
                     <Input
-                      ref={(el) => (pinInputRefs.current[index] = el)}
+                      ref={(el) => {
+                        pinInputRefs.current[index] = el
+                      }}
                       type={showPin ? 'text' : 'password'}
                       inputMode="numeric"
                       maxLength={1}

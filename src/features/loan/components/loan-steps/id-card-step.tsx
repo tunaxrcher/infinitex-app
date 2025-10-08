@@ -143,8 +143,14 @@ export function IdCardStep({
 
       // Add supporting images if available
       if (data.supportingImages && data.supportingImages.length > 0) {
-        data.supportingImages.forEach((image: File, index: number) => {
-          formData.append(`supportingImage_${index}`, image)
+        let imageCount = 0
+        data.supportingImages.forEach((image: any) => {
+          // Check if image is UploadedImage object with file property or just a File
+          const file = image.file || image
+          if (file instanceof File) {
+            formData.append(`supportingImage_${imageCount}`, file)
+            imageCount++
+          }
         })
       }
 

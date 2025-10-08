@@ -21,12 +21,17 @@ export const api = {
   },
 
   post: async (url: string, data: any) => {
+    // Check if data is FormData
+    const isFormData = data instanceof FormData
+    
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+      headers: isFormData
+        ? {} // Let browser set Content-Type with boundary for FormData
+        : {
+            'Content-Type': 'application/json',
+          },
+      body: isFormData ? data : JSON.stringify(data),
     })
 
     if (!response.ok) {

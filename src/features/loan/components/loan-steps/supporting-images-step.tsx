@@ -3,6 +3,7 @@
 import type React from 'react'
 import { useState } from 'react'
 
+import { loanApi } from '@src/features/loan/api'
 import { Alert, AlertDescription } from '@src/shared/ui/alert'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
@@ -12,15 +13,23 @@ import {
   CheckCircle,
   FileText,
   ImageIcon,
+  Loader2,
   Upload,
   X,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface SupportingImagesStepProps {
   data: any
   onUpdate: (data: any) => void
   onNext: () => void
   onPrev: () => void
+}
+
+interface UploadedImage {
+  url: string
+  key: string
+  name: string
 }
 
 export function SupportingImagesStep({
@@ -30,6 +39,7 @@ export function SupportingImagesStep({
   onPrev,
 }: SupportingImagesStepProps) {
   const [dragActive, setDragActive] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -46,18 +56,32 @@ export function SupportingImagesStep({
     e.stopPropagation()
     setDragActive(false)
 
-    if (e.dataTransfer.files) {
-      const files = Array.from(e.dataTransfer.files)
-      const currentImages = data.supportingImages || []
-      onUpdate({ supportingImages: [...currentImages, ...files] })
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files).filter((file) =>
+        file.type.startsWith('image/')
+      )
+      if (files.length > 0) {
+        const currentImages = data.supportingImages || []
+        onUpdate({ supportingImages: [...currentImages, ...files] })
+      } else {
+        toast.error('กรุณาเลือกเฉพาะไฟล์รูปภาพ')
+      }
     }
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      const currentImages = data.supportingImages || []
-      onUpdate({ supportingImages: [...currentImages, ...files] })
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files).filter((file) =>
+        file.type.startsWith('image/')
+      )
+      if (files.length > 0) {
+        const currentImages = data.supportingImages || []
+        onUpdate({ supportingImages: [...currentImages, ...files] })
+      } else {
+        toast.error('กรุณาเลือกเฉพาะไฟล์รูปภาพ')
+      }
+      // Reset input
+      e.target.value = ''
     }
   }
 
@@ -65,6 +89,65 @@ export function SupportingImagesStep({
     const currentImages = data.supportingImages || []
     const newImages = currentImages.filter((_: any, i: number) => i !== index)
     onUpdate({ supportingImages: newImages })
+  }
+
+  const handleNext = async () => {
+    // Upload files when user clicks next
+    if (data.supportingImages && data.supportingImages.length > 0) {
+      // Check if images are already uploaded (have url property)
+      const hasUploadedImages = data.supportingImages.some(
+        (img: any) => img.url
+      )
+
+      if (!hasUploadedImages) {
+        setIsUploading(true)
+        try {
+          console.log(
+            `[SupportingImages] Uploading ${data.supportingImages.length} files in one request...`
+          )
+
+          // Upload all files in one request
+          const result = await loanApi.uploadSupportingImages(
+            data.supportingImages
+          )
+
+          if (result.success && result.images && result.images.length > 0) {
+            // Map uploaded images with file objects for AI valuation
+            const uploadedImages = result.images.map(
+              (img: any, index: number) => ({
+                url: img.imageUrl,
+                key: img.imageKey,
+                name: img.fileName,
+                file: data.supportingImages[index], // Keep original file for AI valuation
+              })
+            )
+
+            onUpdate({ supportingImages: uploadedImages })
+            toast.success(
+              `อัพโหลดสำเร็จ ${result.uploadedCount}/${result.totalCount} ไฟล์`
+            )
+            onNext()
+          } else {
+            toast.error('การอัพโหลดล้มเหลว กรุณาลองใหม่อีกครั้ง')
+          }
+        } catch (error) {
+          console.error('[SupportingImages] Upload error:', error)
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'เกิดข้อผิดพลาดในการอัพโหลด'
+          )
+        } finally {
+          setIsUploading(false)
+        }
+      } else {
+        // Already uploaded, just proceed
+        onNext()
+      }
+    } else {
+      // No images, just proceed
+      onNext()
+    }
   }
 
   const canProceed = true // This step is optional, can always proceed
@@ -264,22 +347,23 @@ export function SupportingImagesStep({
           {data.supportingImages && data.supportingImages.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
-                ไฟล์ที่อัพโหลด ({data.supportingImages.length})
+                ไฟล์ที่เลือก ({data.supportingImages.length})
               </Label>
               <div className="grid grid-cols-2 gap-2">
-                {data.supportingImages.map((file: File, index: number) => (
+                {data.supportingImages.map((image: any, index: number) => (
                   <div key={index} className="relative bg-muted rounded-lg p-3">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <span className="text-xs text-foreground truncate">
-                        {file.name}
+                        {image.name || image.file?.name || 'ไฟล์'}
                       </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="absolute -top-1 -right-1 h-6 w-6 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => removeImage(index)}>
+                      onClick={() => removeImage(index)}
+                      disabled={isUploading}>
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
@@ -295,11 +379,22 @@ export function SupportingImagesStep({
         <Button
           variant="outline"
           onClick={onPrev}
+          disabled={isUploading}
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
-        <Button onClick={onNext} disabled={!canProceed} className="flex-1">
-          ถัดไป
+        <Button
+          onClick={handleNext}
+          disabled={!canProceed || isUploading}
+          className="flex-1">
+          {isUploading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              กำลังอัพโหลด...
+            </>
+          ) : (
+            'ถัดไป'
+          )}
         </Button>
       </div>
     </div>
