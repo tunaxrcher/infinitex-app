@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `payments` MODIFY `paymentMethod` ENUM('CASH', 'QR_CODE', 'BARCODE', 'INTERNET_BANKING', 'BANK_TRANSFER') NOT NULL;

@@ -399,10 +399,11 @@ model LoanInstallment {
 // ============================================
 
 enum PaymentMethod {
+  CASH
   QR_CODE
   BARCODE
-  INTERNET_BANKING  // Future
-  BANK_TRANSFER     // Future
+  INTERNET_BANKING
+  BANK_TRANSFER
 }
 
 enum PaymentStatus {
