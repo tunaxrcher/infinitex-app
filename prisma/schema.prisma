@@ -14,7 +14,6 @@ datasource db {
 // ============================================
 // USER TYPES (Customer & Agent only)
 // ============================================
-
 enum UserType {
   CUSTOMER
   AGENT
@@ -183,6 +182,8 @@ model Admin {
   sessions    AdminSession[]
   auditLogs   AuditLog[]
   reviewedApplications LoanApplication[] @relation("AdminReviewed")
+  landAccountLogs      LandAccountLog[]
+  landAccountReports   LandAccountReport[]
 
   @@map("admins")
 }
@@ -245,13 +246,14 @@ model LoanApplication {
   id          String            @id @default(cuid())
   
   // Relationships
-  customerId  String
-  customer    User              @relation("CustomerApplications", fields: [customerId], references: [id], onDelete: Cascade)
+  customerId  String?
+  customer    User?             @relation("CustomerApplications", fields: [customerId], references: [id], onDelete: Cascade)
   agentId     String?           // Optional: if submitted by agent
   agent       User?             @relation("AgentApplications", fields: [agentId], references: [id])
   
   // Application details
   loanType    LoanType          @default(HOUSE_LAND_MORTGAGE)
+  hirePurchase Boolean          @default(false) // เพิ่มฟิลด์สำหรับระบบเช่าซื้อ
   status      ApplicationStatus @default(DRAFT)
   
   // Multi-step form tracking
@@ -317,8 +319,8 @@ model Loan {
   loanNumber        String     @unique @db.VarChar(50)
   
   // Relationships
-  customerId        String
-  customer          User       @relation("CustomerLoans", fields: [customerId], references: [id], onDelete: Cascade)
+  customerId        String?
+  customer          User?      @relation("CustomerLoans", fields: [customerId], references: [id], onDelete: Cascade)
   agentId           String?
   agent             User?      @relation("AgentManagedLoans", fields: [agentId], references: [id])
   applicationId     String     @unique
@@ -326,6 +328,7 @@ model Loan {
   
   // Loan details
   loanType          LoanType
+  hirePurchase      Boolean    @default(false) // เพิ่มฟิลด์สำหรับระบบเช่าซื้อ
   status            LoanStatus @default(ACTIVE)
   principalAmount   Decimal    @db.Decimal(15, 2)
   interestRate      Decimal    @db.Decimal(5, 2) // Annual interest rate
@@ -346,6 +349,11 @@ model Loan {
   // Collateral information
   collateralValue    Decimal?  @db.Decimal(15, 2)
   collateralDetails  Json?
+  
+  // เพิ่มฟิลด์สำหรับการเชื่อมโยงกับระบบที่ดิน
+  linkMap            String?   @db.Text
+  landAccountId      Int?
+  landAccountName    String?   @db.VarChar(200)
   
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -418,10 +426,10 @@ model Payment {
   id              String        @id @default(cuid())
   
   // Relationships
-  userId          String
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  loanId          String
-  loan            Loan          @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loanId          String?
+  loan            Loan?         @relation(fields: [loanId], references: [id], onDelete: Cascade)
   
   // Link to installment
   installmentId   String?
@@ -638,6 +646,138 @@ model Privilege {
   @@index([isActive])
   @@index([sortOrder])
   @@map("privileges")
+}
+
+// ============================================
+// DOCUMENT MANAGEMENT SYSTEM
+// ============================================
+
+enum DocType {
+  RECEIPT          // ใบเสร็จรับเงิน
+  PAYMENT_VOUCHER  // ใบสำคัญจ่าย
+  DISCOUNT_NOTE    // ใบลดหนี้
+  EXPENSE          // ค่าใช้จ่าย
+}
+
+// Document records (receipts, payment vouchers, etc.)
+model Document {
+  id           String    @id @default(cuid())
+  docType      DocType
+  docNumber    String    @db.VarChar(100)
+  docDate      DateTime
+  title        String    @db.Text
+  price        Decimal   @db.Decimal(20, 2)
+  cashFlowName String    @db.VarChar(200)
+  
+  // Employee/Admin reference
+  employeeId   Int       @default(0)
+  username     String?   @db.VarChar(50)
+  
+  // File information
+  docFile      String?   @db.Text
+  docFileDate  DateTime?
+  docFileTime  String?   @db.VarChar(10)
+  docFilePrice Decimal?  @db.Decimal(20, 2)
+  filePath     String?   @db.Text
+  
+  note         String?   @db.Text
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime? // Soft delete
+
+  @@index([docType])
+  @@index([docNumber])
+  @@index([employeeId])
+  @@map("documents")
+}
+
+// Document title templates
+model DocumentTitleList {
+  id        String    @id @default(cuid())
+  docType   DocType
+  title     String    @db.Text
+  note      String?   @db.Text
+  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  @@index([docType])
+  @@map("document_title_lists")
+}
+
+// ============================================
+// LAND ACCOUNT SYSTEM
+// ============================================
+
+// Land accounts for managing land-related finances
+model LandAccount {
+  id             String    @id @default(cuid())
+  accountName    String    @db.VarChar(200)
+  accountBalance Decimal   @default(0) @db.Decimal(15, 2)
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime? // Soft delete
+  
+  // Related records
+  logs           LandAccountLog[]
+  reports        LandAccountReport[]
+
+  @@index([accountName])
+  @@map("land_accounts")
+}
+
+// Land account transaction logs
+model LandAccountLog {
+  id            String       @id @default(cuid())
+  landAccountId String
+  landAccount   LandAccount  @relation(fields: [landAccountId], references: [id], onDelete: Cascade)
+  
+  detail        String       @db.VarChar(200)
+  amount        Decimal      @default(0) @db.Decimal(15, 2)
+  note          String?      @db.VarChar(200)
+  
+  // Admin reference
+  adminId       String?
+  admin         Admin?       @relation(fields: [adminId], references: [id])
+  adminName     String?      @db.VarChar(200)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?    // Soft delete
+
+  @@index([landAccountId])
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("land_account_logs")
+}
+
+// Land account reports
+model LandAccountReport {
+  id             String       @id @default(cuid())
+  landAccountId  String
+  landAccount    LandAccount  @relation(fields: [landAccountId], references: [id], onDelete: Cascade)
+  
+  detail         String       @db.VarChar(200)
+  amount         Decimal      @default(0) @db.Decimal(15, 2)
+  note           String?      @db.VarChar(200)
+  accountBalance Decimal?     @default(0) @db.Decimal(15, 2)
+  
+  // Admin reference
+  adminId        String?
+  admin          Admin?       @relation(fields: [adminId], references: [id])
+  adminName      String?      @db.VarChar(200)
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?    // Soft delete
+
+  @@index([landAccountId])
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("land_account_reports")
 }
 
 // ============================================
