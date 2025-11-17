@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 import Link from 'next/link'
 
@@ -26,143 +26,7 @@ import {
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
-// Mock data สำหรับ fallback
-const mockCustomerLoans = [
-  {
-    id: '1',
-    loanNumber: 'LN001234567',
-    loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 6,
-    totalInstallments: 12,
-    monthlyPayment: 2000.5,
-    remainingBalance: 12000.0,
-    principalAmount: 24000.0,
-    nextPaymentDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-    status: 'ACTIVE',
-    type: 'LOAN',
-    displayStatus: 'ACTIVE',
-    customer: {
-      id: '1',
-      phoneNumber: '081-234-5678',
-      profile: {
-        firstName: 'สมชาย',
-        lastName: 'ใจดี',
-      },
-    },
-  },
-  {
-    id: '2',
-    loanNumber: 'LN001234568',
-    loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 18,
-    totalInstallments: 24,
-    monthlyPayment: 3500.0,
-    remainingBalance: 21000.0,
-    principalAmount: 84000.0,
-    nextPaymentDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000),
-    status: 'ACTIVE',
-    type: 'LOAN',
-    displayStatus: 'ACTIVE',
-    customer: {
-      id: '1',
-      phoneNumber: '081-234-5678',
-      profile: {
-        firstName: 'สมชาย',
-        lastName: 'ใจดี',
-      },
-    },
-  },
-  {
-    id: '3',
-    loanNumber: 'LN001234569',
-    loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 2,
-    totalInstallments: 36,
-    monthlyPayment: 1500.0,
-    remainingBalance: 51000.0,
-    principalAmount: 54000.0,
-    nextPaymentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    status: 'DEFAULTED',
-    type: 'LOAN',
-    displayStatus: 'DEFAULTED',
-    customer: {
-      id: '2',
-      phoneNumber: '082-345-6789',
-      profile: {
-        firstName: 'สมหญิง',
-        lastName: 'สวยดี',
-      },
-    },
-  },
-  {
-    id: '4',
-    loanNumber: 'APP-12345678',
-    loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 0,
-    totalInstallments: 0,
-    monthlyPayment: 0,
-    remainingBalance: 380000.0,
-    principalAmount: 380000.0,
-    nextPaymentDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    status: 'UNDER_REVIEW',
-    type: 'APPLICATION',
-    displayStatus: 'UNDER_REVIEW',
-    reviewNotes: null,
-    customer: {
-      id: '3',
-      phoneNumber: '083-456-7890',
-      profile: {
-        firstName: 'ประชา',
-        lastName: 'ดีมาก',
-      },
-    },
-  },
-  {
-    id: '5',
-    loanNumber: 'APP-87654321',
-    loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 0,
-    totalInstallments: 0,
-    monthlyPayment: 0,
-    remainingBalance: 450000.0,
-    principalAmount: 450000.0,
-    nextPaymentDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-    status: 'REJECTED',
-    type: 'APPLICATION',
-    displayStatus: 'REJECTED',
-    reviewNotes: 'รายได้ไม่เพียงพอตามเกณฑ์ที่กำหนด',
-    customer: {
-      id: '4',
-      phoneNumber: '084-567-8901',
-      profile: {
-        firstName: 'นภัสสร',
-        lastName: 'จันทร์เพ็ญ',
-      },
-    },
-  },
-  {
-    id: '6',
-    loanNumber: 'FX-2023-000001',
-    loanType: 'HOUSE_LAND_MORTGAGE',
-    currentInstallment: 12,
-    totalInstallments: 12,
-    monthlyPayment: 24800.0,
-    remainingBalance: 0,
-    principalAmount: 280000.0,
-    nextPaymentDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    status: 'COMPLETED',
-    type: 'LOAN',
-    displayStatus: 'COMPLETED',
-    customer: {
-      id: '5',
-      phoneNumber: '085-678-9012',
-      profile: {
-        firstName: 'ประยุทธ',
-        lastName: 'มั่นคง',
-      },
-    },
-  },
-]
+
 
 // Helper functions
 const getCustomerName = (customer: any) => {
@@ -226,9 +90,9 @@ const getStatusInfo = (status: string, type?: string) => {
       case 'UNDER_REVIEW':
         return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
       case 'APPROVED':
-        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
+        return { text: 'อนุมัติแล้ว', color: 'success', showBadge: true } // แสดง badge สำหรับที่อนุมัติแล้วแต่ยังไม่มี loan
       case 'REJECTED':
-        return { text: 'ไม่อนุมัติ', color: 'destructive', showBadge: true }
+        return { text: 'ถูกปฏิเสธ', color: 'destructive', showBadge: true }
       case 'CANCELLED':
         return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
       default:
@@ -279,6 +143,8 @@ export function AgentCustomersList() {
     {}
   )
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   // Use real data if available, fallback to mock data
   const agentId = session?.user?.id
@@ -316,18 +182,20 @@ export function AgentCustomersList() {
   const customersWithLoans = useMemo(() => {
     const customerMap = new Map()
 
-    allLoans.forEach((loan) => {
-      const customerId = loan.customer?.id
-      if (!customerId) return
+    allLoans.forEach((loan: any) => {
+      // Handle loans with or without customer data
+      const customerId = loan.customer?.id || `no-customer-${loan.id}`
+      const isNoCustomer = !loan.customer?.id
 
       if (!customerMap.has(customerId)) {
         customerMap.set(customerId, {
           id: customerId,
-          customerName: getCustomerName(loan.customer),
-          phoneNumber: loan.customer?.phoneNumber || 'ไม่ระบุ',
+          customerName: isNoCustomer ? 'ไม่ระบุลูกค้า' : getCustomerName(loan.customer),
+          phoneNumber: isNoCustomer ? 'ไม่ระบุ' : (loan.customer?.phoneNumber || 'ไม่ระบุ'),
           loans: [],
           totalBalance: 0,
           loanCount: 0,
+          isNoCustomer: isNoCustomer,
         })
       }
 
@@ -351,19 +219,52 @@ export function AgentCustomersList() {
     // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
+      const searchNumber = parseFloat(searchTerm.replace(/,/g, '')) // Remove commas for number search
+      
       return customers.filter((customer) => {
-        return (
-          customer.customerName.toLowerCase().includes(searchLower) ||
-          customer.phoneNumber.includes(searchTerm) ||
-          customer.loans.some((loan) =>
-            loan.loanNumber.toLowerCase().includes(searchLower)
-          )
+        // Search by customer name
+        const nameMatch = customer.customerName.toLowerCase().includes(searchLower)
+        
+        // Search by phone number
+        const phoneMatch = customer.phoneNumber.includes(searchTerm)
+        
+        // Search by loan number/ID
+        const loanNumberMatch = customer.loans.some((loan: any) =>
+          loan.loanNumber.toLowerCase().includes(searchLower) ||
+          loan.id.toLowerCase().includes(searchLower)
         )
+        
+        // Search by loan amount (principal amount, remaining balance, monthly payment)
+        const amountMatch = !isNaN(searchNumber) && customer.loans.some((loan: any) => {
+          const principal = Number(loan.principalAmount) || 0
+          const remaining = Number(loan.remainingBalance) || 0
+          const monthly = Number(loan.monthlyPayment) || 0
+          
+          return principal === searchNumber || 
+                 remaining === searchNumber || 
+                 monthly === searchNumber ||
+                 Math.abs(principal - searchNumber) < 1000 || // Allow some tolerance
+                 Math.abs(remaining - searchNumber) < 1000 ||
+                 Math.abs(monthly - searchNumber) < 100
+        })
+        
+        return nameMatch || phoneMatch || loanNumberMatch || amountMatch
       })
     }
 
     return customers
   }, [allLoans, searchTerm])
+
+  // Pagination logic
+  const totalPages = Math.ceil(customersWithLoans.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedCustomers = customersWithLoans.slice(startIndex, endIndex)
+
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
 
   const toggleCard = (customerId: string) => {
     setExpandedCards((prev) => ({
@@ -388,6 +289,7 @@ export function AgentCustomersList() {
           <h1 className="text-xl font-bold text-white">ผลิตภัณฑ์ของลูกค้า</h1>
           <p className="text-sm text-muted-foreground">
             จำนวน {customersWithLoans.length} ลูกค้า
+            {searchTerm && ` (แสดง ${paginatedCustomers.length} รายการ)`}
           </p>
         </div>
         <Badge variant="outline" className="text-xs">
@@ -399,7 +301,7 @@ export function AgentCustomersList() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="ค้นหาด้วยชื่อลูกค้า, เบอร์โทร หรือเลขที่สัญญา"
+          placeholder="ค้นหาด้วยชื่อลูกค้า, เบอร์โทร, เลขที่สัญญา, หรือยอดเงิน"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -407,26 +309,29 @@ export function AgentCustomersList() {
       </div>
 
       <div className="space-y-4">
-        {customersWithLoans.map((customer) => {
+        {paginatedCustomers.map((customer) => {
           const isExpanded = expandedCards[customer.id] || false
-          const hasOverdueLoans = customer.loans.some((loan) => {
+          const hasOverdueLoans = customer.loans.some((loan: any) => {
             if (loan.type !== 'LOAN') return false
             const days = getDaysUntilPayment(loan.nextPaymentDate)
             return days < 0 && loan.status === 'DEFAULTED'
           })
           const hasActiveLoans = customer.loans.some(
-            (loan) => loan.type === 'LOAN' && loan.status === 'ACTIVE'
+            (loan: any) => loan.type === 'LOAN' && loan.status === 'ACTIVE'
           )
           const hasCompletedLoans = customer.loans.some(
-            (loan) => loan.type === 'LOAN' && loan.status === 'COMPLETED'
+            (loan: any) => loan.type === 'LOAN' && loan.status === 'COMPLETED'
           )
           const hasPendingApplications = customer.loans.some(
-            (loan) =>
+            (loan: any) =>
               loan.type === 'APPLICATION' &&
-              ['UNDER_REVIEW', 'SUBMITTED'].includes(loan.status)
+              ['UNDER_REVIEW', 'SUBMITTED', 'DRAFT'].includes(loan.status)
+          )
+          const hasApprovedApplications = customer.loans.some(
+            (loan: any) => loan.type === 'APPLICATION' && loan.status === 'APPROVED'
           )
           const hasRejectedApplications = customer.loans.some(
-            (loan) => loan.type === 'APPLICATION' && loan.status === 'REJECTED'
+            (loan: any) => loan.type === 'APPLICATION' && loan.status === 'REJECTED'
           )
 
           return (
@@ -437,8 +342,15 @@ export function AgentCustomersList() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-base text-foreground mb-1 flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {customer.customerName}
+                      <User className={`h-4 w-4 ${customer.isNoCustomer ? 'text-muted-foreground' : ''}`} />
+                      <span className={customer.isNoCustomer ? 'text-muted-foreground italic' : ''}>
+                        {customer.customerName}
+                      </span>
+                      {customer.isNoCustomer && (
+                        <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                          ไม่มีข้อมูลลูกค้า
+                        </Badge>
+                      )}
                     </CardTitle>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
                       <div className="flex items-center gap-1">
@@ -455,7 +367,7 @@ export function AgentCustomersList() {
                     </p>
                   </div>
                   <div className="flex flex-col gap-1">
-                    {/* Priority order: Overdue > Rejected > Pending > Completed > Active */}
+                    {/* Priority order: Overdue > Rejected > Pending > Approved > Completed > Active */}
                     {hasOverdueLoans && (
                       <Badge variant="destructive" className="text-xs">
                         ค้างชำระ
@@ -463,7 +375,7 @@ export function AgentCustomersList() {
                     )}
                     {!hasOverdueLoans && hasRejectedApplications && (
                       <Badge variant="destructive" className="text-xs">
-                        ไม่อนุมัติ
+                        ถูกปฏิเสธ
                       </Badge>
                     )}
                     {!hasOverdueLoans &&
@@ -478,16 +390,28 @@ export function AgentCustomersList() {
                     {!hasOverdueLoans &&
                       !hasRejectedApplications &&
                       !hasPendingApplications &&
-                      hasCompletedLoans && (
+                      hasApprovedApplications && (
                         <Badge
                           variant="default"
                           className="text-xs bg-green-100 text-green-800 border-green-200">
+                          อนุมัติแล้ว
+                        </Badge>
+                      )}
+                    {!hasOverdueLoans &&
+                      !hasRejectedApplications &&
+                      !hasPendingApplications &&
+                      !hasApprovedApplications &&
+                      hasCompletedLoans && (
+                        <Badge
+                          variant="default"
+                          className="text-xs bg-blue-100 text-blue-800 border-blue-200">
                           ชำระครบแล้ว
                         </Badge>
                       )}
                     {!hasOverdueLoans &&
                       !hasRejectedApplications &&
                       !hasPendingApplications &&
+                      !hasApprovedApplications &&
                       !hasCompletedLoans &&
                       hasActiveLoans && (
                         <Badge variant="default" className="text-xs">
@@ -521,11 +445,15 @@ export function AgentCustomersList() {
               {isExpanded && (
                 <CardContent className="space-y-4 pt-0">
                   <div className="space-y-3">
-                    {customer.loans.map((loan) => {
+                    {customer.loans.map((loan: any) => {
+                      // Calculate actual paid installments from installments data
+                      const paidInstallments = loan.installments 
+                        ? loan.installments.filter((inst: any) => inst.isPaid).length 
+                        : loan.currentInstallment || 0
+                      
                       const progress =
                         loan.totalInstallments > 0
-                          ? (loan.currentInstallment / loan.totalInstallments) *
-                            100
+                          ? (paidInstallments / loan.totalInstallments) * 100
                           : 0
                       const nextPaymentDays = getDaysUntilPayment(
                         loan.nextPaymentDate
@@ -568,7 +496,7 @@ export function AgentCustomersList() {
                                   ความคืบหน้า
                                 </span>
                                 <span className="font-medium text-foreground">
-                                  งวดที่ {loan.currentInstallment}/
+                                  งวดที่ {paidInstallments}/
                                   {loan.totalInstallments}
                                 </span>
                               </div>
@@ -654,26 +582,46 @@ export function AgentCustomersList() {
 
                           <div className="flex gap-2">
                             <Button
-                              asChild
+                              asChild={!customer.isNoCustomer}
                               className="flex-1"
-                              variant={isOverdue ? 'default' : 'outline'}>
-                              <Link
-                                href={
-                                  isApplication
-                                    ? `/agent/customers/${customer.id}/applications/${loan.id}`
-                                    : `/agent/customers/${customer.id}/loans/${loan.id}`
-                                }>
-                                {isApplication
-                                  ? 'ดูใบสมัคร'
-                                  : isOverdue
-                                    ? 'ติดตามการชำระ'
-                                    : 'ดูรายละเอียด'}
-                              </Link>
+                              variant={isOverdue ? 'default' : 'outline'}
+                              disabled={customer.isNoCustomer}>
+                              {!customer.isNoCustomer ? (
+                                <Link
+                                  href={
+                                    isApplication
+                                      ? `/agent/customers/${customer.id}/applications/${loan.id}`
+                                      : `/agent/customers/${customer.id}/loans/${loan.id}`
+                                  }>
+                                  {isApplication
+                                    ? 'ดูใบสมัคร'
+                                    : isOverdue
+                                      ? 'ติดตามการชำระ'
+                                      : 'ดูรายละเอียด'}
+                                </Link>
+                              ) : (
+                                <span>
+                                  {isApplication
+                                    ? 'ดูใบสมัคร'
+                                    : isOverdue
+                                      ? 'ติดตามการชำระ'
+                                      : 'ดูรายละเอียด'}
+                                  {' (ไม่มีข้อมูลลูกค้า)'}
+                                </span>
+                              )}
                             </Button>
-                            <Button variant="ghost" size="icon" asChild>
-                              <Link href={`/agent/customers/${customer.id}`}>
-                                <User className="h-4 w-4" />
-                              </Link>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              asChild={!customer.isNoCustomer}
+                              disabled={customer.isNoCustomer}>
+                              {!customer.isNoCustomer ? (
+                                <Link href={`/agent/customers/${customer.id}`}>
+                                  <User className="h-4 w-4" />
+                                </Link>
+                              ) : (
+                                <User className="h-4 w-4 text-muted-foreground" />
+                              )}
                             </Button>
                           </div>
                         </div>
@@ -686,6 +634,34 @@ export function AgentCustomersList() {
           )
         })}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground text-center">
+            แสดง {startIndex + 1}-{Math.min(endIndex, customersWithLoans.length)} จาก {customersWithLoans.length} รายการ
+          </p>
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}>
+              ก่อนหน้า
+            </Button>
+            <span className="text-sm font-medium">
+              หน้า {currentPage} จาก {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}>
+              ถัดไป
+            </Button>
+          </div>
+        </div>
+      )}
 
       {customersWithLoans.length === 0 && (
         <div className="text-center py-8">
@@ -714,7 +690,7 @@ export function AgentCustomersList() {
               <div className="text-right">
                 <p className="text-lg font-bold text-primary">
                   {(() => {
-                    const totalBalance = allLoans.reduce((sum, loan) => {
+                    const totalBalance = allLoans.reduce((sum: any, loan: any) => {
                       const currentSum = Number(sum)
                       if (
                         loan.type === 'LOAN' &&
