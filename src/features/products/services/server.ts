@@ -173,35 +173,35 @@ export const loanService = {
     // Create a set of application IDs that have corresponding loans
     const loanApplicationIds = new Set(
       loans
-        .filter(loan => loan.applicationId)
-        .map(loan => loan.applicationId)
+        .filter((loan) => loan.applicationId)
+        .map((loan) => loan.applicationId)
     )
 
     // Filter applications based on clear rules:
     // 1. Show applications that are pending approval (SUBMITTED, UNDER_REVIEW, DRAFT)
     // 2. Show applications that are rejected (REJECTED)
     // 3. Hide applications that are approved AND have corresponding loans (to avoid duplicates)
-    const filteredApplications = applications.filter(app => {
+    const filteredApplications = applications.filter((app) => {
       // Always show pending applications (waiting for approval)
       if (['SUBMITTED', 'UNDER_REVIEW', 'DRAFT'].includes(app.status)) {
         return true
       }
-      
+
       // Always show rejected applications
       if (app.status === 'REJECTED') {
         return true
       }
-      
+
       // For approved applications, only hide if there's a corresponding loan
       if (app.status === 'APPROVED' && loanApplicationIds.has(app.id)) {
         return false // Hide because the loan will be shown instead
       }
-      
+
       // Show approved applications that don't have corresponding loans yet
       if (app.status === 'APPROVED' && !loanApplicationIds.has(app.id)) {
         return true
       }
-      
+
       // Hide other statuses by default
       return false
     })

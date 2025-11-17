@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import Link from 'next/link'
 
@@ -25,8 +25,6 @@ import {
   Users,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
-
-
 
 // Helper functions
 const getCustomerName = (customer: any) => {
@@ -190,8 +188,12 @@ export function AgentCustomersList() {
       if (!customerMap.has(customerId)) {
         customerMap.set(customerId, {
           id: customerId,
-          customerName: isNoCustomer ? 'ไม่ระบุลูกค้า' : getCustomerName(loan.customer),
-          phoneNumber: isNoCustomer ? 'ไม่ระบุ' : (loan.customer?.phoneNumber || 'ไม่ระบุ'),
+          customerName: isNoCustomer
+            ? 'ไม่ระบุลูกค้า'
+            : getCustomerName(loan.customer),
+          phoneNumber: isNoCustomer
+            ? 'ไม่ระบุ'
+            : loan.customer?.phoneNumber || 'ไม่ระบุ',
           loans: [],
           totalBalance: 0,
           loanCount: 0,
@@ -220,34 +222,41 @@ export function AgentCustomersList() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase()
       const searchNumber = parseFloat(searchTerm.replace(/,/g, '')) // Remove commas for number search
-      
+
       return customers.filter((customer) => {
         // Search by customer name
-        const nameMatch = customer.customerName.toLowerCase().includes(searchLower)
-        
+        const nameMatch = customer.customerName
+          .toLowerCase()
+          .includes(searchLower)
+
         // Search by phone number
         const phoneMatch = customer.phoneNumber.includes(searchTerm)
-        
+
         // Search by loan number/ID
-        const loanNumberMatch = customer.loans.some((loan: any) =>
-          loan.loanNumber.toLowerCase().includes(searchLower) ||
-          loan.id.toLowerCase().includes(searchLower)
+        const loanNumberMatch = customer.loans.some(
+          (loan: any) =>
+            loan.loanNumber.toLowerCase().includes(searchLower) ||
+            loan.id.toLowerCase().includes(searchLower)
         )
-        
+
         // Search by loan amount (principal amount, remaining balance, monthly payment)
-        const amountMatch = !isNaN(searchNumber) && customer.loans.some((loan: any) => {
-          const principal = Number(loan.principalAmount) || 0
-          const remaining = Number(loan.remainingBalance) || 0
-          const monthly = Number(loan.monthlyPayment) || 0
-          
-          return principal === searchNumber || 
-                 remaining === searchNumber || 
-                 monthly === searchNumber ||
-                 Math.abs(principal - searchNumber) < 1000 || // Allow some tolerance
-                 Math.abs(remaining - searchNumber) < 1000 ||
-                 Math.abs(monthly - searchNumber) < 100
-        })
-        
+        const amountMatch =
+          !isNaN(searchNumber) &&
+          customer.loans.some((loan: any) => {
+            const principal = Number(loan.principalAmount) || 0
+            const remaining = Number(loan.remainingBalance) || 0
+            const monthly = Number(loan.monthlyPayment) || 0
+
+            return (
+              principal === searchNumber ||
+              remaining === searchNumber ||
+              monthly === searchNumber ||
+              Math.abs(principal - searchNumber) < 1000 || // Allow some tolerance
+              Math.abs(remaining - searchNumber) < 1000 ||
+              Math.abs(monthly - searchNumber) < 100
+            )
+          })
+
         return nameMatch || phoneMatch || loanNumberMatch || amountMatch
       })
     }
@@ -328,10 +337,12 @@ export function AgentCustomersList() {
               ['UNDER_REVIEW', 'SUBMITTED', 'DRAFT'].includes(loan.status)
           )
           const hasApprovedApplications = customer.loans.some(
-            (loan: any) => loan.type === 'APPLICATION' && loan.status === 'APPROVED'
+            (loan: any) =>
+              loan.type === 'APPLICATION' && loan.status === 'APPROVED'
           )
           const hasRejectedApplications = customer.loans.some(
-            (loan: any) => loan.type === 'APPLICATION' && loan.status === 'REJECTED'
+            (loan: any) =>
+              loan.type === 'APPLICATION' && loan.status === 'REJECTED'
           )
 
           return (
@@ -342,12 +353,21 @@ export function AgentCustomersList() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-base text-foreground mb-1 flex items-center gap-2">
-                      <User className={`h-4 w-4 ${customer.isNoCustomer ? 'text-muted-foreground' : ''}`} />
-                      <span className={customer.isNoCustomer ? 'text-muted-foreground italic' : ''}>
+                      <User
+                        className={`h-4 w-4 ${customer.isNoCustomer ? 'text-muted-foreground' : ''}`}
+                      />
+                      <span
+                        className={
+                          customer.isNoCustomer
+                            ? 'text-muted-foreground italic'
+                            : ''
+                        }>
                         {customer.customerName}
                       </span>
                       {customer.isNoCustomer && (
-                        <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                        <Badge
+                          variant="outline"
+                          className="text-xs text-orange-600 border-orange-300">
                           ไม่มีข้อมูลลูกค้า
                         </Badge>
                       )}
@@ -447,10 +467,11 @@ export function AgentCustomersList() {
                   <div className="space-y-3">
                     {customer.loans.map((loan: any) => {
                       // Calculate actual paid installments from installments data
-                      const paidInstallments = loan.installments 
-                        ? loan.installments.filter((inst: any) => inst.isPaid).length 
+                      const paidInstallments = loan.installments
+                        ? loan.installments.filter((inst: any) => inst.isPaid)
+                            .length
                         : loan.currentInstallment || 0
-                      
+
                       const progress =
                         loan.totalInstallments > 0
                           ? (paidInstallments / loan.totalInstallments) * 100
@@ -610,9 +631,9 @@ export function AgentCustomersList() {
                                 </span>
                               )}
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               asChild={!customer.isNoCustomer}
                               disabled={customer.isNoCustomer}>
                               {!customer.isNoCustomer ? (
@@ -639,13 +660,15 @@ export function AgentCustomersList() {
       {totalPages > 1 && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground text-center">
-            แสดง {startIndex + 1}-{Math.min(endIndex, customersWithLoans.length)} จาก {customersWithLoans.length} รายการ
+            แสดง {startIndex + 1}-
+            {Math.min(endIndex, customersWithLoans.length)} จาก{' '}
+            {customersWithLoans.length} รายการ
           </p>
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}>
               ก่อนหน้า
             </Button>
@@ -655,7 +678,9 @@ export function AgentCustomersList() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
               disabled={currentPage === totalPages}>
               ถัดไป
             </Button>
@@ -690,34 +715,37 @@ export function AgentCustomersList() {
               <div className="text-right">
                 <p className="text-lg font-bold text-primary">
                   {(() => {
-                    const totalBalance = allLoans.reduce((sum: any, loan: any) => {
-                      const currentSum = Number(sum)
-                      if (
-                        loan.type === 'LOAN' &&
-                        ['ACTIVE', 'DEFAULTED'].includes(loan.status) &&
-                        Number(loan.remainingBalance) > 0
-                      ) {
-                        const amount = Number(loan.remainingBalance || 0)
-                        if (process.env.NODE_ENV === 'development') {
-                          console.log(
-                            `Adding LOAN ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
-                          )
+                    const totalBalance = allLoans.reduce(
+                      (sum: any, loan: any) => {
+                        const currentSum = Number(sum)
+                        if (
+                          loan.type === 'LOAN' &&
+                          ['ACTIVE', 'DEFAULTED'].includes(loan.status) &&
+                          Number(loan.remainingBalance) > 0
+                        ) {
+                          const amount = Number(loan.remainingBalance || 0)
+                          if (process.env.NODE_ENV === 'development') {
+                            console.log(
+                              `Adding LOAN ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
+                            )
+                          }
+                          return currentSum + amount
+                        } else if (
+                          loan.type === 'APPLICATION' &&
+                          loan.status === 'APPROVED'
+                        ) {
+                          const amount = Number(loan.principalAmount || 0)
+                          if (process.env.NODE_ENV === 'development') {
+                            console.log(
+                              `Adding APPLICATION ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
+                            )
+                          }
+                          return currentSum + amount
                         }
-                        return currentSum + amount
-                      } else if (
-                        loan.type === 'APPLICATION' &&
-                        loan.status === 'APPROVED'
-                      ) {
-                        const amount = Number(loan.principalAmount || 0)
-                        if (process.env.NODE_ENV === 'development') {
-                          console.log(
-                            `Adding APPLICATION ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
-                          )
-                        }
-                        return currentSum + amount
-                      }
-                      return currentSum
-                    }, 0)
+                        return currentSum
+                      },
+                      0
+                    )
 
                     if (process.env.NODE_ENV === 'development') {
                       console.log('Final Total Balance:', totalBalance)

@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   useCreateCustomer,
@@ -34,6 +34,8 @@ export function AgentCustomerSelectionStep({
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false)
   const [newCustomerPhone, setNewCustomerPhone] = useState('')
   const [newCustomerName, setNewCustomerName] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   // Fetch customers for current agent
   const {
@@ -48,6 +50,17 @@ export function AgentCustomerSelectionStep({
   const createCustomerMutation = useCreateCustomer()
 
   const filteredCustomers = customers
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex)
+
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
 
   const handleSelectCustomer = (customer: any) => {
     setSelectedCustomer(customer.id)
@@ -159,39 +172,84 @@ export function AgentCustomerSelectionStep({
 
           {/* Existing Customers */}
           {!isLoading && !error && (
-            <div className="space-y-2">
-              {filteredCustomers.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  {searchTerm.length >= 2
-                    ? 'ไม่พบลูกค้าที่ค้นหา'
-                    : 'ยังไม่มีลูกค้า'}
-                </div>
-              ) : (
-                filteredCustomers.map((customer) => (
-                  <div
-                    key={customer.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                      selectedCustomer === customer.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                    onClick={() => handleSelectCustomer(customer)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium text-foreground">
-                          {customer.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {customer.phoneNumber}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          สินเชื่อ: {customer.loanCount} รายการ
-                        </p>
+            <div className="space-y-4">
+              {/* Customer count info */}
+              {filteredCustomers.length > 0 && (
+                <p className="text-sm text-muted-foreground text-center">
+                  พบ {filteredCustomers.length} ลูกค้า
+                  {searchTerm && ` (แสดง ${paginatedCustomers.length} รายการ)`}
+                </p>
+              )}
+
+              {/* Customer list */}
+              <div className="space-y-2">
+                {filteredCustomers.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground">
+                    {searchTerm.length >= 2
+                      ? 'ไม่พบลูกค้าที่ค้นหา'
+                      : 'ยังไม่มีลูกค้า'}
+                  </div>
+                ) : (
+                  paginatedCustomers.map((customer) => (
+                    <div
+                      key={customer.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedCustomer === customer.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => handleSelectCustomer(customer)}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground">
+                            {customer.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {customer.phoneNumber}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            สินเชื่อ: {customer.loanCount} รายการ
+                          </p>
+                        </div>
                       </div>
                     </div>
+                  ))
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground text-center">
+                    แสดง {startIndex + 1}-
+                    {Math.min(endIndex, filteredCustomers.length)} จาก{' '}
+                    {filteredCustomers.length} รายการ
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                      disabled={currentPage === 1}>
+                      ก่อนหน้า
+                    </Button>
+                    <span className="text-sm font-medium">
+                      หน้า {currentPage} จาก {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                      }
+                      disabled={currentPage === totalPages}>
+                      ถัดไป
+                    </Button>
                   </div>
-                ))
+                </div>
               )}
             </div>
           )}
