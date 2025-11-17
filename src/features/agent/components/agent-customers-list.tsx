@@ -322,6 +322,7 @@ export function AgentCustomersList() {
           const isExpanded = expandedCards[customer.id] || false
           const hasOverdueLoans = customer.loans.some((loan: any) => {
             if (loan.type !== 'LOAN') return false
+            if (loan.status === 'COMPLETED') return false // ไม่แสดง overdue สำหรับสินเชื่อที่ชำระครบแล้ว
             const days = getDaysUntilPayment(loan.nextPaymentDate)
             return days < 0 && loan.status === 'DEFAULTED'
           })
@@ -480,7 +481,9 @@ export function AgentCustomersList() {
                         loan.nextPaymentDate
                       )
                       const isOverdue =
-                        nextPaymentDays < 0 && loan.type === 'LOAN'
+                        nextPaymentDays < 0 && 
+                        loan.type === 'LOAN' && 
+                        loan.status !== 'COMPLETED'
                       const statusInfo = getStatusInfo(
                         loan.displayStatus || loan.status,
                         loan.type
@@ -568,20 +571,29 @@ export function AgentCustomersList() {
 
                           {!isApplication && (
                             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                              {isOverdue ? (
+                              {loan.status === 'COMPLETED' ? (
+                                <Calendar className="h-4 w-4 text-success" />
+                              ) : isOverdue ? (
                                 <AlertCircle className="h-4 w-4 text-destructive" />
                               ) : (
                                 <Calendar className="h-4 w-4 text-primary" />
                               )}
                               <div className="flex-1">
                                 <p className="text-sm font-medium text-foreground">
-                                  {isOverdue ? 'เกินกำหนดชำระ' : 'ครบกำหนดชำระ'}
+                                  {loan.status === 'COMPLETED' 
+                                    ? 'ชำระครบแล้ว' 
+                                    : isOverdue 
+                                      ? 'เกินกำหนดชำระ' 
+                                      : 'ครบกำหนดชำระ'}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                  {formatDate(loan.nextPaymentDate)}
-                                  {isOverdue
-                                    ? ` (เกิน ${Math.abs(nextPaymentDays)} วัน)`
-                                    : ` (อีก ${nextPaymentDays} วัน)`}
+                                  {loan.status === 'COMPLETED' 
+                                    ? `ชำระครบเมื่อ ${formatDate(loan.nextPaymentDate)}`
+                                    : `${formatDate(loan.nextPaymentDate)}${
+                                        isOverdue
+                                          ? ` (เกิน ${Math.abs(nextPaymentDays)} วัน)`
+                                          : ` (อีก ${nextPaymentDays} วัน)`
+                                      }`}
                                 </p>
                               </div>
                             </div>
