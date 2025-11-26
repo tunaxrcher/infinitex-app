@@ -10,7 +10,6 @@ datasource db {
   url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
-
 // ============================================
 // USER TYPES (Customer & Agent only)
 // ============================================
@@ -279,6 +278,15 @@ model LoanApplication {
   approvedAmount    Decimal? @db.Decimal(15, 2)
   maxApprovedAmount Decimal? @db.Decimal(15, 2) // System calculated maximum
 
+  // Loan terms (from admin input)
+  interestRate Decimal? @db.Decimal(5, 2) // ดอกเบี้ยต่อปี (%)
+  termMonths   Int?     @default(48) // จำนวนเดือน default 48 เดือน (4 ปี)
+
+  // Fees
+  operationFee Decimal? @default(0) @db.Decimal(15, 2)
+  transferFee  Decimal? @default(0) @db.Decimal(15, 2)
+  otherFee     Decimal? @default(0) @db.Decimal(15, 2)
+
   // Property information (from AI processing)
   propertyType     String?  @db.VarChar(100)
   propertyValue    Decimal? @db.Decimal(15, 2)
@@ -355,6 +363,11 @@ model Loan {
   linkMap         String? @db.Text
   landAccountId   Int?
   landAccountName String? @db.VarChar(200)
+
+  // Property valuation (AI assessment)
+  valuationResult Json? // เก็บผลการประเมินจาก AI
+  valuationDate   DateTime? @db.DateTime(0) // วันที่ทำการประเมิน
+  estimatedValue  Decimal?  @db.Decimal(15, 2) // มูลค่าประเมินที่บันทึก
 
   createdAt DateTime @default(now()) @db.DateTime(0)
   updatedAt DateTime @updatedAt @db.DateTime(0)
