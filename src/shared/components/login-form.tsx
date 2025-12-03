@@ -135,7 +135,7 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
             <div className="w-24 h-12 mx-auto mb-4">

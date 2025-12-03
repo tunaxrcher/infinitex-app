@@ -26,7 +26,7 @@ export default function ClientLayout({
                 <ThemeProvider
                   attribute="class"
                   defaultTheme="light"
-                  enableSystem
+                  enableSystem={false}
                   disableTransitionOnChange>
                   <div className="mobile-container">{children}</div>
                   <Toaster
