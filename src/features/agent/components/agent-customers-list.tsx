@@ -8,21 +8,18 @@ import { useGetLoansByAgentId } from '@src/features/products/hooks'
 import { formatThaiCurrency } from '@src/shared/lib/utils'
 import { Badge } from '@src/shared/ui/badge'
 import { Button } from '@src/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
+import { Card, CardContent } from '@src/shared/ui/card'
 import { Input } from '@src/shared/ui/input'
 import { Progress } from '@src/shared/ui/progress'
 import {
   AlertCircle,
   Calendar,
-  ChevronDown,
-  ChevronUp,
   CreditCard,
   Loader2,
   Phone,
   Search,
   TrendingUp,
   User,
-  Users,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
@@ -52,10 +49,10 @@ const getLoanTypeName = (loanType: string) => {
   switch (loanType) {
     case 'HOUSE_LAND_MORTGAGE':
       return 'สินเชื่อจำนองบ้านและโฉนดที่ดิน'
-    case 'PERSONAL_LOAN':
-      return 'สินเชื่อส่วนบุคคล'
-    case 'BUSINESS_LOAN':
-      return 'สินเชื่อธุรกิจ'
+    case 'CAR_REGISTRATION':
+      return 'สินเชื่อทะเบียนรถ'
+    case 'FINX_PLUS':
+      return 'สินเชื่อ FinX พลัส'
     default:
       return 'สินเชื่อ'
   }
@@ -66,7 +63,7 @@ const getStatusInfo = (status: string, type?: string) => {
   if (type === 'LOAN') {
     switch (status) {
       case 'ACTIVE':
-        return { text: '', color: 'success', showBadge: false } // ไม่แสดง badge
+        return { text: '', color: 'success', showBadge: false }
       case 'COMPLETED':
         return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
       case 'DEFAULTED':
@@ -88,7 +85,7 @@ const getStatusInfo = (status: string, type?: string) => {
       case 'UNDER_REVIEW':
         return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
       case 'APPROVED':
-        return { text: 'อนุมัติแล้ว', color: 'success', showBadge: true } // แสดง badge สำหรับที่อนุมัติแล้วแต่ยังไม่มี loan
+        return { text: 'อนุมัติแล้ว', color: 'success', showBadge: true }
       case 'REJECTED':
         return { text: 'ถูกปฏิเสธ', color: 'destructive', showBadge: true }
       case 'CANCELLED':
@@ -98,19 +95,8 @@ const getStatusInfo = (status: string, type?: string) => {
     }
   }
 
-  // Fallback for backward compatibility
-  switch (status) {
-    case 'ACTIVE':
-      return { text: '', color: 'success', showBadge: false }
-    case 'COMPLETED':
-      return { text: 'ชำระครบแล้ว', color: 'success', showBadge: true }
-    case 'DEFAULTED':
-      return { text: 'ค้างชำระ', color: 'destructive', showBadge: true }
-    case 'CANCELLED':
-      return { text: 'ยกเลิก', color: 'destructive', showBadge: true }
-    default:
-      return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
-  }
+  // Fallback
+  return { text: 'รออนุมัติ', color: 'warning', showBadge: true }
 }
 
 const getBadgeVariant = (statusColor: string) => {
@@ -137,150 +123,72 @@ const getBadgeClassName = (statusColor: string) => {
 
 export function AgentCustomersList() {
   const { data: session } = useSession()
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>(
-    {}
-  )
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  // Use real data if available, fallback to mock data
+  // Use real data if available
   const agentId = session?.user?.id
   const {
     data: loansData,
     isLoading,
-    error,
   } = useGetLoansByAgentId(agentId || '')
 
   // Use only real data from database
   const allLoans = loansData?.success && loansData?.data ? loansData.data : []
 
-  // Debug logging (remove in production)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Agent Session:', session?.user)
-    console.log('Agent ID:', agentId)
-    console.log('Loans Data:', loansData)
-    console.log('All Loans Array:', allLoans)
-    console.log('All Loans Length:', allLoans?.length)
-    if (allLoans?.length > 0) {
-      console.log('Sample Loan:', allLoans[0])
-      console.log(
-        'Sample remainingBalance type:',
-        typeof allLoans[0]?.remainingBalance
+  // Filter and search loans directly
+  const filteredLoans = useMemo(() => {
+    if (!searchTerm) return allLoans
+
+    const searchLower = searchTerm.toLowerCase()
+    const searchNumber = parseFloat(searchTerm.replace(/,/g, ''))
+
+    return allLoans.filter((loan: any) => {
+      // Search by property location
+      const locationMatch = loan.propertyLocation?.toLowerCase().includes(searchLower)
+
+      // Search by owner name (from agent input)
+      const ownerNameMatch = loan.ownerName?.toLowerCase().includes(searchLower)
+
+      // Search by loan number/ID
+      const loanNumberMatch =
+        loan.loanNumber?.toLowerCase().includes(searchLower) ||
+        loan.id?.toLowerCase().includes(searchLower)
+
+      // Search by loan amount
+      const principal = Number(loan.principalAmount) || 0
+      const remaining = Number(loan.remainingBalance) || 0
+      const monthly = Number(loan.monthlyPayment) || 0
+
+      const amountMatch =
+        !isNaN(searchNumber) &&
+        (principal === searchNumber ||
+          remaining === searchNumber ||
+          monthly === searchNumber ||
+          Math.abs(principal - searchNumber) < 1000 ||
+          Math.abs(remaining - searchNumber) < 1000 ||
+          Math.abs(monthly - searchNumber) < 100)
+
+      return (
+        locationMatch ||
+        ownerNameMatch ||
+        loanNumberMatch ||
+        amountMatch
       )
-      console.log(
-        'Sample remainingBalance value:',
-        allLoans[0]?.remainingBalance
-      )
-    }
-    if (error) console.log('API Error:', error)
-  }
-
-  // Group loans by customer and filter by search term
-  const customersWithLoans = useMemo(() => {
-    const customerMap = new Map()
-
-    allLoans.forEach((loan: any) => {
-      // Handle loans with or without customer data
-      const customerId = loan.customer?.id || `no-customer-${loan.id}`
-      const isNoCustomer = !loan.customer?.id
-
-      if (!customerMap.has(customerId)) {
-        customerMap.set(customerId, {
-          id: customerId,
-          customerName: isNoCustomer
-            ? 'ไม่ระบุลูกค้า'
-            : getCustomerName(loan.customer),
-          phoneNumber: isNoCustomer
-            ? 'ไม่ระบุ'
-            : loan.customer?.phoneNumber || 'ไม่ระบุ',
-          loans: [],
-          totalBalance: 0,
-          loanCount: 0,
-          isNoCustomer: isNoCustomer,
-        })
-      }
-
-      const customer = customerMap.get(customerId)
-      customer.loans.push(loan)
-      // Add to balance for active loans with remaining balance (ensure numeric calculation)
-      if (
-        loan.type === 'LOAN' &&
-        ['ACTIVE', 'DEFAULTED'].includes(loan.status) &&
-        Number(loan.remainingBalance) > 0
-      ) {
-        customer.totalBalance += Number(loan.remainingBalance) || 0
-      } else if (loan.type === 'APPLICATION' && loan.status === 'APPROVED') {
-        customer.totalBalance += Number(loan.principalAmount) || 0
-      }
-      customer.loanCount += 1
     })
-
-    const customers = Array.from(customerMap.values())
-
-    // Filter by search term
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
-      const searchNumber = parseFloat(searchTerm.replace(/,/g, '')) // Remove commas for number search
-
-      return customers.filter((customer) => {
-        // Search by customer name
-        const nameMatch = customer.customerName
-          .toLowerCase()
-          .includes(searchLower)
-
-        // Search by phone number
-        const phoneMatch = customer.phoneNumber.includes(searchTerm)
-
-        // Search by loan number/ID
-        const loanNumberMatch = customer.loans.some(
-          (loan: any) =>
-            loan.loanNumber.toLowerCase().includes(searchLower) ||
-            loan.id.toLowerCase().includes(searchLower)
-        )
-
-        // Search by loan amount (principal amount, remaining balance, monthly payment)
-        const amountMatch =
-          !isNaN(searchNumber) &&
-          customer.loans.some((loan: any) => {
-            const principal = Number(loan.principalAmount) || 0
-            const remaining = Number(loan.remainingBalance) || 0
-            const monthly = Number(loan.monthlyPayment) || 0
-
-            return (
-              principal === searchNumber ||
-              remaining === searchNumber ||
-              monthly === searchNumber ||
-              Math.abs(principal - searchNumber) < 1000 || // Allow some tolerance
-              Math.abs(remaining - searchNumber) < 1000 ||
-              Math.abs(monthly - searchNumber) < 100
-            )
-          })
-
-        return nameMatch || phoneMatch || loanNumberMatch || amountMatch
-      })
-    }
-
-    return customers
   }, [allLoans, searchTerm])
 
   // Pagination logic
-  const totalPages = Math.ceil(customersWithLoans.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredLoans.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const paginatedCustomers = customersWithLoans.slice(startIndex, endIndex)
+  const paginatedLoans = filteredLoans.slice(startIndex, endIndex)
 
   // Reset to first page when search term changes
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm])
-
-  const toggleCard = (customerId: string) => {
-    setExpandedCards((prev) => ({
-      ...prev,
-      [customerId]: !prev[customerId],
-    }))
-  }
 
   if (isLoading) {
     return (
@@ -295,10 +203,10 @@ export function AgentCustomersList() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">ผลิตภัณฑ์ของลูกค้า</h1>
+          <h1 className="text-xl font-bold text-white">รายการสินเชื่อของฉัน</h1>
           <p className="text-sm text-muted-foreground">
-            จำนวน {customersWithLoans.length} ลูกค้า
-            {searchTerm && ` (แสดง ${paginatedCustomers.length} รายการ)`}
+            จำนวน {filteredLoans.length} สินเชื่อ
+            {searchTerm && ` (แสดง ${paginatedLoans.length} รายการ)`}
           </p>
         </div>
         <Badge variant="outline" className="text-xs">
@@ -310,359 +218,244 @@ export function AgentCustomersList() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="ค้นหาด้วยชื่อลูกค้า, เบอร์โทร, เลขที่สัญญา, หรือยอดเงิน"
+          placeholder="ค้นหาด้วยสถานที่, เลขที่สัญญา, หรือยอดเงิน"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
         />
       </div>
 
-      <div className="space-y-4">
-        {paginatedCustomers.map((customer) => {
-          const isExpanded = expandedCards[customer.id] || false
-          const hasOverdueLoans = customer.loans.some((loan: any) => {
-            if (loan.type !== 'LOAN') return false
-            if (loan.status === 'COMPLETED') return false // ไม่แสดง overdue สำหรับสินเชื่อที่ชำระครบแล้ว
-            const days = getDaysUntilPayment(loan.nextPaymentDate)
-            return days < 0 && loan.status === 'DEFAULTED'
-          })
-          const hasActiveLoans = customer.loans.some(
-            (loan: any) => loan.type === 'LOAN' && loan.status === 'ACTIVE'
-          )
-          const hasCompletedLoans = customer.loans.some(
-            (loan: any) => loan.type === 'LOAN' && loan.status === 'COMPLETED'
-          )
-          const hasPendingApplications = customer.loans.some(
-            (loan: any) =>
-              loan.type === 'APPLICATION' &&
-              ['UNDER_REVIEW', 'SUBMITTED', 'DRAFT'].includes(loan.status)
-          )
-          const hasApprovedApplications = customer.loans.some(
-            (loan: any) =>
-              loan.type === 'APPLICATION' && loan.status === 'APPROVED'
-          )
-          const hasRejectedApplications = customer.loans.some(
-            (loan: any) =>
-              loan.type === 'APPLICATION' && loan.status === 'REJECTED'
-          )
+      <div className="space-y-3">
+        {paginatedLoans.map((loan: any) => {
+          const isApplication = loan.type === 'APPLICATION'
+          const propertyLocation = loan.propertyLocation || loan.ownerName || 'ไม่ระบุสถานที่'
+          const customerId = loan.customer?.id
+          const isNoCustomer = !customerId
 
           return (
-            <Card
-              key={customer.id}
-              className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
+            <Card key={loan.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-base text-foreground mb-1 flex items-center gap-2">
-                      <User
-                        className={`h-4 w-4 ${customer.isNoCustomer ? 'text-muted-foreground' : ''}`}
-                      />
-                      <span
-                        className={
-                          customer.isNoCustomer
-                            ? 'text-muted-foreground italic'
-                            : ''
-                        }>
-                        {customer.customerName}
-                      </span>
-                      {customer.isNoCustomer && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs text-orange-600 border-orange-300">
-                          ไม่มีข้อมูลลูกค้า
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        <span>{customer.phoneNumber}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <CreditCard className="h-3 w-3" />
-                        <span>{customer.loanCount} สินเชื่อ</span>
-                      </div>
-                    </div>
-                    <p className="text-sm font-semibold text-primary">
-                      ยอดคงเหลือรวม: {formatThaiCurrency(customer.totalBalance)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    {/* Priority order: Overdue > Rejected > Pending > Approved > Completed > Active */}
-                    {hasOverdueLoans && (
-                      <Badge variant="destructive" className="text-xs">
-                        ค้างชำระ
-                      </Badge>
-                    )}
-                    {!hasOverdueLoans && hasRejectedApplications && (
-                      <Badge variant="destructive" className="text-xs">
-                        ถูกปฏิเสธ
-                      </Badge>
-                    )}
-                    {!hasOverdueLoans &&
-                      !hasRejectedApplications &&
-                      hasPendingApplications && (
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200">
-                          รออนุมัติ
-                        </Badge>
-                      )}
-                    {!hasOverdueLoans &&
-                      !hasRejectedApplications &&
-                      !hasPendingApplications &&
-                      hasApprovedApplications && (
-                        <Badge
-                          variant="default"
-                          className="text-xs bg-green-100 text-green-800 border-green-200">
-                          อนุมัติแล้ว
-                        </Badge>
-                      )}
-                    {!hasOverdueLoans &&
-                      !hasRejectedApplications &&
-                      !hasPendingApplications &&
-                      !hasApprovedApplications &&
-                      hasCompletedLoans && (
-                        <Badge
-                          variant="default"
-                          className="text-xs bg-blue-100 text-blue-800 border-blue-200">
-                          ชำระครบแล้ว
-                        </Badge>
-                      )}
-                    {!hasOverdueLoans &&
-                      !hasRejectedApplications &&
-                      !hasPendingApplications &&
-                      !hasApprovedApplications &&
-                      !hasCompletedLoans &&
-                      hasActiveLoans && (
-                        <Badge variant="default" className="text-xs">
-                          มีสินเชื่อ
-                        </Badge>
-                      )}
-                  </div>
-                </div>
-              </CardHeader>
-
-              <div className="px-6 pb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleCard(customer.id)}
-                  className="w-full justify-center gap-2 text-muted-foreground hover:text-foreground">
-                  {isExpanded ? (
-                    <>
-                      <span className="text-xs">ซ่อนรายละเอียด</span>
-                      <ChevronUp className="h-4 w-4" />
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-xs">ดูรายละเอียดสินเชื่อ</span>
-                      <ChevronDown className="h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {isExpanded && (
-                <CardContent className="space-y-4 pt-0">
-                  <div className="space-y-3">
-                    {customer.loans.map((loan: any) => {
-                      // Calculate actual paid installments from installments data
-                      const paidInstallments = loan.installments
-                        ? loan.installments.filter((inst: any) => inst.isPaid)
-                            .length
-                        : loan.currentInstallment || 0
-
-                      const progress =
-                        loan.totalInstallments > 0
-                          ? (paidInstallments / loan.totalInstallments) * 100
-                          : 0
-                      const nextPaymentDays = getDaysUntilPayment(
-                        loan.nextPaymentDate
-                      )
-                      const isOverdue =
-                        nextPaymentDays < 0 && 
-                        loan.type === 'LOAN' && 
-                        loan.status !== 'COMPLETED'
-                      const statusInfo = getStatusInfo(
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-medium text-sm">
+                        {getLoanTypeName(loan.loanType)}
+                      </h4>
+                      {getStatusInfo(
                         loan.displayStatus || loan.status,
                         loan.type
-                      )
-                      const loanTypeName = getLoanTypeName(loan.loanType)
-                      const isApplication = loan.type === 'APPLICATION'
-
-                      return (
-                        <div
-                          key={loan.id}
-                          className="p-4 border rounded-lg space-y-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-sm">
-                                {loanTypeName}
-                              </h4>
-                              <p className="text-xs text-muted-foreground">
-                                เลขที่สัญญา: {loan.loanNumber}
-                              </p>
-                            </div>
-                            {statusInfo.showBadge && (
-                              <Badge
-                                variant={getBadgeVariant(statusInfo.color)}
-                                className={getBadgeClassName(statusInfo.color)}>
-                                {statusInfo.text}
-                              </Badge>
-                            )}
-                          </div>
-
-                          {!isApplication && (
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">
-                                  ความคืบหน้า
-                                </span>
-                                <span className="font-medium text-foreground">
-                                  งวดที่ {paidInstallments}/
-                                  {loan.totalInstallments}
-                                </span>
-                              </div>
-                              <Progress value={progress} className="h-2" />
-                              <p className="text-xs text-muted-foreground">
-                                {progress.toFixed(1)}% เสร็จสิ้น
-                              </p>
-                            </div>
+                      ).showBadge && (
+                        <Badge
+                          variant={getBadgeVariant(
+                            getStatusInfo(
+                              loan.displayStatus || loan.status,
+                              loan.type
+                            ).color
                           )}
-
-                          {isApplication && (
-                            <div className="p-3 bg-muted/30 rounded-lg">
-                              <p className="text-sm font-medium text-foreground mb-1">
-                                ใบสมัครสินเชื่อ
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                จำนวนเงินที่ขอ:{' '}
-                                {formatThaiCurrency(loan.principalAmount)}
-                              </p>
-                              {loan.reviewNotes && (
-                                <p className="text-xs text-red-600 mt-1">
-                                  หมายเหตุ: {loan.reviewNotes}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {!isApplication && (
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <p className="text-muted-foreground mb-1">
-                                  ยอดชำระรายเดือน
-                                </p>
-                                <p className="font-semibold text-foreground">
-                                  {formatThaiCurrency(loan.monthlyPayment)}
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground mb-1">
-                                  ยอดคงเหลือ
-                                </p>
-                                <p className="font-semibold text-foreground">
-                                  {formatThaiCurrency(loan.remainingBalance)}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          {!isApplication && (
-                            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                              {loan.status === 'COMPLETED' ? (
-                                <Calendar className="h-4 w-4 text-success" />
-                              ) : isOverdue ? (
-                                <AlertCircle className="h-4 w-4 text-destructive" />
-                              ) : (
-                                <Calendar className="h-4 w-4 text-primary" />
-                              )}
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">
-                                  {loan.status === 'COMPLETED' 
-                                    ? 'ชำระครบแล้ว' 
-                                    : isOverdue 
-                                      ? 'เกินกำหนดชำระ' 
-                                      : 'ครบกำหนดชำระ'}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {loan.status === 'COMPLETED' 
-                                    ? `ชำระครบเมื่อ ${formatDate(loan.nextPaymentDate)}`
-                                    : `${formatDate(loan.nextPaymentDate)}${
-                                        isOverdue
-                                          ? ` (เกิน ${Math.abs(nextPaymentDays)} วัน)`
-                                          : ` (อีก ${nextPaymentDays} วัน)`
-                                      }`}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          {isApplication && (
-                            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                              <Calendar className="h-4 w-4 text-blue-600" />
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-blue-800">
-                                  วันที่ส่งใบสมัคร
-                                </p>
-                                <p className="text-xs text-blue-600">
-                                  {formatDate(loan.nextPaymentDate)}
-                                </p>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex gap-2">
-                            <Button
-                              asChild={!customer.isNoCustomer}
-                              className="flex-1"
-                              variant={isOverdue ? 'default' : 'outline'}
-                              disabled={customer.isNoCustomer}>
-                              {!customer.isNoCustomer ? (
-                                <Link
-                                  href={
-                                    isApplication
-                                      ? `/agent/customers/${customer.id}/applications/${loan.id}`
-                                      : `/agent/customers/${customer.id}/loans/${loan.id}`
-                                  }>
-                                  {isApplication
-                                    ? 'ดูใบสมัคร'
-                                    : isOverdue
-                                      ? 'ติดตามการชำระ'
-                                      : 'ดูรายละเอียด'}
-                                </Link>
-                              ) : (
-                                <span>
-                                  {isApplication
-                                    ? 'ดูใบสมัคร'
-                                    : isOverdue
-                                      ? 'ติดตามการชำระ'
-                                      : 'ดูรายละเอียด'}
-                                  {' (ไม่มีข้อมูลลูกค้า)'}
-                                </span>
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              asChild={!customer.isNoCustomer}
-                              disabled={customer.isNoCustomer}>
-                              {!customer.isNoCustomer ? (
-                                <Link href={`/agent/customers/${customer.id}`}>
-                                  <User className="h-4 w-4" />
-                                </Link>
-                              ) : (
-                                <User className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      )
-                    })}
+                          className={getBadgeClassName(
+                            getStatusInfo(
+                              loan.displayStatus || loan.status,
+                              loan.type
+                            ).color
+                          )}>
+                          {
+                            getStatusInfo(
+                              loan.displayStatus || loan.status,
+                              loan.type
+                            ).text
+                          }
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      เลขที่: {loan.loanNumber}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CreditCard className="h-3 w-3" />
+                      <span className="line-clamp-1">{propertyLocation}</span>
+                    </div>
                   </div>
-                </CardContent>
-              )}
+                </div>
+
+                {!isApplication && (
+                  <>
+                    {/* Loan Progress */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          ความคืบหน้า
+                        </span>
+                        <span className="font-medium text-foreground">
+                          งวดที่{' '}
+                          {loan.installments
+                            ? loan.installments.filter(
+                                (inst: any) => inst.isPaid
+                              ).length
+                            : loan.currentInstallment || 0}
+                          /{loan.totalInstallments}
+                        </span>
+                      </div>
+                      <Progress
+                        value={
+                          loan.totalInstallments > 0
+                            ? ((loan.installments
+                                ? loan.installments.filter(
+                                    (inst: any) => inst.isPaid
+                                  ).length
+                                : loan.currentInstallment || 0) /
+                                loan.totalInstallments) *
+                              100
+                            : 0
+                        }
+                        className="h-2"
+                      />
+                    </div>
+
+                    {/* Loan Details */}
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground mb-1">
+                          ยอดชำระรายเดือน
+                        </p>
+                        <p className="font-semibold text-foreground">
+                          {formatThaiCurrency(loan.monthlyPayment)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground mb-1">ยอดคงเหลือ</p>
+                        <p className="font-semibold text-foreground">
+                          {formatThaiCurrency(loan.remainingBalance)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Next Payment */}
+                    <div
+                      className={`flex items-center gap-2 p-3 rounded-lg ${
+                        loan.status === 'COMPLETED'
+                          ? 'bg-green-50 border border-green-200'
+                          : getDaysUntilPayment(loan.nextPaymentDate) < 0 &&
+                              loan.status !== 'COMPLETED'
+                            ? 'bg-red-50 border border-red-200'
+                            : 'bg-muted/50'
+                      }`}>
+                      {loan.status === 'COMPLETED' ? (
+                        <Calendar className="h-4 w-4 text-green-600" />
+                      ) : getDaysUntilPayment(loan.nextPaymentDate) < 0 &&
+                        loan.status !== 'COMPLETED' ? (
+                        <AlertCircle className="h-4 w-4 text-red-600" />
+                      ) : (
+                        <Calendar className="h-4 w-4 text-primary" />
+                      )}
+                      <div className="flex-1">
+                        <p
+                          className={`text-sm font-medium ${
+                            loan.status === 'COMPLETED'
+                              ? 'text-green-800'
+                              : getDaysUntilPayment(loan.nextPaymentDate) < 0 &&
+                                  loan.status !== 'COMPLETED'
+                                ? 'text-red-800'
+                                : 'text-foreground'
+                          }`}>
+                          {loan.status === 'COMPLETED'
+                            ? 'ชำระครบแล้ว'
+                            : getDaysUntilPayment(loan.nextPaymentDate) < 0
+                              ? 'เกินกำหนดชำระ'
+                              : 'ครบกำหนดชำระ'}
+                        </p>
+                        <p
+                          className={`text-xs ${
+                            loan.status === 'COMPLETED'
+                              ? 'text-green-600'
+                              : getDaysUntilPayment(loan.nextPaymentDate) < 0 &&
+                                  loan.status !== 'COMPLETED'
+                                ? 'text-red-600'
+                                : 'text-muted-foreground'
+                          }`}>
+                          {loan.status === 'COMPLETED'
+                            ? `ชำระครบเมื่อ ${formatDate(loan.nextPaymentDate)}`
+                            : `${formatDate(loan.nextPaymentDate)}${
+                                getDaysUntilPayment(loan.nextPaymentDate) < 0
+                                  ? ` (เกิน ${Math.abs(getDaysUntilPayment(loan.nextPaymentDate))} วัน)`
+                                  : ` (อีก ${getDaysUntilPayment(loan.nextPaymentDate)} วัน)`
+                              }`}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {isApplication && (
+                  <>
+                    <div className="p-3 bg-muted/30 rounded-lg">
+                      <p className="text-sm font-medium text-foreground mb-1">
+                        ใบสมัครสินเชื่อ
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        จำนวนเงินที่ขอ:{' '}
+                        {formatThaiCurrency(loan.principalAmount)}
+                      </p>
+                      {loan.reviewNotes && (
+                        <p className="text-xs text-red-600 mt-1">
+                          หมายเหตุ: {loan.reviewNotes}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-blue-800">
+                          วันที่ส่งใบสมัคร
+                        </p>
+                        <p className="text-xs text-blue-600">
+                          {formatDate(loan.nextPaymentDate || loan.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    asChild={!isNoCustomer}
+                    className="flex-1"
+                    variant={
+                      !isApplication &&
+                      getDaysUntilPayment(loan.nextPaymentDate) < 0 &&
+                      loan.status !== 'COMPLETED'
+                        ? 'default'
+                        : 'outline'
+                    }
+                    disabled={isNoCustomer}>
+                    {!isNoCustomer ? (
+                      <Link
+                        href={
+                          isApplication
+                            ? `/agent/customers/${customerId}/applications/${loan.id}`
+                            : `/agent/customers/${customerId}/loans/${loan.id}`
+                        }>
+                        {isApplication
+                          ? 'ดูใบสมัคร'
+                          : !isApplication &&
+                              getDaysUntilPayment(loan.nextPaymentDate) < 0 &&
+                              loan.status !== 'COMPLETED'
+                            ? 'ติดตามการชำระ'
+                            : 'ดูรายละเอียด'}
+                      </Link>
+                    ) : (
+                      <span>debug: ไม่มีข้อมูลลูกค้า</span>
+                    )}
+                  </Button>
+                  {!isNoCustomer && (
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link href={`/agent/customers/${customerId}`}>
+                        <User className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
             </Card>
           )
         })}
@@ -672,9 +465,8 @@ export function AgentCustomersList() {
       {totalPages > 1 && (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground text-center">
-            แสดง {startIndex + 1}-
-            {Math.min(endIndex, customersWithLoans.length)} จาก{' '}
-            {customersWithLoans.length} รายการ
+            แสดง {startIndex + 1}-{Math.min(endIndex, filteredLoans.length)} จาก{' '}
+            {filteredLoans.length} รายการ
           </p>
           <div className="flex items-center justify-between">
             <Button
@@ -700,21 +492,21 @@ export function AgentCustomersList() {
         </div>
       )}
 
-      {customersWithLoans.length === 0 && (
+      {filteredLoans.length === 0 && (
         <div className="text-center py-8">
           <p className="text-muted-foreground">
-            {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีข้อมูลลูกค้า'}
+            {searchTerm ? 'ไม่พบข้อมูลที่ค้นหา' : 'ไม่มีสินเชื่อ'}
           </p>
         </div>
       )}
 
       {/* Summary Card */}
-      {customersWithLoans.length > 0 && (
+      {allLoans.length > 0 && (
         <Card className="bg-primary/5 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <Users className="h-5 w-5 text-primary" />
+                <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-foreground">
@@ -735,44 +527,22 @@ export function AgentCustomersList() {
                           ['ACTIVE', 'DEFAULTED'].includes(loan.status) &&
                           Number(loan.remainingBalance) > 0
                         ) {
-                          const amount = Number(loan.remainingBalance || 0)
-                          if (process.env.NODE_ENV === 'development') {
-                            console.log(
-                              `Adding LOAN ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
-                            )
-                          }
-                          return currentSum + amount
+                          return currentSum + (Number(loan.remainingBalance) || 0)
                         } else if (
                           loan.type === 'APPLICATION' &&
                           loan.status === 'APPROVED'
                         ) {
-                          const amount = Number(loan.principalAmount || 0)
-                          if (process.env.NODE_ENV === 'development') {
-                            console.log(
-                              `Adding APPLICATION ${loan.id}: ${amount} (sum: ${currentSum} -> ${currentSum + amount})`
-                            )
-                          }
-                          return currentSum + amount
+                          return currentSum + (Number(loan.principalAmount) || 0)
                         }
                         return currentSum
                       },
                       0
                     )
-
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log('Final Total Balance:', totalBalance)
-                    }
-
                     return formatThaiCurrency(totalBalance)
                   })()}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {customersWithLoans.length} ลูกค้า •{' '}
-                  {customersWithLoans.reduce(
-                    (sum, customer) => sum + customer.loanCount,
-                    0
-                  )}{' '}
-                  สินเชื่อ
+                  {allLoans.length} สินเชื่อ
                 </p>
               </div>
             </div>

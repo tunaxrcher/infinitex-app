@@ -3,18 +3,22 @@
 import type React from 'react'
 import { useState } from 'react'
 
+import { useRouter } from 'next/navigation'
+
 import { Alert, AlertDescription } from '@src/shared/ui/alert'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
-import { DollarSign } from 'lucide-react'
+import { CheckCircle, DollarSign, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface LoanAmountStepProps {
   data: any
   onUpdate: (data: any) => void
   onNext: () => void
   onPrev: () => void
+  isAgentFlow?: boolean
 }
 
 export function LoanAmountStep({
@@ -22,7 +26,9 @@ export function LoanAmountStep({
   onUpdate,
   onNext,
   onPrev,
+  isAgentFlow = false,
 }: LoanAmountStepProps) {
+  const router = useRouter()
   // Use AI valuation if available, otherwise use default
   const systemEvaluatedAmount = data.propertyValuation?.estimatedValue || 0
   const hasAIValuation =
@@ -31,15 +37,117 @@ export function LoanAmountStep({
   const [requestedAmount, setRequestedAmount] = useState(
     data.requestedLoanAmount || ''
   )
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submissionComplete, setSubmissionComplete] = useState(false)
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     const amount = Number(requestedAmount) || 0
     if (amount > 0) {
       onUpdate({
         loanAmount: systemEvaluatedAmount,
         requestedLoanAmount: amount,
       })
-      onNext()
+
+      // If agent flow, submit immediately
+      if (isAgentFlow) {
+        await handleSubmitLoanApplication(amount)
+      } else {
+        onNext()
+      }
+    }
+  }
+
+  const handleSubmitLoanApplication = async (amount: number) => {
+    setIsSubmitting(true)
+    try {
+      console.log('[LoanAmount] Submitting loan application for agent...')
+
+      // Prepare submission data
+      const submissionData = {
+        // Use default customer (phone 0000000000)
+        phoneNumber: '0000000000',
+        ownerName: data.ownerName || null,
+        loanType: data.loanType || 'HOUSE_LAND_MORTGAGE',
+
+        // Title deed information
+        titleDeedImage: data.titleDeedImage?.name || null,
+        titleDeedImageUrl: data.titleDeedImageUrl || null,
+        titleDeedImageKey: data.titleDeedImageKey || null,
+        titleDeedData: data.titleDeedData || null,
+        titleDeedAnalysis: data.titleDeedAnalysis || null,
+        titleDeedManualData: data.titleDeedManualData || null,
+
+        // Supporting images
+        supportingImages:
+          data.supportingImages?.map((img: any) => img.url || img) || [],
+
+        // ID Card
+        idCardImage: data.idCardImage?.name || null,
+        idCardImageUrl: data.idCardImageUrl || null,
+
+        // Loan amount
+        requestedLoanAmount: amount,
+        loanAmount: systemEvaluatedAmount || amount,
+
+        // Property valuation
+        propertyValuation: data.propertyValuation || null,
+        
+        // Agent flow flag
+        isAgentFlow: true,
+      }
+
+      console.log('[LoanAmount] Submission data prepared:', {
+        phoneNumber: submissionData.phoneNumber,
+        ownerName: submissionData.ownerName,
+        requestedAmount: submissionData.requestedLoanAmount,
+        hasTitleDeedData: !!submissionData.titleDeedData,
+        hasPropertyValuation: !!submissionData.propertyValuation,
+      })
+
+      // Submit to API
+      const response = await fetch('/api/loans/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'การส่งคำขอสินเชื่อล้มเหลว')
+      }
+
+      console.log(
+        '[LoanAmount] Loan application submitted successfully:',
+        result
+      )
+
+      // Update data with submission result
+      onUpdate({
+        ...data,
+        loanApplicationId: result.loanApplicationId,
+        userId: result.userId,
+        isNewUser: result.isNewUser,
+      })
+
+      setSubmissionComplete(true)
+      toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!')
+
+      // Auto proceed after 2 seconds
+      setTimeout(() => {
+        onNext()
+      }, 2000)
+    } catch (error) {
+      console.error('[LoanAmount] Loan application submission failed:', error)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ'
+      )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -61,56 +169,10 @@ export function LoanAmountStep({
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
-            วงเงินที่ AI ของระบบประเมินให้
+            ยอดเงินที่ต้องการขอสินเชื่อ
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {hasAIValuation ? (
-            <Alert>
-              <DollarSign className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-2xl font-bold text-primary">
-                      {systemEvaluatedAmount.toLocaleString()} บาท
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      ความมั่นใจ: {data.propertyValuation.confidence}%
-                    </p>
-                  </div>
-
-                  {data.propertyValuation.reasoning && (
-                    <div className="pt-2 border-t">
-                      <p className="text-sm font-medium mb-2">
-                        เหตุผลการประเมิน:
-                      </p>
-                      <div className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed max-h-60 overflow-y-auto">
-                        {data.propertyValuation.reasoning}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      * วงเงินและเงื่อนไขนี้เป็นการประเมินเบื้องต้นจาก AI
-                      อาจมีการปรับเปลี่ยนหลังจากการตรวจสอบจริงอีกครั้ง
-                    </p>
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-2 text-warning">
-              {/* <p className="font-medium">
-                    ข้อมูลที่ท่านให้ไม่เพียงพอต่อ AI
-                  </p> */}
-              <p className="text-sm">
-                ระบบไม่สามารถประเมินมูลค่าทรัพย์สินได้เนื่องจากข้อมูลไม่เพียงพอ
-                {/* กรุณาติดต่อเจ้าหน้าที่เพื่อประเมินมูลค่าด้วยตนเอง */}
-              </p>
-            </div>
-          )}
-          <hr />
           <div className="space-y-2">
             <Label htmlFor="requestedAmount" className="text-sm font-medium">
               ยอดเงินที่ต้องการ (บาท)
@@ -123,44 +185,52 @@ export function LoanAmountStep({
               onChange={handleAmountChange}
               className="text-lg"
             />
-            {/* <p className="text-xs text-muted-foreground">
-              สามารถขอได้สูงสุด {systemEvaluatedAmount.toLocaleString()} บาท
-            </p> */}
             {!canProceed && (
               <p className="text-xs text-destructive">
                 * กรุณาระบุยอดเงินที่ต้องการก่อนดำเนินการต่อ
               </p>
             )}
+            <p className="text-xs text-muted-foreground">
+              กรุณาระบุยอดเงินที่ลูกค้าต้องการกู้
+            </p>
           </div>
-
-          {/* {data.titleDeedData && (
-            <div className="bg-muted/50 rounded-lg p-4">
-              <p className="text-sm font-medium mb-2">
-                ข้อมูลหลักทรัพย์ที่ใช้ประกอบการพิจารณา:
-              </p>
-              <div className="text-sm space-y-1 text-muted-foreground">
-                <p>เจ้าของ: {data.titleDeedData.ownerName}</p>
-                <p>เนื้อที่: {data.titleDeedData.area}</p>
-                <p>ที่ตั้ง: {data.titleDeedData.location}</p>
-              </div>
-            </div>
-          )} */}
         </CardContent>
       </Card>
+
+      {submissionComplete && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p className="text-sm text-green-700 flex items-center gap-2">
+            <CheckCircle className="h-4 w-4" />
+            ส่งคำขอสินเชื่อเรียบร้อยแล้ว กำลังดำเนินการต่อ...
+          </p>
+        </div>
+      )}
 
       {/* Navigation */}
       <div className="flex gap-3">
         <Button
           variant="outline"
           onClick={onPrev}
+          disabled={isSubmitting}
           className="flex-1 bg-transparent">
           ย้อนกลับ
         </Button>
         <Button
           onClick={handleConfirm}
-          disabled={!canProceed}
+          disabled={!canProceed || isSubmitting}
           className="flex-1">
-          ยืนยันและดำเนินการต่อ
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              กำลังส่งคำขอ...
+            </>
+          ) : submissionComplete ? (
+            'เสร็จสิ้น'
+          ) : isAgentFlow ? (
+            'ส่งคำขอสินเชื่อ'
+          ) : (
+            'ยืนยันและดำเนินการต่อ'
+          )}
         </Button>
       </div>
     </div>

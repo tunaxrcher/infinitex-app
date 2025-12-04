@@ -119,15 +119,27 @@ export class LoanApplicationRepository extends BaseRepository<
     propertyValue?: number
     propertyArea?: string
     propertyLocation?: string
+    propertyAddress?: string
     landNumber?: string
     ownerName?: string
 
     // Submission timestamp
     submittedAt?: Date
   }) {
+    // Extract customerId and agentId for nested connect
+    const { customerId, agentId, ...restData } = data
+    
     return this.model.create({
       data: {
-        ...data,
+        ...restData,
+        customer: {
+          connect: { id: customerId },
+        },
+        ...(agentId && {
+          agent: {
+            connect: { id: agentId },
+          },
+        }),
         completedSteps: data.completedSteps,
         supportingImages: data.supportingImages || [],
         titleDeedData: data.titleDeedData || {},

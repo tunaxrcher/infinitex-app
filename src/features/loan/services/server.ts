@@ -3,6 +3,7 @@ import amphurData from '@src/data/amphur.json'
 import provinceData from '@src/data/province.json'
 import LandsMapsAPI from '@src/shared/lib/LandsMapsAPI'
 import { aiService } from '@src/shared/lib/ai-services'
+import { sendLoanNotification } from '@src/shared/lib/line-api'
 import { storage } from '@src/shared/lib/storage'
 import bcrypt from 'bcryptjs'
 import 'server-only'
@@ -132,16 +133,34 @@ export const loanService = {
       data.titleDeedAnalysis
     )
 
-    // Step 3: Create loan application
+    // Step 3: Determine customerId for loan application
+    // If agent flow and phone is 0000000000, find that user
+    let finalCustomerId = user.id
+    if (isSubmittedByAgent && data.phoneNumber === '0000000000') {
+      const defaultCustomer = await prisma.user.findUnique({
+        where: { phoneNumber: '0000000000' },
+      })
+      if (defaultCustomer) {
+        finalCustomerId = defaultCustomer.id
+        console.log(
+          '[LoanService] Using default customer (0000000000) for agent flow'
+        )
+      }
+    }
+
+    // Step 4: Create loan application
     const loanApplication = await loanApplicationRepository.createWithFullData({
-      customerId: user.id,
+      customerId: finalCustomerId,
       agentId: isSubmittedByAgent ? agentId : undefined,
-      loanType: 'HOUSE_LAND_MORTGAGE',
+      loanType: (data as any).loanType || 'HOUSE_LAND_MORTGAGE',
       status: 'UNDER_REVIEW',
       currentStep: 5,
       completedSteps: [1, 2, 3, 4, 5],
       isNewUser,
       submittedByAgent: isSubmittedByAgent,
+
+      // Owner name (from agent input)
+      ownerName: (data as any).ownerName || null,
 
       // Title deed information
       titleDeedImage: data.titleDeedImageUrl,
@@ -189,6 +208,31 @@ export const loanService = {
       '[LoanService] Loan application created successfully:',
       loanApplication.id
     )
+
+    // Step 6: Send LINE notification for agent flow
+    if (isSubmittedByAgent) {
+      try {
+        const ownerName = (data as any).ownerName || 'ไม่ระบุ'
+        const location = propertyInfo.propertyAddress || 'ไม่ระบุ'
+        const notes = data.propertyValuation?.reasoning
+          ? `AI: ${data.propertyValuation.reasoning.substring(0, 100)}...`
+          : undefined
+
+        await sendLoanNotification({
+          amount: data.requestedLoanAmount.toLocaleString(),
+          ownerName: ownerName,
+          details: `${ownerName} | ${location}`,
+          notes: notes,
+          titleDeedImageUrl: data.titleDeedImageUrl,
+          supportingImageUrls: data.supportingImages,
+        })
+
+        console.log('[LoanService] LINE notification sent successfully')
+      } catch (lineError) {
+        console.error('[LoanService] Failed to send LINE notification:', lineError)
+        // Don't fail the entire request if LINE notification fails
+      }
+    }
 
     return {
       loanApplicationId: loanApplication.id,

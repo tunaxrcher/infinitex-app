@@ -315,7 +315,7 @@ export function TitleDeedManualInputModal({
             <Select
               value={selectedProvince}
               onValueChange={setSelectedProvince}
-              disabled={!!initialData?.pvCode || isLoading}>
+              disabled={isLoading}>
               <SelectTrigger>
                 <SelectValue placeholder="เลือกจังหวัด" />
               </SelectTrigger>

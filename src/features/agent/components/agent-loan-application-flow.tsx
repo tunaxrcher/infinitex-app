@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { IdCardStep } from '@src/features/loan/components/loan-steps/id-card-step'
 import { LoanAmountStep } from '@src/features/loan/components/loan-steps/loan-amount-step'
@@ -10,12 +10,12 @@ import { SupportingImagesStep } from '@src/features/loan/components/loan-steps/s
 import { TitleDeedUploadStep } from '@src/features/loan/components/loan-steps/title-deed-upload-step'
 import { Progress } from '@src/shared/ui/progress'
 
-import { AgentCustomerSelectionStep } from './agent-customer-selection-step'
-
 interface ApplicationData {
   customerId?: string
   customerPhone?: string
   customerName?: string
+  ownerName?: string
+  loanType?: string
   titleDeedImage?: File
   titleDeedData?: {
     ownerName: string
@@ -35,10 +35,26 @@ export function AgentLoanApplicationFlow() {
   const [applicationData, setApplicationData] = useState<ApplicationData>({
     supportingImages: [],
     loanAmount: 0,
+    loanType: 'HOUSE_LAND_MORTGAGE', // Default
   })
 
-  // Agent flow is always 7 steps (Customer Selection + 6 standard steps)
-  const totalSteps = 7
+  // Load data from sessionStorage on mount
+  useEffect(() => {
+    const savedData = sessionStorage.getItem('loanApplicationData')
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData)
+        updateApplicationData(parsed)
+        // Clear after loading
+        sessionStorage.removeItem('loanApplicationData')
+      } catch (error) {
+        console.error('Failed to parse loan application data:', error)
+      }
+    }
+  }, [])
+
+  // Agent flow is now 5 steps (without Customer Selection and Phone Verification)
+  const totalSteps = 5
   const progress = (currentStep / totalSteps) * 100
 
   const updateApplicationData = (data: Partial<ApplicationData>) => {
@@ -61,7 +77,7 @@ export function AgentLoanApplicationFlow() {
     switch (currentStep) {
       case 1:
         return (
-          <AgentCustomerSelectionStep
+          <TitleDeedUploadStep
             data={applicationData}
             onUpdate={updateApplicationData}
             onNext={nextStep}
@@ -71,16 +87,6 @@ export function AgentLoanApplicationFlow() {
         )
       case 2:
         return (
-          <TitleDeedUploadStep
-            data={applicationData}
-            onUpdate={updateApplicationData}
-            onNext={nextStep}
-            onPrev={prevStep}
-            isFirstStep={false}
-          />
-        )
-      case 3:
-        return (
           <SupportingImagesStep
             data={applicationData}
             onUpdate={updateApplicationData}
@@ -88,7 +94,7 @@ export function AgentLoanApplicationFlow() {
             onPrev={prevStep}
           />
         )
-      case 4:
+      case 3:
         return (
           <IdCardStep
             data={applicationData}
@@ -97,18 +103,9 @@ export function AgentLoanApplicationFlow() {
             onPrev={prevStep}
           />
         )
-      case 5:
+      case 4:
         return (
           <LoanAmountStep
-            data={applicationData}
-            onUpdate={updateApplicationData}
-            onNext={nextStep}
-            onPrev={prevStep}
-          />
-        )
-      case 6:
-        return (
-          <PhoneVerificationStep
             data={applicationData}
             onUpdate={updateApplicationData}
             onNext={nextStep}
@@ -116,7 +113,7 @@ export function AgentLoanApplicationFlow() {
             isAgentFlow={true}
           />
         )
-      case 7:
+      case 5:
         return <PendingStep />
       default:
         return null
@@ -126,18 +123,14 @@ export function AgentLoanApplicationFlow() {
   const getStepTitle = () => {
     switch (currentStep) {
       case 1:
-        return 'เลือกลูกค้า'
-      case 2:
         return 'อัพโหลด | โฉนดที่ดิน'
-      case 3:
+      case 2:
         return 'อัพโหลด | รูปประกอบ (หากมี)'
-      case 4:
+      case 3:
         return 'อัพโหลดบัตรประชาชน'
+      case 4:
+        return 'กำหนดวงเงินและส่งคำขอ'
       case 5:
-        return 'กำหนดวงเงิน'
-      case 6:
-        return 'ยืนยันเบอร์โทรศัพท์'
-      case 7:
         return 'รออนุมัติ'
       default:
         return ''
@@ -145,30 +138,32 @@ export function AgentLoanApplicationFlow() {
   }
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Progress Header */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">
-            ขอสินเชื่อให้ลูกค้า
-          </h1>
-          <span className="text-sm text-muted-foreground">
-            {currentStep}/{totalSteps}
-          </span>
+    <>
+      <div className="p-4 space-y-6">
+        {/* Progress Header */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-foreground">
+              ขอสินเชื่อให้ลูกค้า
+            </h1>
+            <span className="text-sm text-muted-foreground">
+              {currentStep}/{totalSteps}
+            </span>
+          </div>
+          <Progress value={progress} className="h-2" />
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">{getStepTitle()}</p>
+            {applicationData.ownerName && (
+              <p className="text-sm font-medium text-primary">
+                {applicationData.ownerName}
+              </p>
+            )}
+          </div>
         </div>
-        <Progress value={progress} className="h-2" />
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">{getStepTitle()}</p>
-          {applicationData.customerName && (
-            <p className="text-sm font-medium text-primary">
-              ลูกค้า: {applicationData.customerName}
-            </p>
-          )}
-        </div>
-      </div>
 
-      {/* Step Content */}
-      {renderStep()}
-    </div>
+        {/* Step Content */}
+        {renderStep()}
+      </div>
+    </>
   )
 }

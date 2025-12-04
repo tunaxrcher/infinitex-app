@@ -7,7 +7,7 @@ import { AgentRoute } from '@src/shared/components/route-guard'
 export default function AgentCustomersPage() {
   return (
     <AgentRoute>
-      <MobileHeader title="ผลิตภัณฑ์ของลูกค้า" />
+      <MobileHeader title="รายการสินเชื่อของฉัน" />
       <main className="flex-1 pb-20 page-main-bg-animate-gradient bg-gradient-to-b from-transparent via-transparent to-gray-50 dark:to-gray-900 min-h-screen">
         <AgentCustomersList />
         <FloatingActionButton href="/agent/apply" />
