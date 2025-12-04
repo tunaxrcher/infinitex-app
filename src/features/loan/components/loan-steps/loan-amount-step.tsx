@@ -91,7 +91,7 @@ export function LoanAmountStep({
 
         // Property valuation
         propertyValuation: data.propertyValuation || null,
-        
+
         // Agent flow flag
         isAgentFlow: true,
       }

@@ -128,7 +128,7 @@ export class LoanApplicationRepository extends BaseRepository<
   }) {
     // Extract customerId and agentId for nested connect
     const { customerId, agentId, ...restData } = data
-    
+
     return this.model.create({
       data: {
         ...restData,

@@ -198,4 +198,3 @@ export async function sendLoanApplicationToLine(
 export async function sendLoanNotification(data: LoanFlexMessageData) {
   return sendLoanApplicationToLine(data)
 }
-

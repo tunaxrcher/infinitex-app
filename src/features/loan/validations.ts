@@ -36,7 +36,9 @@ export const loanApplicationSubmissionSchema = z.object({
     .length(10, 'เบอร์โทรศัพท์ต้องมี 10 หลักเท่านั้น')
     .regex(/^[0-9]+$/, 'เบอร์โทรศัพท์ต้องเป็นตัวเลขเท่านั้น'),
   pin: z.string().length(4, 'PIN ต้องมี 4 หลัก').optional(),
-  loanType: z.enum(['HOUSE_LAND_MORTGAGE', 'CAR_REGISTRATION', 'FINX_PLUS']).optional(),
+  loanType: z
+    .enum(['HOUSE_LAND_MORTGAGE', 'CAR_REGISTRATION', 'FINX_PLUS'])
+    .optional(),
   ownerName: z.string().nullable().optional(),
 
   // Title deed information

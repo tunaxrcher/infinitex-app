@@ -132,22 +132,19 @@ export function AgentCustomersList() {
 
   // Use real data if available
   const agentId = session?.user?.id
-  const {
-    data: loansData,
-    isLoading,
-  } = useGetLoansByAgentId(agentId || '')
+  const { data: loansData, isLoading } = useGetLoansByAgentId(agentId || '')
 
   // Use only real data from database
   const allData = loansData?.success && loansData?.data ? loansData.data : []
 
   // Separate loans and applications
-  const allLoans = useMemo(() => 
-    allData.filter((item: any) => item.type === 'LOAN'),
+  const allLoans = useMemo(
+    () => allData.filter((item: any) => item.type === 'LOAN'),
     [allData]
   )
-  
-  const allApplications = useMemo(() => 
-    allData.filter((item: any) => item.type === 'APPLICATION'),
+
+  const allApplications = useMemo(
+    () => allData.filter((item: any) => item.type === 'APPLICATION'),
     [allData]
   )
 
@@ -160,7 +157,9 @@ export function AgentCustomersList() {
 
     return items.filter((item: any) => {
       // Search by property location
-      const locationMatch = item.propertyLocation?.toLowerCase().includes(searchLower)
+      const locationMatch = item.propertyLocation
+        ?.toLowerCase()
+        .includes(searchLower)
 
       // Search by owner name (from agent input)
       const ownerNameMatch = item.ownerName?.toLowerCase().includes(searchLower)
@@ -184,29 +183,25 @@ export function AgentCustomersList() {
           Math.abs(remaining - searchNumber) < 1000 ||
           Math.abs(monthly - searchNumber) < 100)
 
-      return (
-        locationMatch ||
-        ownerNameMatch ||
-        loanNumberMatch ||
-        amountMatch
-      )
+      return locationMatch || ownerNameMatch || loanNumberMatch || amountMatch
     })
   }
 
   // Filter loans and applications separately
-  const filteredLoans = useMemo(() => 
-    filterItems(allLoans, searchTerm),
+  const filteredLoans = useMemo(
+    () => filterItems(allLoans, searchTerm),
     [allLoans, searchTerm]
   )
 
-  const filteredApplications = useMemo(() => 
-    filterItems(allApplications, searchTerm),
+  const filteredApplications = useMemo(
+    () => filterItems(allApplications, searchTerm),
     [allApplications, searchTerm]
   )
 
   // Get active data based on tab
-  const activeData = activeTab === 'loans' ? filteredLoans : filteredApplications
-  
+  const activeData =
+    activeTab === 'loans' ? filteredLoans : filteredApplications
+
   // Pagination logic
   const totalPages = Math.ceil(activeData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -234,7 +229,8 @@ export function AgentCustomersList() {
         <div>
           <h1 className="text-xl font-bold text-white">รายการสินเชื่อของฉัน</h1>
           <p className="text-sm text-muted-foreground">
-            สินเชื่อ {allLoans.length} รายการ | ใบสมัคร {allApplications.length} รายการ
+            สินเชื่อ {allLoans.length} รายการ | ใบสมัคร {allApplications.length}{' '}
+            รายการ
           </p>
         </div>
       </div>
@@ -266,7 +262,8 @@ export function AgentCustomersList() {
         {/* Loans Tab */}
         <TabsContent value="loans" className="mt-4 space-y-3">
           {paginatedData.map((loan: any) => {
-            const propertyLocation = loan.propertyLocation || loan.ownerName || 'ไม่ระบุสถานที่'
+            const propertyLocation =
+              loan.propertyLocation || loan.ownerName || 'ไม่ระบุสถานที่'
             const customerId = loan.customer?.id
             const isNoCustomer = !customerId
 
@@ -318,15 +315,12 @@ export function AgentCustomersList() {
                   {/* Loan Progress */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        ความคืบหน้า
-                      </span>
+                      <span className="text-muted-foreground">ความคืบหน้า</span>
                       <span className="font-medium text-foreground">
                         งวดที่{' '}
                         {loan.installments
-                          ? loan.installments.filter(
-                              (inst: any) => inst.isPaid
-                            ).length
+                          ? loan.installments.filter((inst: any) => inst.isPaid)
+                              .length
                           : loan.currentInstallment || 0}
                         /{loan.totalInstallments}
                       </span>
@@ -432,7 +426,8 @@ export function AgentCustomersList() {
                       }
                       disabled={isNoCustomer}>
                       {!isNoCustomer ? (
-                        <Link href={`/agent/customers/${customerId}/loans/${loan.id}`}>
+                        <Link
+                          href={`/agent/customers/${customerId}/loans/${loan.id}`}>
                           {getDaysUntilPayment(loan.nextPaymentDate) < 0 &&
                           loan.status !== 'COMPLETED'
                             ? 'ติดตามการชำระ'
@@ -459,12 +454,17 @@ export function AgentCustomersList() {
         {/* Applications Tab */}
         <TabsContent value="applications" className="mt-4 space-y-3">
           {paginatedData.map((application: any) => {
-            const propertyLocation = application.propertyLocation || application.ownerName || 'ไม่ระบุสถานที่'
+            const propertyLocation =
+              application.propertyLocation ||
+              application.ownerName ||
+              'ไม่ระบุสถานที่'
             const customerId = application.customer?.id
             const isNoCustomer = !customerId
 
             return (
-              <Card key={application.id} className="hover:shadow-md transition-shadow">
+              <Card
+                key={application.id}
+                className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -532,7 +532,9 @@ export function AgentCustomersList() {
                         วันที่ส่งใบสมัคร
                       </p>
                       <p className="text-xs text-blue-600">
-                        {formatDate(application.nextPaymentDate || application.createdAt)}
+                        {formatDate(
+                          application.nextPaymentDate || application.createdAt
+                        )}
                       </p>
                     </div>
                   </div>
@@ -545,7 +547,8 @@ export function AgentCustomersList() {
                       variant="outline"
                       disabled={isNoCustomer}>
                       {!isNoCustomer ? (
-                        <Link href={`/agent/customers/${customerId}/applications/${application.id}`}>
+                        <Link
+                          href={`/agent/customers/${customerId}/applications/${application.id}`}>
                           ดูใบสมัคร
                         </Link>
                       ) : (
@@ -602,10 +605,10 @@ export function AgentCustomersList() {
       {activeData.length === 0 && (
         <div className="text-center py-8">
           <p className="text-muted-foreground">
-            {searchTerm 
-              ? 'ไม่พบข้อมูลที่ค้นหา' 
-              : activeTab === 'loans' 
-                ? 'ไม่มีสินเชื่อ' 
+            {searchTerm
+              ? 'ไม่พบข้อมูลที่ค้นหา'
+              : activeTab === 'loans'
+                ? 'ไม่มีสินเชื่อ'
                 : 'ไม่มีใบสมัครสินเชื่อ'}
           </p>
         </div>
@@ -637,7 +640,9 @@ export function AgentCustomersList() {
                           ['ACTIVE', 'DEFAULTED'].includes(loan.status) &&
                           Number(loan.remainingBalance) > 0
                         ) {
-                          return currentSum + (Number(loan.remainingBalance) || 0)
+                          return (
+                            currentSum + (Number(loan.remainingBalance) || 0)
+                          )
                         }
                         return currentSum
                       },

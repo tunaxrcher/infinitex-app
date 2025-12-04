@@ -38,19 +38,25 @@ export function FloatingActionButton({
 
   const handleConfirm = () => {
     // Store data in sessionStorage to pass to apply page
-    sessionStorage.setItem('loanApplicationData', JSON.stringify({
-      ownerName: ownerNameInput.trim() || undefined,
-      loanType: loanTypeInput,
-    }))
+    sessionStorage.setItem(
+      'loanApplicationData',
+      JSON.stringify({
+        ownerName: ownerNameInput.trim() || undefined,
+        loanType: loanTypeInput,
+      })
+    )
     setShowDialog(false)
     router.push(href)
   }
 
   const handleSkip = () => {
     // Store only loan type
-    sessionStorage.setItem('loanApplicationData', JSON.stringify({
-      loanType: loanTypeInput,
-    }))
+    sessionStorage.setItem(
+      'loanApplicationData',
+      JSON.stringify({
+        loanType: loanTypeInput,
+      })
+    )
     setShowDialog(false)
     router.push(href)
   }
@@ -125,10 +131,7 @@ export function FloatingActionButton({
               className="flex-1">
               ข้าม
             </Button>
-            <Button
-              type="button"
-              onClick={handleConfirm}
-              className="flex-1">
+            <Button type="button" onClick={handleConfirm} className="flex-1">
               ยืนยัน
             </Button>
           </DialogFooter>

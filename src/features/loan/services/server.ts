@@ -229,7 +229,10 @@ export const loanService = {
 
         console.log('[LoanService] LINE notification sent successfully')
       } catch (lineError) {
-        console.error('[LoanService] Failed to send LINE notification:', lineError)
+        console.error(
+          '[LoanService] Failed to send LINE notification:',
+          lineError
+        )
         // Don't fail the entire request if LINE notification fails
       }
     }
