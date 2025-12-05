@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-
+import Image from 'next/image';
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@src/shared/ui/button'
@@ -66,15 +66,27 @@ export function FloatingActionButton({
       {/* Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              ข้อมูลการขอสินเชื่อ
-            </DialogTitle>
-            <DialogDescription>
-              กรุณาเลือกประเภทสินเชื่อและระบุชื่อสถานที่ (ถ้ามี)
-            </DialogDescription>
-          </DialogHeader>
+
+            
+            <DialogHeader className="flex flex-col items-center gap-4 pb-4">
+          <div className="flex justify-center">
+            <Image
+              src="/images/logo.png"
+              alt="Logo"
+              width={120}
+              height={40}
+              className="object-contain"
+            />
+          </div>
+          <DialogTitle className="text-center text-xl gradientText">
+            ขอสินเชื่อ
+          </DialogTitle>
+          {/* <DialogDescription>
+          กรุณาเลือกประเภทสินเชื่อและระบุชื่อสถานที่ (ถ้ามี)
+          </DialogDescription> */}
+          <hr className="w-full border-border" />
+        </DialogHeader>
+
           <div className="space-y-4 py-4">
             {/* Loan Type Select */}
             <div className="space-y-2">
@@ -96,7 +108,7 @@ export function FloatingActionButton({
                 </SelectContent>
               </Select>
             </div>
-
+<hr />
             {/* Owner Name Input */}
             <div className="space-y-2">
               <Label htmlFor="ownerName">
@@ -107,7 +119,7 @@ export function FloatingActionButton({
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="ownerName"
-                  placeholder="เช่น นายสมชาย ใจดี, บ้านสวนผึ้ง"
+                  placeholder="เช่น นายสมชาย ใจดี, บ้านสวนผึ้ง, งานไถ่"
                   value={ownerNameInput}
                   onChange={(e) => setOwnerNameInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -118,9 +130,9 @@ export function FloatingActionButton({
                   className="pl-10"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">
+              {/* <p className="text-xs text-muted-foreground">
                 ข้อมูลนี้จะช่วยในการระบุและจัดการคำขอสินเชื่อ
-              </p>
+              </p> */}
             </div>
           </div>
           <DialogFooter className="flex gap-2">

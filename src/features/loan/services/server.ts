@@ -212,8 +212,8 @@ export const loanService = {
     // Step 6: Send LINE notification for agent flow
     if (isSubmittedByAgent) {
       try {
-        const ownerName = (data as any).ownerName || 'ไม่ระบุ'
-        const location = propertyInfo.propertyAddress || 'ไม่ระบุ'
+        const ownerName = (data as any).ownerName || 'เจ้าของ: ไม่ระบุ'
+        const location = propertyInfo.propertyAddress || 'สถานที่: ไม่ระบุ'
         const notes = data.propertyValuation?.reasoning
           ? `AI: ${data.propertyValuation.reasoning.substring(0, 100)}...`
           : undefined
