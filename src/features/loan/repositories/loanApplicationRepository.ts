@@ -16,6 +16,27 @@ export class LoanApplicationRepository extends BaseRepository<
   }
 
   /**
+   * Find loan application by ID
+   */
+  async findById(id: string) {
+    return this.model.findUnique({
+      where: { id },
+      include: {
+        customer: {
+          include: {
+            profile: true,
+          },
+        },
+        agent: {
+          include: {
+            profile: true,
+          },
+        },
+      },
+    })
+  }
+
+  /**
    * Find loan application by customer phone number
    */
   async findByCustomerPhone(phoneNumber: string) {

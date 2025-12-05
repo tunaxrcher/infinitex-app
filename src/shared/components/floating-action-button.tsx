@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image';
+
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 import { Button } from '@src/shared/ui/button'
@@ -66,26 +67,24 @@ export function FloatingActionButton({
       {/* Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="sm:max-w-md">
-
-            
-            <DialogHeader className="flex flex-col items-center gap-4 pb-4">
-          <div className="flex justify-center">
-            <Image
-              src="/images/logo.png"
-              alt="Logo"
-              width={120}
-              height={40}
-              className="object-contain"
-            />
-          </div>
-          <DialogTitle className="text-center text-xl gradientText">
-            ขอสินเชื่อ
-          </DialogTitle>
-          {/* <DialogDescription>
+          <DialogHeader className="flex flex-col items-center gap-4 pb-4">
+            <div className="flex justify-center">
+              <Image
+                src="/images/logo.png"
+                alt="Logo"
+                width={120}
+                height={40}
+                className="object-contain"
+              />
+            </div>
+            <DialogTitle className="text-center text-xl gradientText">
+              ขอสินเชื่อ
+            </DialogTitle>
+            {/* <DialogDescription>
           กรุณาเลือกประเภทสินเชื่อและระบุชื่อสถานที่ (ถ้ามี)
           </DialogDescription> */}
-          <hr className="w-full border-border" />
-        </DialogHeader>
+            <hr className="w-full border-border" />
+          </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Loan Type Select */}
@@ -108,7 +107,7 @@ export function FloatingActionButton({
                 </SelectContent>
               </Select>
             </div>
-<hr />
+            <hr />
             {/* Owner Name Input */}
             <div className="space-y-2">
               <Label htmlFor="ownerName">

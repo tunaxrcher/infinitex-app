@@ -11,7 +11,13 @@ const LINE_API_URL = 'https://api.line.me/v2/bot/message/push'
 export interface LoanFlexMessageData {
   amount: string
   ownerName: string
-  details?: string
+  propertyLocation?: string
+  propertyArea?: string
+  parcelNo?: string
+  amphur?: string
+  province?: string
+  latitude?: string
+  longitude?: string
   notes?: string
   titleDeedImageUrl?: string
   supportingImageUrls?: string[]
@@ -63,6 +69,24 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
     imageLayout.contents.push(supportingBox)
   }
 
+  // Build location details text
+  const locationParts = []
+  if (data.ownerName) locationParts.push(data.ownerName)
+  if (data.propertyLocation) locationParts.push(data.propertyLocation)
+  if (data.propertyArea) locationParts.push(data.propertyArea)
+  const locationText = locationParts.join(' | ')
+
+  // Build parcel info text
+  const parcelInfoParts = []
+  if (data.parcelNo)
+    parcelInfoParts.push(`เลขโฉนด ${data.parcelNo}`) ??
+      parcelInfoParts.push(`เลขโฉนด: -`)
+  if (data.amphur)
+    parcelInfoParts.push(`อ.${data.amphur}`) ?? parcelInfoParts.push(`อ.: -`)
+  if (data.province)
+    parcelInfoParts.push(`จ.${data.province}`) ?? parcelInfoParts.push(`จ.: -`)
+  const parcelInfoText = parcelInfoParts.join(' • ')
+
   // Build content section
   const contentSection: any[] = [
     {
@@ -77,7 +101,7 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
           contents: [
             {
               type: 'text',
-              text: 'ยื่นสินเชื่อ',
+              text: 'ยื่นสินเชื่อ [จากหน้าเว็บ]',
               size: 'xs',
               weight: 'bold',
               color: '#FFFFFF',
@@ -95,13 +119,30 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
       color: '#FFFFFF',
       margin: 'sm',
     },
-    {
+  ]
+
+  // Add location text if available
+  if (locationText) {
+    contentSection.push({
       type: 'text',
-      text: data.details || `${data.ownerName}`,
+      text: locationText,
       size: 'sm',
       color: '#D0D4E2',
-    },
-  ]
+      wrap: true,
+    })
+  }
+
+  // Add parcel info if available
+  if (parcelInfoText) {
+    contentSection.push({
+      type: 'text',
+      text: parcelInfoText,
+      size: 'xs',
+      color: '#B0B6C5',
+      margin: 'xs',
+      wrap: true,
+    })
+  }
 
   // Add notes section if notes exist
   if (data.notes) {
@@ -123,6 +164,40 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
     })
   }
 
+  // Build footer with action buttons
+  const footer: any = {
+    type: 'box',
+    layout: 'vertical',
+    spacing: 'sm',
+    contents: [
+      {
+        type: 'button',
+        style: 'primary',
+        height: 'sm',
+        action: {
+          type: 'uri',
+          label: 'ดูรายละเอียด',
+          uri: 'https://demo.unityx.group/',
+        },
+      },
+    ],
+  }
+
+  // Add Google Maps button if coordinates are available
+  if (data.latitude && data.longitude) {
+    const mapsUrl = `https://www.google.com/maps?q=${data.latitude},${data.longitude}`
+    footer.contents.push({
+      type: 'button',
+      style: 'link',
+      height: 'sm',
+      action: {
+        type: 'uri',
+        label: 'ดู Maps',
+        uri: mapsUrl,
+      },
+    })
+  }
+
   return {
     type: 'bubble',
     body: {
@@ -141,6 +216,7 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
         },
       ],
     },
+    footer: footer,
   }
 }
 

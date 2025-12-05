@@ -212,8 +212,20 @@ export const loanService = {
     // Step 6: Send LINE notification for agent flow
     if (isSubmittedByAgent) {
       try {
-        const ownerName = (data as any).ownerName || 'เจ้าของ: ไม่ระบุ'
-        const location = propertyInfo.propertyAddress || 'สถานที่: ไม่ระบุ'
+        // Extract data from titleDeedData
+        const titleDeedResult = data.titleDeedData?.result?.[0]
+        const parcelNo = titleDeedResult?.parcelno || undefined
+        const amphur = titleDeedResult?.amphurname || undefined
+        const province = titleDeedResult?.provname || undefined
+        const latitude = titleDeedResult?.parcellat || undefined
+        const longitude = titleDeedResult?.parcellon || undefined
+
+        // Get owner name and location
+        const ownerName = (data as any).ownerName || undefined
+        const propertyLocation = propertyInfo.propertyLocation || undefined
+        const propertyArea = propertyInfo.propertyArea || undefined
+
+        // Get AI notes
         const notes = data.propertyValuation?.reasoning
           ? `AI: ${data.propertyValuation.reasoning.substring(0, 100)}...`
           : undefined
@@ -221,10 +233,16 @@ export const loanService = {
         await sendLoanNotification({
           amount: data.requestedLoanAmount.toLocaleString(),
           ownerName: ownerName,
-          details: `${ownerName} | ${location}`,
+          propertyLocation: propertyLocation,
+          propertyArea: propertyArea,
+          parcelNo: parcelNo,
+          amphur: amphur,
+          province: province,
+          latitude: latitude,
+          longitude: longitude,
           notes: notes,
-          titleDeedImageUrl: data.titleDeedImageUrl,
-          supportingImageUrls: data.supportingImages,
+          titleDeedImageUrl: data.titleDeedImageUrl || undefined,
+          supportingImageUrls: data.supportingImages || undefined,
         })
 
         console.log('[LoanService] LINE notification sent successfully')
@@ -240,7 +258,7 @@ export const loanService = {
     return {
       loanApplicationId: loanApplication.id,
       userId: user.id,
-      agentId: isSubmittedByAgent ? agentId : null,
+      agentId: isSubmittedByAgent ? agentId : undefined,
       isNewUser,
       submittedByAgent: isSubmittedByAgent,
     }
