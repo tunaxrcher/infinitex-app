@@ -4,8 +4,8 @@
  */
 
 const LINE_CHANNEL_ACCESS_TOKEN =
-  '2L0DYeFg2bsr96g4q3No/BX4Sm0/CPeS7Bd1HAjjF+wZWKKaIo1/nx8+khZttnP+qxCazxUZyFRIFQ2QsNmp2rP6XPJ85p9Nni3FYLpBOBgckO0PAPZp30WJk4naQRvLERB+7mZxgfeoJ3QtHX7gFgdB04t89/1O/w1cDnyilFU='
-const LINE_GROUP_ID = 'Cb7ac38e94371fd87b1bf972abf01a4d6'
+  'DbYhN3QORqGRc2bPDuQOKLgnvfmvqrcrQlx695CqfNavutEfYA0BtVH0cVUrXaLPOALegu81juvvRNd/TRF+teZaIcSkrs8Xprrgafeg7Zs+Ayu/Fg+x0V+/+Pk3DLYQOn4CoxVc2kgkJ2NMqFFKggdB04t89/1O/w1cDnyilFU='
+const LINE_GROUP_ID = 'Ca985305fa867896648787c335db6d3ce'
 const LINE_API_URL = 'https://api.line.me/v2/bot/message/push'
 
 export interface LoanFlexMessageData {
