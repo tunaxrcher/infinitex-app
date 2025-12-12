@@ -3,9 +3,8 @@
  * For sending Flex Messages to LINE groups
  */
 
-const LINE_CHANNEL_ACCESS_TOKEN =
-  'DbYhN3QORqGRc2bPDuQOKLgnvfmvqrcrQlx695CqfNavutEfYA0BtVH0cVUrXaLPOALegu81juvvRNd/TRF+teZaIcSkrs8Xprrgafeg7Zs+Ayu/Fg+x0V+/+Pk3DLYQOn4CoxVc2kgkJ2NMqFFKggdB04t89/1O/w1cDnyilFU='
-const LINE_GROUP_ID = 'Ca985305fa867896648787c335db6d3ce'
+const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || '' 
+const LINE_GROUP_ID = process.env.LINE_GROUP_ID || ''
 const LINE_API_URL = 'https://api.line.me/v2/bot/message/push'
 
 export interface LoanFlexMessageData {
