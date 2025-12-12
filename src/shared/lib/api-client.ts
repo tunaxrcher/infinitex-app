@@ -35,6 +35,13 @@ export const api = {
     })
 
     if (!response.ok) {
+      // Handle 413 Request Entity Too Large specifically
+      if (response.status === 413) {
+        throw new Error(
+          'ขนาดไฟล์ใหญ่เกินไป กรุณาลดจำนวนหรือขนาดไฟล์ (สูงสุด 20MB)'
+        )
+      }
+
       const errorData = await response.json().catch(() => ({}))
       const errorMessage =
         errorData.error ||

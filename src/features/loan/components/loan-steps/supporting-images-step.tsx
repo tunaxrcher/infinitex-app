@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { loanApi } from '@src/features/loan/api'
 import { Alert, AlertDescription } from '@src/shared/ui/alert'
@@ -9,15 +9,21 @@ import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import { Label } from '@src/shared/ui/label'
 import {
+  AlertTriangle,
   Camera,
   CheckCircle,
-  FileText,
   ImageIcon,
   Loader2,
   Upload,
   X,
 } from 'lucide-react'
+import Image from 'next/image'
 import { toast } from 'sonner'
+
+// Max file size per image (5MB)
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+// Max total upload size (20MB)
+const MAX_TOTAL_SIZE = 20 * 1024 * 1024
 
 interface SupportingImagesStepProps {
   data: any
@@ -40,6 +46,43 @@ export function SupportingImagesStep({
 }: SupportingImagesStepProps) {
   const [dragActive, setDragActive] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [imagePreviews, setImagePreviews] = useState<{ [key: number]: string }>(
+    {}
+  )
+
+  // Calculate total size of new files (not yet uploaded)
+  const totalSize = useMemo(() => {
+    if (!data.supportingImages) return 0
+    return data.supportingImages.reduce((sum: number, img: any) => {
+      if (img instanceof File) {
+        return sum + img.size
+      }
+      return sum
+    }, 0)
+  }, [data.supportingImages])
+
+  // Create image previews for File objects
+  useEffect(() => {
+    if (!data.supportingImages) return
+
+    const newPreviews: { [key: number]: string } = {}
+    const objectUrls: string[] = []
+
+    data.supportingImages.forEach((image: any, index: number) => {
+      if (image instanceof File) {
+        const url = URL.createObjectURL(image)
+        newPreviews[index] = url
+        objectUrls.push(url)
+      }
+    })
+
+    setImagePreviews(newPreviews)
+
+    // Cleanup object URLs on unmount or when images change
+    return () => {
+      objectUrls.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [data.supportingImages])
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -51,35 +94,54 @@ export function SupportingImagesStep({
     }
   }
 
+  // Validate and add files with size checking
+  const validateAndAddFiles = (files: File[]) => {
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'))
+
+    if (imageFiles.length === 0) {
+      toast.error('กรุณาเลือกเฉพาะไฟล์รูปภาพ')
+      return
+    }
+
+    const validFiles: File[] = []
+    const oversizedFiles: string[] = []
+
+    for (const file of imageFiles) {
+      if (file.size > MAX_FILE_SIZE) {
+        oversizedFiles.push(file.name)
+      } else {
+        validFiles.push(file)
+      }
+    }
+
+    if (oversizedFiles.length > 0) {
+      toast.error(
+        `ไฟล์ต่อไปนี้มีขนาดเกิน 5MB: ${oversizedFiles.join(', ')}`,
+        { duration: 5000 }
+      )
+    }
+
+    if (validFiles.length > 0) {
+      const currentImages = data.supportingImages || []
+      onUpdate({ supportingImages: [...currentImages, ...validFiles] })
+    }
+  }
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const files = Array.from(e.dataTransfer.files).filter((file) =>
-        file.type.startsWith('image/')
-      )
-      if (files.length > 0) {
-        const currentImages = data.supportingImages || []
-        onUpdate({ supportingImages: [...currentImages, ...files] })
-      } else {
-        toast.error('กรุณาเลือกเฉพาะไฟล์รูปภาพ')
-      }
+      const files = Array.from(e.dataTransfer.files)
+      validateAndAddFiles(files)
     }
   }
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files).filter((file) =>
-        file.type.startsWith('image/')
-      )
-      if (files.length > 0) {
-        const currentImages = data.supportingImages || []
-        onUpdate({ supportingImages: [...currentImages, ...files] })
-      } else {
-        toast.error('กรุณาเลือกเฉพาะไฟล์รูปภาพ')
-      }
+      const files = Array.from(e.target.files)
+      validateAndAddFiles(files)
       // Reset input
       e.target.value = ''
     }
@@ -94,55 +156,87 @@ export function SupportingImagesStep({
   const handleNext = async () => {
     // Upload files when user clicks next
     if (data.supportingImages && data.supportingImages.length > 0) {
-      // Check if images are already uploaded (have url property)
-      const hasUploadedImages = data.supportingImages.some(
+      // Separate already uploaded images (have url) from new files (File objects)
+      const uploadedImages = data.supportingImages.filter(
         (img: any) => img.url
       )
+      const newFiles = data.supportingImages.filter(
+        (img: any) => img instanceof File
+      )
 
-      if (!hasUploadedImages) {
-        setIsUploading(true)
-        try {
-          console.log(
-            `[SupportingImages] Uploading ${data.supportingImages.length} files in one request...`
+      if (newFiles.length === 0) {
+        // All images already uploaded, just proceed
+        onNext()
+        return
+      }
+
+      // Check total size before uploading
+      const totalSize = newFiles.reduce(
+        (sum: number, file: File) => sum + file.size,
+        0
+      )
+      if (totalSize > MAX_TOTAL_SIZE) {
+        toast.error(
+          `ขนาดไฟล์รวมเกิน 20MB (${(totalSize / 1024 / 1024).toFixed(1)}MB) กรุณาลบไฟล์บางส่วนออก`,
+          { duration: 5000 }
+        )
+        return
+      }
+
+      setIsUploading(true)
+      try {
+        console.log(
+          `[SupportingImages] Uploading ${newFiles.length} new files...`
+        )
+
+        // Upload only new files
+        const result = await loanApi.uploadSupportingImages(newFiles)
+
+        if (result.success && result.images && result.images.length > 0) {
+          // Map newly uploaded images with file objects for AI valuation
+          const newUploadedImages = result.images.map(
+            (img: any, index: number) => ({
+              url: img.imageUrl,
+              key: img.imageKey,
+              name: img.fileName,
+              file: newFiles[index], // Keep original file for AI valuation
+            })
           )
 
-          // Upload all files in one request
-          const result = await loanApi.uploadSupportingImages(
-            data.supportingImages
+          // Combine previously uploaded images with newly uploaded ones
+          onUpdate({
+            supportingImages: [...uploadedImages, ...newUploadedImages],
+          })
+          toast.success(
+            `อัพโหลดสำเร็จ ${result.uploadedCount}/${result.totalCount} ไฟล์`
           )
+          onNext()
+        } else {
+          toast.error('การอัพโหลดล้มเหลว กรุณาลองใหม่อีกครั้ง')
+        }
+      } catch (error: any) {
+        console.error('[SupportingImages] Upload error:', error)
 
-          if (result.success && result.images && result.images.length > 0) {
-            // Map uploaded images with file objects for AI valuation
-            const uploadedImages = result.images.map(
-              (img: any, index: number) => ({
-                url: img.imageUrl,
-                key: img.imageKey,
-                name: img.fileName,
-                file: data.supportingImages[index], // Keep original file for AI valuation
-              })
-            )
-
-            onUpdate({ supportingImages: uploadedImages })
-            toast.success(
-              `อัพโหลดสำเร็จ ${result.uploadedCount}/${result.totalCount} ไฟล์`
-            )
-            onNext()
-          } else {
-            toast.error('การอัพโหลดล้มเหลว กรุณาลองใหม่อีกครั้ง')
-          }
-        } catch (error) {
-          console.error('[SupportingImages] Upload error:', error)
+        // Handle 413 error specifically
+        if (
+          error?.message?.includes('413') ||
+          error?.status === 413 ||
+          (typeof error?.message === 'string' &&
+            error.message.includes('Entity Too Large'))
+        ) {
+          toast.error(
+            'ขนาดไฟล์รวมใหญ่เกินไป กรุณาลดจำนวนไฟล์หรือใช้ไฟล์ขนาดเล็กลง (สูงสุด 20MB)',
+            { duration: 5000 }
+          )
+        } else {
           toast.error(
             error instanceof Error
               ? error.message
               : 'เกิดข้อผิดพลาดในการอัพโหลด'
           )
-        } finally {
-          setIsUploading(false)
         }
-      } else {
-        // Already uploaded, just proceed
-        onNext()
+      } finally {
+        setIsUploading(false)
       }
     } else {
       // No images, just proceed
@@ -343,31 +437,75 @@ export function SupportingImagesStep({
             </div>
           </div>
 
-          {/* Uploaded Images */}
+          {/* Total Size Warning */}
+          {totalSize > MAX_TOTAL_SIZE * 0.8 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                ขนาดไฟล์รวม: {(totalSize / 1024 / 1024).toFixed(1)}MB
+                {totalSize > MAX_TOTAL_SIZE
+                  ? ' (เกินขีดจำกัด 20MB)'
+                  : ' (ใกล้ถึงขีดจำกัด 20MB)'}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Uploaded Images with Thumbnails */}
           {data.supportingImages && data.supportingImages.length > 0 && (
             <div className="space-y-2">
               <Label className="text-sm font-medium">
                 ไฟล์ที่เลือก ({data.supportingImages.length})
               </Label>
-              <div className="grid grid-cols-2 gap-2">
-                {data.supportingImages.map((image: any, index: number) => (
-                  <div key={index} className="relative bg-muted rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="text-xs text-foreground truncate">
-                        {image.name || image.file?.name || 'ไฟล์'}
-                      </span>
+              <div className="grid grid-cols-3 gap-2">
+                {data.supportingImages.map((image: any, index: number) => {
+                  // Get image source - either from URL (uploaded) or create object URL (new file)
+                  const imageSrc =
+                    image.url || (image instanceof File ? imagePreviews[index] : null)
+                  const imageName =
+                    image.name ||
+                    (image instanceof File ? image.name : 'รูปภาพ')
+                  const isUploaded = !!image.url
+
+                  return (
+                    <div
+                      key={index}
+                      className="relative bg-muted rounded-lg overflow-hidden aspect-square">
+                      {imageSrc ? (
+                        <Image
+                          src={imageSrc}
+                          alt={imageName}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 768px) 33vw, 100px"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
+                      {/* Uploaded indicator */}
+                      {isUploaded && (
+                        <div className="absolute bottom-1 left-1 bg-green-500/90 rounded-full p-0.5">
+                          <CheckCircle className="h-3 w-3 text-white" />
+                        </div>
+                      )}
+                      {/* File name tooltip on hover */}
+                      <div className="absolute inset-x-0 bottom-0 bg-black/60 px-1 py-0.5 opacity-0 hover:opacity-100 transition-opacity">
+                        <span className="text-[10px] text-white truncate block">
+                          {imageName}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute -top-1 -right-1 h-6 w-6 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => removeImage(index)}
+                        disabled={isUploading}>
+                        <X className="h-3 w-3" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute -top-1 -right-1 h-6 w-6 bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => removeImage(index)}
-                      disabled={isUploading}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}

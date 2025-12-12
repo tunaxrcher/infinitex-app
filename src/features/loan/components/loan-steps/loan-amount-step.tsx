@@ -41,6 +41,12 @@ export function LoanAmountStep({
   const [submissionComplete, setSubmissionComplete] = useState(false)
 
   const handleConfirm = async () => {
+    // If already submitted, just go to next step (don't submit again)
+    if (submissionComplete) {
+      onNext()
+      return
+    }
+
     const amount = Number(requestedAmount) || 0
     if (amount > 0) {
       onUpdate({
