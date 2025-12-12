@@ -5,12 +5,11 @@ import { useState } from 'react'
 
 import { useRouter } from 'next/navigation'
 
-import { Alert, AlertDescription } from '@src/shared/ui/alert'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
-import { CheckCircle, DollarSign, Loader2 } from 'lucide-react'
+import { DollarSign, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface LoanAmountStepProps {
@@ -38,15 +37,8 @@ export function LoanAmountStep({
     data.requestedLoanAmount || ''
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submissionComplete, setSubmissionComplete] = useState(false)
 
   const handleConfirm = async () => {
-    // If already submitted, just go to next step (don't submit again)
-    if (submissionComplete) {
-      onNext()
-      return
-    }
-
     const amount = Number(requestedAmount) || 0
     if (amount > 0) {
       onUpdate({
@@ -138,13 +130,10 @@ export function LoanAmountStep({
         isNewUser: result.isNewUser,
       })
 
-      setSubmissionComplete(true)
       toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!')
 
-      // Auto proceed after 2 seconds
-      setTimeout(() => {
-        onNext()
-      }, 2000)
+      // Go to pending step immediately
+      onNext()
     } catch (error) {
       console.error('[LoanAmount] Loan application submission failed:', error)
       toast.error(
@@ -203,15 +192,6 @@ export function LoanAmountStep({
         </CardContent>
       </Card>
 
-      {submissionComplete && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          <p className="text-sm text-green-700 flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            ส่งคำขอสินเชื่อเรียบร้อยแล้ว กำลังดำเนินการต่อ...
-          </p>
-        </div>
-      )}
-
       {/* Navigation */}
       <div className="flex gap-3">
         <Button
@@ -230,8 +210,6 @@ export function LoanAmountStep({
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               กำลังส่งคำขอ...
             </>
-          ) : submissionComplete ? (
-            'เสร็จสิ้น'
           ) : isAgentFlow ? (
             'ส่งคำขอสินเชื่อ'
           ) : (
