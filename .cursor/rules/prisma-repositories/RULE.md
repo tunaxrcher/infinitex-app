@@ -12,12 +12,12 @@ alwaysApply: false
 
 ```typescript
 // src/features/[feature-name]/repositories/entityRepository.ts
-import { prisma } from '@src/shared/lib/db';
-import { BaseRepository } from '@src/shared/repositories/baseRepository';
+import { prisma } from '@src/shared/lib/db'
+import { BaseRepository } from '@src/shared/repositories/baseRepository'
 
 export class EntityRepository extends BaseRepository<typeof prisma.entity> {
   constructor() {
-    super(prisma.entity);
+    super(prisma.entity)
   }
 
   // ============================================
@@ -33,7 +33,7 @@ export class EntityRepository extends BaseRepository<typeof prisma.entity> {
           orderBy: { createdAt: 'desc' },
         },
       },
-    });
+    })
   }
 
   async findByAgentId(agentId: string) {
@@ -53,7 +53,7 @@ export class EntityRepository extends BaseRepository<typeof prisma.entity> {
       orderBy: {
         assignedAt: 'desc',
       },
-    });
+    })
   }
 
   // ============================================
@@ -71,7 +71,7 @@ export class EntityRepository extends BaseRepository<typeof prisma.entity> {
       include: {
         profile: true,
       },
-    });
+    })
   }
 
   // ============================================
@@ -92,19 +92,19 @@ export class EntityRepository extends BaseRepository<typeof prisma.entity> {
           },
         },
       ],
-    };
+    }
 
     if (agentId) {
       whereClause.customerAgents = {
         some: { agentId, isActive: true },
-      };
+      }
     }
 
     return this.model.findMany({
       where: whereClause,
       include: { profile: true },
       orderBy: { createdAt: 'desc' },
-    });
+    })
   }
 
   // ============================================
@@ -115,12 +115,12 @@ export class EntityRepository extends BaseRepository<typeof prisma.entity> {
     return this.model.findUnique({
       where: { phoneNumber },
       include: { profile: true },
-    });
+    })
   }
 }
 
 // Export singleton instance
-export const entityRepository = new EntityRepository();
+export const entityRepository = new EntityRepository()
 ```
 
 ## BaseRepository Class
@@ -149,12 +149,12 @@ export abstract class BaseRepository<TModel extends Record<string, any>> {
 ### Extend BaseRepository
 
 ```typescript
-import { prisma } from '@src/shared/lib/db';
-import { BaseRepository } from '@src/shared/repositories/baseRepository';
+import { prisma } from '@src/shared/lib/db'
+import { BaseRepository } from '@src/shared/repositories/baseRepository'
 
 export class CustomerRepository extends BaseRepository<typeof prisma.user> {
   constructor() {
-    super(prisma.user);
+    super(prisma.user)
   }
 
   // Custom methods...
@@ -177,11 +177,11 @@ async findById(id: number) { ... }
 
 ### Naming Convention
 
-| Type     | Format     | Example                       |
-| -------- | ---------- | ----------------------------- |
-| Class    | PascalCase | `CustomerRepository`          |
-| Instance | camelCase  | `customerRepository`          |
-| File     | camelCase  | `customerRepository.ts`       |
+| Type     | Format     | Example                 |
+| -------- | ---------- | ----------------------- |
+| Class    | PascalCase | `CustomerRepository`    |
+| Instance | camelCase  | `customerRepository`    |
+| File     | camelCase  | `customerRepository.ts` |
 
 ### Methods จาก BaseRepository
 
@@ -189,19 +189,19 @@ async findById(id: number) { ... }
 // Create - ใช้ Prisma args pattern
 await customerRepository.create({
   data: { phoneNumber, userType: 'CUSTOMER' },
-});
+})
 
 // Update
 await customerRepository.update({
   where: { id },
   data: { isActive: false },
   include: { profile: true },
-});
+})
 
 // Delete
 await customerRepository.delete({
   where: { id },
-});
+})
 
 // Paginate
 const result = await customerRepository.paginate({
@@ -210,11 +210,11 @@ const result = await customerRepository.paginate({
   include: { profile: true },
   page: 1,
   limit: 10,
-});
+})
 // Returns: { data: [...], pagination: { total, totalPages, page, limit, ... } }
 
 // Check exists
-const exists = await customerRepository.exists({ id });
+const exists = await customerRepository.exists({ id })
 ```
 
 ### Soft Delete Pattern
@@ -267,12 +267,12 @@ async findWithDetails(id: string) {
 
 ```typescript
 // src/features/customer/repositories/customerRepository.ts
-import { prisma } from '@src/shared/lib/db';
-import { BaseRepository } from '@src/shared/repositories/baseRepository';
+import { prisma } from '@src/shared/lib/db'
+import { BaseRepository } from '@src/shared/repositories/baseRepository'
 
 export class CustomerRepository extends BaseRepository<typeof prisma.user> {
   constructor() {
-    super(prisma.user);
+    super(prisma.user)
   }
 
   async findByAgentId(agentId: string) {
@@ -293,7 +293,7 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
         },
       },
       orderBy: { assignedAt: 'desc' },
-    });
+    })
   }
 
   async createWithProfile(customerData: any, profileData: any) {
@@ -304,18 +304,18 @@ export class CustomerRepository extends BaseRepository<typeof prisma.user> {
         profile: { create: profileData },
       },
       include: { profile: true },
-    });
+    })
   }
 
   async findByPhoneNumber(phoneNumber: string) {
     return this.model.findUnique({
       where: { phoneNumber },
       include: { profile: true },
-    });
+    })
   }
 }
 
-export const customerRepository = new CustomerRepository();
+export const customerRepository = new CustomerRepository()
 ```
 
 ## Checklist สำหรับ Repository ใหม่

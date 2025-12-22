@@ -11,32 +11,32 @@ alwaysApply: false
 ## โครงสร้าง Component พื้นฐาน
 
 ```tsx
-'use client';
+'use client'
 
 // เฉพาะ Client Components
-import { useState } from 'react';
+import { useState } from 'react'
 
-import { useGetLoanById } from '@src/features/loan/hooks';
-import { Button } from '@src/shared/ui/button';
-import { Card } from '@src/shared/ui/card';
-import { Skeleton } from '@src/shared/ui/skeleton';
-import { cn } from '@src/shared/lib/utils';
+import { useGetLoanById } from '@src/features/loan/hooks'
+import { cn } from '@src/shared/lib/utils'
+import { Button } from '@src/shared/ui/button'
+import { Card } from '@src/shared/ui/card'
+import { Skeleton } from '@src/shared/ui/skeleton'
 
 interface LoanCardProps {
-  loanId: string;
-  onEdit?: (id: string) => void;
-  className?: string;
+  loanId: string
+  onEdit?: (id: string) => void
+  className?: string
 }
 
 export function LoanCard({ loanId, onEdit, className }: LoanCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const { data, isLoading } = useGetLoanById(loanId);
+  const [isOpen, setIsOpen] = useState(false)
+  const { data, isLoading } = useGetLoanById(loanId)
 
   if (isLoading) {
-    return <Skeleton className="h-20 w-full" />;
+    return <Skeleton className="h-20 w-full" />
   }
 
-  return <Card className={cn('p-4', className)}>{/* ... */}</Card>;
+  return <Card className={cn('p-4', className)}>{/* ... */}</Card>
 }
 ```
 
@@ -48,17 +48,16 @@ export function LoanCard({ loanId, onEdit, className }: LoanCardProps) {
 // ไม่ต้องมี 'use client'
 // ใช้ได้: async/await, เรียก service โดยตรง
 // ใช้ไม่ได้: useState, useEffect, event handlers
-
-import { loanService } from '@src/features/loan/services/server';
+import { loanService } from '@src/features/loan/services/server'
 
 export default async function LoansPage() {
-  const loans = await loanService.getList({ page: 1, limit: 10 });
+  const loans = await loanService.getList({ page: 1, limit: 10 })
 
   return (
     <div>
       <LoanList initialData={loans} />
     </div>
-  );
+  )
 }
 ```
 
@@ -108,17 +107,17 @@ src/features/[feature]/components/
 ```tsx
 interface LoanDialogProps {
   // Required props
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 
   // Optional props
-  loanId?: string;
-  mode?: 'create' | 'edit';
-  className?: string;
+  loanId?: string
+  mode?: 'create' | 'edit'
+  className?: string
 
   // Callbacks
-  onSuccess?: () => void;
-  onError?: (error: Error) => void;
+  onSuccess?: () => void
+  onError?: (error: Error) => void
 }
 ```
 
@@ -142,16 +141,16 @@ export function LoanDialog({
 ### Local State
 
 ```tsx
-const [isOpen, setIsOpen] = useState(false);
-const [selectedId, setSelectedId] = useState<string | undefined>();
+const [isOpen, setIsOpen] = useState(false)
+const [selectedId, setSelectedId] = useState<string | undefined>()
 ```
 
 ### Server State (React Query)
 
 ```tsx
 // ใช้ hooks จาก features
-const { data, isLoading, error } = useGetLoansByAgentId(agentId);
-const submitMutation = useSubmitLoanApplication();
+const { data, isLoading, error } = useGetLoansByAgentId(agentId)
+const submitMutation = useSubmitLoanApplication()
 ```
 
 ## Loading & Error States
@@ -181,52 +180,52 @@ if (!data || data.length === 0) {
 ## Event Handlers
 
 ```tsx
-import { toast } from 'sonner';
+import { toast } from 'sonner'
 
 // Naming: handle + Action
 const handleSubmit = (data: FormData) => {
   submitMutation.mutate(data, {
     onSuccess: () => {
-      toast.success('บันทึกสำเร็จ');
-      onOpenChange(false);
+      toast.success('บันทึกสำเร็จ')
+      onOpenChange(false)
     },
     onError: (error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาด');
+      toast.error(error.message || 'เกิดข้อผิดพลาด')
     },
-  });
-};
+  })
+}
 
 const handleDelete = (id: string) => {
   if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
-    deleteMutation.mutate(id);
+    deleteMutation.mutate(id)
   }
-};
+}
 ```
 
 ## Import Order
 
 ```tsx
 // 1. 'use client' directive
-'use client';
+'use client'
 
 // 2. React imports
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react'
 
 // 3. External libraries
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-
+import { zodResolver } from '@hookform/resolvers/zod'
 // 4. Feature hooks/utils
-import { useSubmitLoanApplication } from '@src/features/loan/hooks';
-import { loanCreateSchema } from '@src/features/loan/validations';
-
+import { useSubmitLoanApplication } from '@src/features/loan/hooks'
+import { loanCreateSchema } from '@src/features/loan/validations'
 // 5. Shared components
-import { Button } from '@src/shared/ui/button';
-import { Card } from '@src/shared/ui/card';
+import { Button } from '@src/shared/ui/button'
+import { Card } from '@src/shared/ui/card'
+import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 
 // 6. Local/relative imports
-import { LoanCard } from './loan-card';
+import { LoanCard } from './loan-card'
+
+// 1. 'use client' directive
 ```
 
 ## Common UI Patterns

@@ -12,14 +12,14 @@ alwaysApply: false
 
 ```typescript
 // src/features/[feature-name]/services/server.ts
-import { prisma } from '@src/shared/lib/db';
-import 'server-only';
+import { prisma } from '@src/shared/lib/db'
+import 'server-only'
 
-import { entityRepository } from '../repositories/entityRepository';
+import { entityRepository } from '../repositories/entityRepository'
 import {
   type EntityCreateSchema,
   type EntityUpdateSchema,
-} from '../validations';
+} from '../validations'
 
 export const entityService = {
   // ============================================
@@ -28,36 +28,36 @@ export const entityService = {
 
   async getList(userId: string, filters: any = {}) {
     try {
-      const entities = await entityRepository.findByUserId(userId);
+      const entities = await entityRepository.findByUserId(userId)
 
       // Transform data for frontend
       const result = entities.map((item) => ({
         id: item.id,
         name: item.profile?.fullName || 'ไม่ระบุชื่อ',
         // ... transform fields
-      }));
+      }))
 
       // Apply search filter if provided
       if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
+        const searchTerm = filters.search.toLowerCase()
         return result.filter((item) =>
           item.name.toLowerCase().includes(searchTerm)
-        );
+        )
       }
 
-      return result;
+      return result
     } catch (error) {
-      console.error('Error fetching entities:', error);
-      throw new Error('ไม่สามารถดึงข้อมูลได้');
+      console.error('Error fetching entities:', error)
+      throw new Error('ไม่สามารถดึงข้อมูลได้')
     }
   },
 
   async getById(id: string) {
-    const entity = await entityRepository.findWithDetails(id);
+    const entity = await entityRepository.findWithDetails(id)
     if (!entity) {
-      throw new Error('ไม่พบข้อมูล');
+      throw new Error('ไม่พบข้อมูล')
     }
-    return entity;
+    return entity
   },
 
   // ============================================
@@ -67,16 +67,18 @@ export const entityService = {
   async create(data: EntityCreateSchema, userId?: string) {
     try {
       // Business logic validation
-      const existing = await entityRepository.findByPhoneNumber(data.phoneNumber);
+      const existing = await entityRepository.findByPhoneNumber(
+        data.phoneNumber
+      )
       if (existing) {
-        throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว');
+        throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว')
       }
 
       // Create entity
       const entity = await entityRepository.createWithProfile(
         { ...data },
         { ...profileData }
-      );
+      )
 
       // Create relationship if userId provided
       if (userId) {
@@ -86,24 +88,24 @@ export const entityService = {
             customerId: entity.id,
             isActive: true,
           },
-        });
+        })
       }
 
-      return entity;
+      return entity
     } catch (error) {
-      console.error('Error creating entity:', error);
+      console.error('Error creating entity:', error)
       if (error instanceof Error) {
-        throw error;
+        throw error
       }
-      throw new Error('ไม่สามารถสร้างข้อมูลได้');
+      throw new Error('ไม่สามารถสร้างข้อมูลได้')
     }
   },
 
   async update(id: string, data: EntityUpdateSchema) {
     try {
-      const existing = await entityRepository.findById(id);
+      const existing = await entityRepository.findById(id)
       if (!existing) {
-        throw new Error('ไม่พบข้อมูล');
+        throw new Error('ไม่พบข้อมูล')
       }
 
       return entityRepository.update({
@@ -112,13 +114,13 @@ export const entityService = {
           ...data,
           updatedAt: new Date(),
         },
-      });
+      })
     } catch (error) {
-      console.error('Error updating entity:', error);
+      console.error('Error updating entity:', error)
       if (error instanceof Error) {
-        throw error;
+        throw error
       }
-      throw new Error('ไม่สามารถอัปเดตข้อมูลได้');
+      throw new Error('ไม่สามารถอัปเดตข้อมูลได้')
     }
   },
 
@@ -131,13 +133,13 @@ export const entityService = {
           isActive: false,
           updatedAt: new Date(),
         },
-      });
+      })
     } catch (error) {
-      console.error('Error deleting entity:', error);
-      throw new Error('ไม่สามารถลบข้อมูลได้');
+      console.error('Error deleting entity:', error)
+      throw new Error('ไม่สามารถลบข้อมูลได้')
     }
   },
-};
+}
 ```
 
 ## ข้อกำหนดสำคัญ
@@ -145,8 +147,8 @@ export const entityService = {
 ### 1. Server-Only Directive
 
 ```typescript
-import { prisma } from '@src/shared/lib/db';
-import 'server-only';
+import { prisma } from '@src/shared/lib/db'
+import 'server-only'
 ```
 
 > Note: ในโปรเจคนี้ `import 'server-only'` อาจไม่อยู่บรรทัดแรก แต่ต้องมีอยู่
@@ -181,13 +183,13 @@ async create(data: any) {
 ### 4. Error Messages ภาษาไทย
 
 ```typescript
-throw new Error('ไม่พบข้อมูล');
-throw new Error('ไม่พบข้อมูลลูกค้า');
-throw new Error('ไม่สามารถดึงข้อมูลลูกค้าได้');
-throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว');
-throw new Error('ลูกค้าชื่อ "xxx" มีอยู่ในระบบแล้ว');
-throw new Error('ลูกค้านี้อยู่ภายใต้ Agent นี้อยู่แล้ว');
-throw new Error('ไม่สามารถมอบหมายลูกค้าให้ Agent ได้');
+throw new Error('ไม่พบข้อมูล')
+throw new Error('ไม่พบข้อมูลลูกค้า')
+throw new Error('ไม่สามารถดึงข้อมูลลูกค้าได้')
+throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว')
+throw new Error('ลูกค้าชื่อ "xxx" มีอยู่ในระบบแล้ว')
+throw new Error('ลูกค้านี้อยู่ภายใต้ Agent นี้อยู่แล้ว')
+throw new Error('ไม่สามารถมอบหมายลูกค้าให้ Agent ได้')
 ```
 
 ### 5. Soft Delete Pattern

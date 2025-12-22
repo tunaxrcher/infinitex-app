@@ -63,10 +63,10 @@ return NextResponse.json({ data: safeUser });
 
 ```typescript
 // ❌ ผิด
-console.log('User data:', user); // อาจมี pin/otp
+console.log('User data:', user) // อาจมี pin/otp
 
 // ✅ ถูก
-console.log('User ID:', user.id);
+console.log('User ID:', user.id)
 ```
 
 ## 4. Error Messages - ห้าม Leak System Info
@@ -95,19 +95,19 @@ catch (error: any) {
 
 ```typescript
 // ✅ Validate file type
-const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
 if (!allowedTypes.includes(file.type)) {
-  throw new Error('ประเภทไฟล์ไม่ถูกต้อง');
+  throw new Error('ประเภทไฟล์ไม่ถูกต้อง')
 }
 
 // ✅ Validate file size
-const maxSize = 10 * 1024 * 1024; // 10MB
+const maxSize = 10 * 1024 * 1024 // 10MB
 if (file.size > maxSize) {
-  throw new Error('ไฟล์มีขนาดใหญ่เกินไป');
+  throw new Error('ไฟล์มีขนาดใหญ่เกินไป')
 }
 
 // ✅ Generate safe filename
-const safeFilename = `${Date.now()}-${crypto.randomUUID()}${ext}`;
+const safeFilename = `${Date.now()}-${crypto.randomUUID()}${ext}`
 ```
 
 ## 6. ID Validation
@@ -158,19 +158,21 @@ async getByCustomerId(customerId: string, requestingUserId: string) {
 
 ```typescript
 // Phone number
-z.string().regex(/^0[0-9]{9}$/, 'เบอร์โทรศัพท์ไม่ถูกต้อง');
+z.string().regex(/^0[0-9]{9}$/, 'เบอร์โทรศัพท์ไม่ถูกต้อง')
 
 // ID Card (Thai)
-z.string().length(13, 'เลขบัตรประชาชนต้องมี 13 หลัก');
+z.string().length(13, 'เลขบัตรประชาชนต้องมี 13 หลัก')
 
 // PIN (4 digits)
-z.string().length(4, 'PIN ต้องมี 4 หลัก').regex(/^[0-9]+$/, 'PIN ต้องเป็นตัวเลข');
+z.string()
+  .length(4, 'PIN ต้องมี 4 หลัก')
+  .regex(/^[0-9]+$/, 'PIN ต้องเป็นตัวเลข')
 
 // Amount
-z.number().positive('จำนวนเงินต้องมากกว่า 0');
+z.number().positive('จำนวนเงินต้องมากกว่า 0')
 
 // File size
 if (file.size > 10 * 1024 * 1024) {
-  throw new Error('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)');
+  throw new Error('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)')
 }
 ```

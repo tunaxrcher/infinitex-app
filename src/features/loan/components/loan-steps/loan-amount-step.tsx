@@ -3,17 +3,15 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
 
+import Image from 'next/image'
+
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
-import {
-  Dialog,
-  DialogContent,
-} from '@src/shared/ui/dialog'
+import { Dialog, DialogContent } from '@src/shared/ui/dialog'
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
 import { Progress } from '@src/shared/ui/progress'
 import { Check, DollarSign, Loader2, Sparkles } from 'lucide-react'
-import Image from 'next/image'
 import { toast } from 'sonner'
 
 interface LoanAmountStepProps {
@@ -40,7 +38,9 @@ export function LoanAmountStep({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAIDialog, setShowAIDialog] = useState(false)
   const [aiProgress, setAiProgress] = useState(0)
-  const [aiStatus, setAiStatus] = useState<'evaluating' | 'submitting' | 'sending' | 'done'>('evaluating')
+  const [aiStatus, setAiStatus] = useState<
+    'evaluating' | 'submitting' | 'sending' | 'done'
+  >('evaluating')
 
   // Progress animation when dialog is open
   useEffect(() => {

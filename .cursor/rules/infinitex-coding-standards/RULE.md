@@ -22,41 +22,41 @@ alwaysApply: true
 
 ## Naming Conventions
 
-| Type                       | Format           | Example                                |
-| -------------------------- | ---------------- | -------------------------------------- |
-| Variables, functions       | camelCase        | `getUserList`, `loanData`              |
-| Components, classes, types | PascalCase       | `LoanCard`, `LoanApplicationRepository`|
-| File names                 | kebab-case       | `loan-list.tsx`, `loan-service.ts`     |
-| API routes                 | kebab-case       | `/api/loan-application/[id]`           |
-| Constants                  | UPPER_SNAKE_CASE | `MAX_FILE_SIZE`                        |
-| Entity (singular)          | camelCase        | `loan`, `customer`                     |
-| Collections (plural)       | camelCase        | `loans`, `customers`                   |
+| Type                       | Format           | Example                                 |
+| -------------------------- | ---------------- | --------------------------------------- |
+| Variables, functions       | camelCase        | `getUserList`, `loanData`               |
+| Components, classes, types | PascalCase       | `LoanCard`, `LoanApplicationRepository` |
+| File names                 | kebab-case       | `loan-list.tsx`, `loan-service.ts`      |
+| API routes                 | kebab-case       | `/api/loan-application/[id]`            |
+| Constants                  | UPPER_SNAKE_CASE | `MAX_FILE_SIZE`                         |
+| Entity (singular)          | camelCase        | `loan`, `customer`                      |
+| Collections (plural)       | camelCase        | `loans`, `customers`                    |
 
 ### Naming Patterns
 
 ```typescript
 // API Object
-loanApi; // ไม่ใช่ LoanApi หรือ loan_api
+loanApi // ไม่ใช่ LoanApi หรือ loan_api
 
 // Hooks
-useGetLoanList; // use + Get + Entity + Action
-useSubmitLoanApplication;
-useAnalyzeTitleDeed;
-useUpdateLoanStatus;
+useGetLoanList // use + Get + Entity + Action
+useSubmitLoanApplication
+useAnalyzeTitleDeed
+useUpdateLoanStatus
 
 // Repository
-LoanApplicationRepository; // PascalCase class
-loanApplicationRepository; // camelCase instance
+LoanApplicationRepository // PascalCase class
+loanApplicationRepository // camelCase instance
 
 // Service
-loanService; // camelCase object
+loanService // camelCase object
 
 // Schemas
-loanCreateSchema; // camelCase + Schema suffix
-LoanCreateSchema; // PascalCase type (z.infer)
+loanCreateSchema // camelCase + Schema suffix
+LoanCreateSchema // PascalCase type (z.infer)
 
 // Keys
-loanKeys; // for React Query keys
+loanKeys // for React Query keys
 ```
 
 ## Code Style
@@ -78,56 +78,58 @@ loanKeys; // for React Query keys
 
 ```typescript
 // 1. 'use client' directive (ถ้าต้องการ)
-'use client';
+'use client'
 
 // 2. External packages (alphabetically within groups)
-import { NextRequest, NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server'
 
+import { Prisma } from '@prisma/client'
 // 3. Shared modules
-import { api } from '@src/shared/lib/api-client';
-import { prisma } from '@src/shared/lib/db';
-import { Button } from '@src/shared/ui/button';
+import { api } from '@src/shared/lib/api-client'
+import { prisma } from '@src/shared/lib/db'
+import { Button } from '@src/shared/ui/button'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { z } from 'zod'
 
 // 4. Feature modules (relative)
-import { loanApi } from './api';
-import { loanRepository } from './repositories/loanRepository';
-import { type LoanCreateSchema } from './validations';
+import { loanApi } from './api'
+import { loanRepository } from './repositories/loanRepository'
+import { type LoanCreateSchema } from './validations'
+
+// 1. 'use client' directive (ถ้าต้องการ)
 ```
 
 ## Error Messages (ภาษาไทย)
 
 ```typescript
 // Common errors
-'ไม่พบข้อมูล';
-'เกิดข้อผิดพลาด';
-'ไม่มีสิทธิ์ดำเนินการ';
-'ข้อมูลซ้ำ';
-'กรุณาลองใหม่อีกครั้ง';
+'ไม่พบข้อมูล'
+'เกิดข้อผิดพลาด'
+'ไม่มีสิทธิ์ดำเนินการ'
+'ข้อมูลซ้ำ'
+'กรุณาลองใหม่อีกครั้ง'
 
 // Validation errors
-'กรุณากรอกชื่อ';
-'รูปแบบอีเมลไม่ถูกต้อง';
-'เบอร์โทรศัพท์ไม่ถูกต้อง';
-'จำนวนต้องเป็นค่าบวก';
-'กรุณาเลือกไฟล์';
+'กรุณากรอกชื่อ'
+'รูปแบบอีเมลไม่ถูกต้อง'
+'เบอร์โทรศัพท์ไม่ถูกต้อง'
+'จำนวนต้องเป็นค่าบวก'
+'กรุณาเลือกไฟล์'
 
 // Success messages
-'บันทึกสำเร็จ';
-'สร้างรายการสำเร็จ';
-'แก้ไขรายการสำเร็จ';
-'ลบรายการสำเร็จ';
-'อัปเดตสถานะสำเร็จ';
-'ส่งคำขอสินเชื่อเรียบร้อยแล้ว!';
-'อัพโหลดสำเร็จ';
+'บันทึกสำเร็จ'
+'สร้างรายการสำเร็จ'
+'แก้ไขรายการสำเร็จ'
+'ลบรายการสำเร็จ'
+'อัปเดตสถานะสำเร็จ'
+'ส่งคำขอสินเชื่อเรียบร้อยแล้ว!'
+'อัพโหลดสำเร็จ'
 
 // Loan-specific messages
-'เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ';
-'เกิดข้อผิดพลาดในการวิเคราะห์โฉนด';
-'เกิดข้อผิดพลาดในการอัพโหลดบัตรประชาชน';
+'เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ'
+'เกิดข้อผิดพลาดในการวิเคราะห์โฉนด'
+'เกิดข้อผิดพลาดในการอัพโหลดบัตรประชาชน'
 ```
 
 ## File Naming Examples
@@ -167,17 +169,17 @@ const loan = await loanRepository.findById(Number(id)); // ไม่ต้อง
 ### Client Component
 
 ```typescript
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react'
 
-import { useSubmitLoanApplication } from '@src/features/loan/hooks';
-import { Button } from '@src/shared/ui/button';
+import { useSubmitLoanApplication } from '@src/features/loan/hooks'
+import { Button } from '@src/shared/ui/button'
+import { toast } from 'sonner'
 
 export function LoanForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const submitMutation = useSubmitLoanApplication();
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const submitMutation = useSubmitLoanApplication()
 
   // ...
 }

@@ -36,9 +36,9 @@ function encodeImageUrl(url: string): string {
 
     // Encode the pathname (file path) properly
     // Split by '/' to preserve path structure, then encode each segment
-    const encodedPathSegments = urlObj.pathname.split('/').map((segment) =>
-      encodeURIComponent(decodeURIComponent(segment))
-    )
+    const encodedPathSegments = urlObj.pathname
+      .split('/')
+      .map((segment) => encodeURIComponent(decodeURIComponent(segment)))
     urlObj.pathname = encodedPathSegments.join('/')
 
     return urlObj.toString()

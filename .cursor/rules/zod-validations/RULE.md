@@ -12,8 +12,8 @@ alwaysApply: false
 
 ```typescript
 // src/features/[feature-name]/validations.ts
-import { baseTableSchema } from '@src/shared/validations/pagination';
-import { z } from 'zod';
+import { baseTableSchema } from '@src/shared/validations/pagination'
+import { z } from 'zod'
 
 // ============================================
 // Filter Schemas (extend baseTableSchema)
@@ -25,9 +25,9 @@ export const entityFiltersSchema = baseTableSchema.extend({
   agentId: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
-});
+})
 
-export type EntityFiltersSchema = z.infer<typeof entityFiltersSchema>;
+export type EntityFiltersSchema = z.infer<typeof entityFiltersSchema>
 
 // ============================================
 // Create/Update Schemas
@@ -37,13 +37,13 @@ export const entityCreateSchema = z.object({
   name: z.string().min(1, 'กรุณากรอกชื่อ'),
   description: z.string().optional(),
   status: z.enum(['ACTIVE', 'INACTIVE']).default('ACTIVE'),
-});
+})
 
-export type EntityCreateSchema = z.infer<typeof entityCreateSchema>;
+export type EntityCreateSchema = z.infer<typeof entityCreateSchema>
 
-export const entityUpdateSchema = entityCreateSchema.partial();
+export const entityUpdateSchema = entityCreateSchema.partial()
 
-export type EntityUpdateSchema = z.infer<typeof entityUpdateSchema>;
+export type EntityUpdateSchema = z.infer<typeof entityUpdateSchema>
 ```
 
 ## baseTableSchema
@@ -52,7 +52,7 @@ export type EntityUpdateSchema = z.infer<typeof entityUpdateSchema>;
 
 ```typescript
 // src/shared/validations/pagination.ts
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const baseTableSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -60,20 +60,20 @@ export const baseTableSchema = z.object({
   search: z.string().optional(),
   sortBy: z.string().optional(),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
-});
+})
 
-export type BaseTableSchema = z.infer<typeof baseTableSchema>;
+export type BaseTableSchema = z.infer<typeof baseTableSchema>
 ```
 
 **ทุก filter schema ควร extend จาก `baseTableSchema`:**
 
 ```typescript
-import { baseTableSchema } from '@src/shared/validations/pagination';
+import { baseTableSchema } from '@src/shared/validations/pagination'
 
 export const customerFiltersSchema = baseTableSchema.extend({
   status: z.string().optional(),
   agentId: z.string().optional(),
-});
+})
 ```
 
 ## ข้อกำหนดสำคัญ
@@ -87,13 +87,13 @@ export const customerFiltersSchema = baseTableSchema.extend({
 ### Error Messages ภาษาไทย
 
 ```typescript
-z.string().min(1, 'กรุณากรอกชื่อ');
-z.string().email('รูปแบบอีเมลไม่ถูกต้อง');
-z.number().min(1, 'กรุณาระบุจำนวน');
-z.string().regex(/^0[0-9]{9}$/, 'เบอร์โทรศัพท์ไม่ถูกต้อง');
-z.number().positive('จำนวนต้องเป็นค่าบวก');
-z.string().min(1, 'กรุณาเลือก Agent');
-z.string().max(50, 'ชื่อต้องไม่เกิน 50 ตัวอักษร');
+z.string().min(1, 'กรุณากรอกชื่อ')
+z.string().email('รูปแบบอีเมลไม่ถูกต้อง')
+z.number().min(1, 'กรุณาระบุจำนวน')
+z.string().regex(/^0[0-9]{9}$/, 'เบอร์โทรศัพท์ไม่ถูกต้อง')
+z.number().positive('จำนวนต้องเป็นค่าบวก')
+z.string().min(1, 'กรุณาเลือก Agent')
+z.string().max(50, 'ชื่อต้องไม่เกิน 50 ตัวอักษร')
 ```
 
 ### Common Patterns
@@ -135,17 +135,17 @@ userType: z.enum(['CUSTOMER', 'AGENT']),
 
 ```typescript
 // วิธีที่แนะนำ: ใช้ .partial()
-export const entityUpdateSchema = entityCreateSchema.partial();
+export const entityUpdateSchema = entityCreateSchema.partial()
 
-export type EntityUpdateSchema = z.infer<typeof entityUpdateSchema>;
+export type EntityUpdateSchema = z.infer<typeof entityUpdateSchema>
 ```
 
 ## ตัวอย่างจริงจากโปรเจค
 
 ```typescript
 // src/features/customer/validations.ts
-import { baseTableSchema } from '@src/shared/validations/pagination';
-import { z } from 'zod';
+import { baseTableSchema } from '@src/shared/validations/pagination'
+import { z } from 'zod'
 
 export const customerFiltersSchema = baseTableSchema.extend({
   status: z.string().optional(),
@@ -153,17 +153,17 @@ export const customerFiltersSchema = baseTableSchema.extend({
   agentId: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
-});
+})
 
-export type CustomerFiltersSchema = z.infer<typeof customerFiltersSchema>;
+export type CustomerFiltersSchema = z.infer<typeof customerFiltersSchema>
 
 export const customerCreateSchema = z.object({
   phoneNumber: z
     .string()
     .min(10, 'กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก')
     .refine((val) => {
-      const cleaned = val.replace(/\D/g, '');
-      return cleaned.length === 10 && cleaned.startsWith('0');
+      const cleaned = val.replace(/\D/g, '')
+      return cleaned.length === 10 && cleaned.startsWith('0')
     }, 'เบอร์โทรศัพท์ต้องเป็น 10 หลักและขึ้นต้นด้วย 0'),
   firstName: z
     .string()
@@ -175,35 +175,37 @@ export const customerCreateSchema = z.object({
   address: z.string().optional(),
   email: z.string().email('รูปแบบอีเมลไม่ถูกต้อง').optional().or(z.literal('')),
   lineId: z.string().optional(),
-});
+})
 
-export type CustomerCreateSchema = z.infer<typeof customerCreateSchema>;
+export type CustomerCreateSchema = z.infer<typeof customerCreateSchema>
 
-export const customerUpdateSchema = customerCreateSchema.partial();
+export const customerUpdateSchema = customerCreateSchema.partial()
 
-export type CustomerUpdateSchema = z.infer<typeof customerUpdateSchema>;
+export type CustomerUpdateSchema = z.infer<typeof customerUpdateSchema>
 
 export const agentCustomerAssignSchema = z.object({
   agentId: z.string().min(1, 'กรุณาเลือก Agent'),
   customerId: z.string().min(1, 'กรุณาเลือกลูกค้า'),
-});
+})
 
-export type AgentCustomerAssignSchema = z.infer<typeof agentCustomerAssignSchema>;
+export type AgentCustomerAssignSchema = z.infer<
+  typeof agentCustomerAssignSchema
+>
 ```
 
 ### Loan Validation Example
 
 ```typescript
 // src/features/loan/validations.ts
-import { z } from 'zod';
+import { z } from 'zod'
 
 export const manualLookupSchema = z.object({
   pvCode: z.string().min(1, 'กรุณาเลือกจังหวัด'),
   amCode: z.string().min(1, 'กรุณาเลือกอำเภอ'),
   parcelNo: z.string().min(1, 'กรุณากรอกเลขที่โฉนด'),
-});
+})
 
-export type ManualLookupSchema = z.infer<typeof manualLookupSchema>;
+export type ManualLookupSchema = z.infer<typeof manualLookupSchema>
 
 export const loanApplicationSubmissionSchema = z.object({
   customerId: z.string().optional(),
@@ -217,11 +219,11 @@ export const loanApplicationSubmissionSchema = z.object({
   idCardBackImage: z.string().optional(),
   requestedAmount: z.coerce.number().min(0),
   hirePurchase: z.boolean().default(false),
-});
+})
 
 export type LoanApplicationSubmissionSchema = z.infer<
   typeof loanApplicationSubmissionSchema
->;
+>
 ```
 
 ## Export Checklist

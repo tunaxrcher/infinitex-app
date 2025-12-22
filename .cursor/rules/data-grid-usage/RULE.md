@@ -15,22 +15,13 @@ alwaysApply: false
 ## โครงสร้างพื้นฐาน
 
 ```tsx
-'use client';
+'use client'
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react'
 
-import {
-  ColumnDef,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  PaginationState,
-  SortingState,
-  useReactTable,
-} from '@tanstack/react-table';
-
-import { useGetEntityList } from '@src/features/[feature]/hooks';
-import { Card, CardContent, CardFooter } from '@src/shared/ui/card';
+import { useGetEntityList } from '@src/features/[feature]/hooks'
+import { Button } from '@src/shared/ui/button'
+import { Card, CardContent, CardFooter } from '@src/shared/ui/card'
 import {
   Table,
   TableBody,
@@ -38,13 +29,21 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@src/shared/ui/table';
-import { Button } from '@src/shared/ui/button';
+} from '@src/shared/ui/table'
+import {
+  ColumnDef,
+  PaginationState,
+  SortingState,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
 
 interface EntityData {
-  id: string;
-  name: string;
-  status: string;
+  id: string
+  name: string
+  status: string
 }
 
 export function EntityListTable() {
@@ -52,22 +51,22 @@ export function EntityListTable() {
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
-  });
+  })
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'createdAt', desc: true },
-  ]);
+  ])
 
   // 2. Fetch data
   const { data: apiResponse, isLoading } = useGetEntityList({
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
-  });
+  })
 
   // 3. Transform data
   const data = useMemo(() => {
-    if (!apiResponse?.data) return [];
-    return apiResponse.data;
-  }, [apiResponse]);
+    if (!apiResponse?.data) return []
+    return apiResponse.data
+  }, [apiResponse])
 
   // 4. Define columns
   const columns = useMemo<ColumnDef<EntityData>[]>(
@@ -83,13 +82,13 @@ export function EntityListTable() {
         accessorFn: (row) => row.status,
         header: 'สถานะ',
         cell: (info) => {
-          const status = info.getValue() as string;
-          return status === 'ACTIVE' ? 'ใช้งาน' : 'ไม่ใช้งาน';
+          const status = info.getValue() as string
+          return status === 'ACTIVE' ? 'ใช้งาน' : 'ไม่ใช้งาน'
         },
       },
     ],
     []
-  );
+  )
 
   // 5. Create table instance
   const table = useReactTable({
@@ -103,10 +102,10 @@ export function EntityListTable() {
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
     pageCount: Math.ceil((apiResponse?.meta?.total || 0) / pagination.pageSize),
-  });
+  })
 
   if (isLoading) {
-    return <div>กำลังโหลด...</div>;
+    return <div>กำลังโหลด...</div>
   }
 
   // 6. Render
@@ -148,8 +147,7 @@ export function EntityListTable() {
           variant="outline"
           size="sm"
           onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
+          disabled={!table.getCanPreviousPage()}>
           ก่อนหน้า
         </Button>
         <span>
@@ -159,13 +157,12 @@ export function EntityListTable() {
           variant="outline"
           size="sm"
           onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
+          disabled={!table.getCanNextPage()}>
           ถัดไป
         </Button>
       </CardFooter>
     </Card>
-  );
+  )
 }
 ```
 
@@ -174,15 +171,15 @@ export function EntityListTable() {
 สำหรับ Mobile App ควรใช้ Card List แทน Table:
 
 ```tsx
-'use client';
+'use client'
 
-import { useGetLoansByAgentId } from '@src/features/loan/hooks';
-import { Card } from '@src/shared/ui/card';
-import { Badge } from '@src/shared/ui/badge';
-import { Skeleton } from '@src/shared/ui/skeleton';
+import { useGetLoansByAgentId } from '@src/features/loan/hooks'
+import { Badge } from '@src/shared/ui/badge'
+import { Card } from '@src/shared/ui/card'
+import { Skeleton } from '@src/shared/ui/skeleton'
 
 export function LoansList({ agentId }: { agentId: string }) {
-  const { data, isLoading } = useGetLoansByAgentId(agentId);
+  const { data, isLoading } = useGetLoansByAgentId(agentId)
 
   if (isLoading) {
     return (
@@ -191,15 +188,13 @@ export function LoansList({ agentId }: { agentId: string }) {
           <Skeleton key={i} className="h-24 w-full" />
         ))}
       </div>
-    );
+    )
   }
 
   if (!data?.data?.length) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        ไม่พบรายการ
-      </div>
-    );
+      <div className="text-center py-8 text-muted-foreground">ไม่พบรายการ</div>
+    )
   }
 
   return (
@@ -220,7 +215,7 @@ export function LoansList({ agentId }: { agentId: string }) {
         </Card>
       ))}
     </div>
-  );
+  )
 }
 ```
 
@@ -230,17 +225,17 @@ export function LoansList({ agentId }: { agentId: string }) {
 const getStatusVariant = (status: string) => {
   switch (status) {
     case 'APPROVED':
-      return 'success';
+      return 'success'
     case 'SUBMITTED':
     case 'UNDER_REVIEW':
-      return 'warning';
+      return 'warning'
     case 'REJECTED':
     case 'CANCELLED':
-      return 'destructive';
+      return 'destructive'
     default:
-      return 'secondary';
+      return 'secondary'
   }
-};
+}
 
 const getStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
@@ -250,9 +245,9 @@ const getStatusLabel = (status: string) => {
     APPROVED: 'อนุมัติ',
     REJECTED: 'ไม่อนุมัติ',
     CANCELLED: 'ยกเลิก',
-  };
-  return labels[status] || status;
-};
+  }
+  return labels[status] || status
+}
 ```
 
 ## Currency Formatting
@@ -262,6 +257,6 @@ const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('th-TH', {
     style: 'currency',
     currency: 'THB',
-  }).format(amount);
-};
+  }).format(amount)
+}
 ```

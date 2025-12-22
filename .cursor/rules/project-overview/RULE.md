@@ -9,10 +9,10 @@ alwaysApply: true
 
 ## ประเภทผู้ใช้งาน
 
-| User Type | Description                                   |
-| --------- | --------------------------------------------- |
-| Customer  | ลูกค้าที่ต้องการสมัครสินเชื่อหรือชำระเงิน    |
-| Agent     | ตัวแทนที่ช่วยลูกค้าสมัครสินเชื่อ             |
+| User Type | Description                               |
+| --------- | ----------------------------------------- |
+| Customer  | ลูกค้าที่ต้องการสมัครสินเชื่อหรือชำระเงิน |
+| Agent     | ตัวแทนที่ช่วยลูกค้าสมัครสินเชื่อ          |
 
 ## Tech Stack
 
@@ -166,17 +166,17 @@ src/app/
 
 ## Key Files
 
-| File                                      | Purpose                              |
-| ----------------------------------------- | ------------------------------------ |
-| `@src/shared/lib/api-client.ts`           | API client (`api`)                   |
-| `@src/shared/lib/db.ts`                   | Prisma client (`prisma`)             |
-| `@src/shared/lib/auth.ts`                 | Auth utilities                       |
-| `@src/shared/lib/storage.ts`              | File storage (S3)                    |
-| `@src/shared/lib/utils.ts`                | Utility functions (`cn`)             |
-| `@src/shared/lib/ai-services.ts`          | AI integration (OpenAI)              |
-| `@src/shared/contexts/auth-context.tsx`   | Auth context                         |
-| `@src/shared/repositories/baseRepository.ts` | BaseRepository class              |
-| `@src/shared/validations/pagination.ts`   | baseTableSchema for pagination       |
+| File                                         | Purpose                        |
+| -------------------------------------------- | ------------------------------ |
+| `@src/shared/lib/api-client.ts`              | API client (`api`)             |
+| `@src/shared/lib/db.ts`                      | Prisma client (`prisma`)       |
+| `@src/shared/lib/auth.ts`                    | Auth utilities                 |
+| `@src/shared/lib/storage.ts`                 | File storage (S3)              |
+| `@src/shared/lib/utils.ts`                   | Utility functions (`cn`)       |
+| `@src/shared/lib/ai-services.ts`             | AI integration (OpenAI)        |
+| `@src/shared/contexts/auth-context.tsx`      | Auth context                   |
+| `@src/shared/repositories/baseRepository.ts` | BaseRepository class           |
+| `@src/shared/validations/pagination.ts`      | baseTableSchema for pagination |
 
 ## Important Notes
 

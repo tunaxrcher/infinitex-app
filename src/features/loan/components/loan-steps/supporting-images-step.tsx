@@ -3,6 +3,8 @@
 import type React from 'react'
 import { useEffect, useMemo, useState } from 'react'
 
+import Image from 'next/image'
+
 import { loanApi } from '@src/features/loan/api'
 import { Alert, AlertDescription } from '@src/shared/ui/alert'
 import { Button } from '@src/shared/ui/button'
@@ -17,7 +19,6 @@ import {
   Upload,
   X,
 } from 'lucide-react'
-import Image from 'next/image'
 import { toast } from 'sonner'
 
 // Max file size per image (5MB)
@@ -115,10 +116,9 @@ export function SupportingImagesStep({
     }
 
     if (oversizedFiles.length > 0) {
-      toast.error(
-        `ไฟล์ต่อไปนี้มีขนาดเกิน 5MB: ${oversizedFiles.join(', ')}`,
-        { duration: 5000 }
-      )
+      toast.error(`ไฟล์ต่อไปนี้มีขนาดเกิน 5MB: ${oversizedFiles.join(', ')}`, {
+        duration: 5000,
+      })
     }
 
     if (validFiles.length > 0) {
@@ -157,9 +157,7 @@ export function SupportingImagesStep({
     // Upload files when user clicks next
     if (data.supportingImages && data.supportingImages.length > 0) {
       // Separate already uploaded images (have url) from new files (File objects)
-      const uploadedImages = data.supportingImages.filter(
-        (img: any) => img.url
-      )
+      const uploadedImages = data.supportingImages.filter((img: any) => img.url)
       const newFiles = data.supportingImages.filter(
         (img: any) => img instanceof File
       )
@@ -460,7 +458,8 @@ export function SupportingImagesStep({
                 {data.supportingImages.map((image: any, index: number) => {
                   // Get image source - either from URL (uploaded) or create object URL (new file)
                   const imageSrc =
-                    image.url || (image instanceof File ? imagePreviews[index] : null)
+                    image.url ||
+                    (image instanceof File ? imagePreviews[index] : null)
                   const imageName =
                     image.name ||
                     (image instanceof File ? image.name : 'รูปภาพ')

@@ -15,14 +15,14 @@ Components  →  Hooks  →  API Client  →  API Route  →  Service  →  Repo
    UI Logic   Cache     HTTP calls    Validate     Business    Database
 ```
 
-| Layer      | ✅ ทำได้                         | ❌ ห้ามทำ                              |
-| ---------- | -------------------------------- | -------------------------------------- |
-| Component  | ใช้ hooks, handle UI events      | เรียก API โดยตรง, เข้าถึง DB           |
-| Hooks      | เรียก api.ts, จัดการ cache       | เรียก service โดยตรง                   |
-| API Client | HTTP requests, handle response   | Business logic                         |
-| API Route  | Validate, เรียก service          | Query DB โดยตรง, Business logic        |
-| Service    | Business logic, เรียก repository | เข้าถึง Prisma โดยตรง (ยกเว้นจำเป็น)   |
-| Repository | Database queries (extends Base)  | Business logic                         |
+| Layer      | ✅ ทำได้                         | ❌ ห้ามทำ                            |
+| ---------- | -------------------------------- | ------------------------------------ |
+| Component  | ใช้ hooks, handle UI events      | เรียก API โดยตรง, เข้าถึง DB         |
+| Hooks      | เรียก api.ts, จัดการ cache       | เรียก service โดยตรง                 |
+| API Client | HTTP requests, handle response   | Business logic                       |
+| API Route  | Validate, เรียก service          | Query DB โดยตรง, Business logic      |
+| Service    | Business logic, เรียก repository | เข้าถึง Prisma โดยตรง (ยกเว้นจำเป็น) |
+| Repository | Database queries (extends Base)  | Business logic                       |
 
 ## 2. Type Safety
 
@@ -47,12 +47,12 @@ export type CustomerCreateSchema = z.infer<typeof customerCreateSchema>;
 ### Use baseTableSchema for filters
 
 ```typescript
-import { baseTableSchema } from '@src/shared/validations/pagination';
+import { baseTableSchema } from '@src/shared/validations/pagination'
 
 export const customerFiltersSchema = baseTableSchema.extend({
   status: z.string().optional(),
   agentId: z.string().optional(),
-});
+})
 ```
 
 ## 3. Error Handling
@@ -159,9 +159,9 @@ async findById(id: number) { ... }
 
 ```typescript
 onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: entityKeys.all() });
-  toast.success('บันทึกสำเร็จ');
-};
+  queryClient.invalidateQueries({ queryKey: entityKeys.all() })
+  toast.success('บันทึกสำเร็จ')
+}
 ```
 
 ## 7. Server-Only Directive
@@ -170,8 +170,8 @@ onSuccess: () => {
 
 ```typescript
 // src/features/[feature]/services/server.ts
-import { prisma } from '@src/shared/lib/db';
-import 'server-only';
+import { prisma } from '@src/shared/lib/db'
+import 'server-only'
 
 // ...rest of code
 ```
@@ -181,18 +181,18 @@ import 'server-only';
 **Extend BaseRepository:**
 
 ```typescript
-import { prisma } from '@src/shared/lib/db';
-import { BaseRepository } from '@src/shared/repositories/baseRepository';
+import { prisma } from '@src/shared/lib/db'
+import { BaseRepository } from '@src/shared/repositories/baseRepository'
 
 export class CustomerRepository extends BaseRepository<typeof prisma.user> {
   constructor() {
-    super(prisma.user);
+    super(prisma.user)
   }
 
   // Custom methods...
 }
 
-export const customerRepository = new CustomerRepository();
+export const customerRepository = new CustomerRepository()
 ```
 
 ## 9. API Response Format
@@ -238,20 +238,21 @@ if (!userId || userType !== 'AGENT') {
 
 ```typescript
 // 1. 'use client' directive (ถ้าต้องการ)
-'use client';
+'use client'
 
 // 2. External packages
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
-
 // 3. Shared modules
-import { api } from '@src/shared/lib/api-client';
-import { baseTableSchema } from '@src/shared/validations/pagination';
-import { Button } from '@src/shared/ui/button';
+import { api } from '@src/shared/lib/api-client'
+import { Button } from '@src/shared/ui/button'
+import { baseTableSchema } from '@src/shared/validations/pagination'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 // 4. Feature modules (relative)
-import { entityApi } from './api';
-import { type EntityCreateSchema } from './validations';
+import { entityApi } from './api'
+import { type EntityCreateSchema } from './validations'
+
+// 1. 'use client' directive (ถ้าต้องการ)
 ```
 
 ### Avoid

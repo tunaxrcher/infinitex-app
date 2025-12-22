@@ -11,10 +11,10 @@ alwaysApply: false
 
 ```typescript
 // src/app/api/[entity]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
 
-import { entityService } from '@src/features/[feature]/services/server';
-import { entityCreateSchema } from '@src/features/[feature]/validations';
+import { entityService } from '@src/features/[feature]/services/server'
+import { entityCreateSchema } from '@src/features/[feature]/validations'
 
 // ============================================
 // GET - List/Search
@@ -22,33 +22,33 @@ import { entityCreateSchema } from '@src/features/[feature]/validations';
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const search = searchParams.get('search');
+    const searchParams = request.nextUrl.searchParams
+    const search = searchParams.get('search')
 
     // Get user info from headers (set by middleware)
-    const userId = request.headers.get('x-user-id');
-    const userType = request.headers.get('x-user-type');
+    const userId = request.headers.get('x-user-id')
+    const userType = request.headers.get('x-user-type')
 
     // Check authorization if needed
     if (!userId || userType !== 'AGENT') {
       return NextResponse.json(
         { error: 'Agent access required' },
         { status: 403 }
-      );
+      )
     }
 
     const filters = {
       search: search || undefined,
-    };
+    }
 
-    const result = await entityService.getList(userId, filters);
-    return NextResponse.json(result);
+    const result = await entityService.getList(userId, filters)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('GET /api/entities error:', error);
+    console.error('GET /api/entities error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
-    );
+    )
   }
 }
 
@@ -58,38 +58,38 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json()
 
     // Validate request body
-    const validatedData = entityCreateSchema.parse(body);
+    const validatedData = entityCreateSchema.parse(body)
 
     // Get user info from headers
-    const userId = request.headers.get('x-user-id');
-    const userType = request.headers.get('x-user-type');
+    const userId = request.headers.get('x-user-id')
+    const userType = request.headers.get('x-user-type')
 
     if (!userId || userType !== 'AGENT') {
       return NextResponse.json(
         { error: 'Agent access required' },
         { status: 403 }
-      );
+      )
     }
 
-    const result = await entityService.create(validatedData, userId);
-    return NextResponse.json(result);
+    const result = await entityService.create(validatedData, userId)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error('POST /api/entities error:', error);
+    console.error('POST /api/entities error:', error)
 
     if (error instanceof Error && error.name === 'ZodError') {
       return NextResponse.json(
         { error: 'ข้อมูลไม่ถูกต้อง', details: error.message },
         { status: 400 }
-      );
+      )
     }
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
-    );
+    )
   }
 }
 ```
@@ -98,12 +98,12 @@ export async function POST(request: NextRequest) {
 
 ```typescript
 // src/app/api/[entity]/[id]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
 
-import { entityService } from '@src/features/[feature]/services/server';
-import { entityUpdateSchema } from '@src/features/[feature]/validations';
+import { entityService } from '@src/features/[feature]/services/server'
+import { entityUpdateSchema } from '@src/features/[feature]/validations'
 
-type RouteParams = { params: Promise<{ id: string }> };
+type RouteParams = { params: Promise<{ id: string }> }
 
 // ============================================
 // GET - Get by ID
@@ -111,16 +111,19 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params;
-    const result = await entityService.getById(id);
+    const { id } = await params
+    const result = await entityService.getById(id)
 
-    return NextResponse.json(result);
+    return NextResponse.json(result)
   } catch (error) {
-    console.error(`GET /api/entities/${id} error:`, error);
+    console.error(`GET /api/entities/${id} error:`, error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
-      { status: error instanceof Error && error.message === 'ไม่พบข้อมูล' ? 404 : 500 }
-    );
+      {
+        status:
+          error instanceof Error && error.message === 'ไม่พบข้อมูล' ? 404 : 500,
+      }
+    )
   }
 }
 
@@ -130,18 +133,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params;
-    const body = await request.json();
-    const validatedData = entityUpdateSchema.parse(body);
+    const { id } = await params
+    const body = await request.json()
+    const validatedData = entityUpdateSchema.parse(body)
 
-    const result = await entityService.update(id, validatedData);
-    return NextResponse.json(result);
+    const result = await entityService.update(id, validatedData)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error(`PUT /api/entities/${id} error:`, error);
+    console.error(`PUT /api/entities/${id} error:`, error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
-    );
+    )
   }
 }
 
@@ -151,16 +154,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params;
-    await entityService.delete(id);
+    const { id } = await params
+    await entityService.delete(id)
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error(`DELETE /api/entities/${id} error:`, error);
+    console.error(`DELETE /api/entities/${id} error:`, error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
-    );
+    )
   }
 }
 ```
@@ -240,8 +243,8 @@ return NextResponse.json(
 ## Error Logging
 
 ```typescript
-console.error('GET /api/customers error:', error);
-console.error(`PUT /api/customers/${id} error:`, error);
+console.error('GET /api/customers error:', error)
+console.error(`PUT /api/customers/${id} error:`, error)
 ```
 
 ## Validation Pattern
@@ -269,28 +272,25 @@ if (error instanceof Error && error.name === 'ZodError') {
 ```typescript
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    const formData = await request.formData()
 
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as File
     if (!file) {
-      return NextResponse.json(
-        { error: 'กรุณาเลือกไฟล์' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'กรุณาเลือกไฟล์' }, { status: 400 })
     }
 
-    const result = await fileService.processAndUpload(file);
+    const result = await fileService.processAndUpload(file)
 
     return NextResponse.json({
       success: true,
       data: result,
-    });
+    })
   } catch (error) {
-    console.error('POST /api/upload error:', error);
+    console.error('POST /api/upload error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
-    );
+    )
   }
 }
 ```

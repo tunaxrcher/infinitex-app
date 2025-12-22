@@ -11,13 +11,13 @@ alwaysApply: false
 
 ```typescript
 // src/features/[feature-name]/api.ts
-import { api } from '@src/shared/lib/api-client';
+import { api } from '@src/shared/lib/api-client'
 
 import {
   type EntityCreateSchema,
   type EntityFiltersSchema,
   type EntityUpdateSchema,
-} from './validations';
+} from './validations'
 
 export const entityApi = {
   // ============================================
@@ -25,22 +25,22 @@ export const entityApi = {
   // ============================================
 
   getList: async (filters?: EntityFiltersSchema) => {
-    const searchParams = new URLSearchParams();
+    const searchParams = new URLSearchParams()
 
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
-          searchParams.append(key, value.toString());
+          searchParams.append(key, value.toString())
         }
-      });
+      })
     }
 
-    const query = searchParams.toString();
-    return api.get(`/api/entities${query ? `?${query}` : ''}`);
+    const query = searchParams.toString()
+    return api.get(`/api/entities${query ? `?${query}` : ''}`)
   },
 
   getById: async (id: string) => {
-    return api.get(`/api/entities/${id}`);
+    return api.get(`/api/entities/${id}`)
   },
 
   // ============================================
@@ -48,17 +48,17 @@ export const entityApi = {
   // ============================================
 
   create: async (data: EntityCreateSchema) => {
-    return api.post('/api/entities', data);
+    return api.post('/api/entities', data)
   },
 
   update: async (id: string, data: EntityUpdateSchema) => {
-    return api.put(`/api/entities/${id}`, data);
+    return api.put(`/api/entities/${id}`, data)
   },
 
   delete: async (id: string) => {
-    return api.delete(`/api/entities/${id}`);
+    return api.delete(`/api/entities/${id}`)
   },
-};
+}
 ```
 
 ## API Client Methods
@@ -66,25 +66,25 @@ export const entityApi = {
 ใช้ `api` object จาก `@src/shared/lib/api-client`:
 
 ```typescript
-import { api } from '@src/shared/lib/api-client';
+import { api } from '@src/shared/lib/api-client'
 
 // GET request
-api.get('/api/path');
+api.get('/api/path')
 
 // POST request (JSON)
-api.post('/api/path', { key: value });
+api.post('/api/path', { key: value })
 
 // POST request (FormData)
-api.post('/api/path', formData);
+api.post('/api/path', formData)
 
 // PUT request
-api.put('/api/path', { key: value });
+api.put('/api/path', { key: value })
 
 // PATCH request
-api.patch('/api/path', { key: value });
+api.patch('/api/path', { key: value })
 
 // DELETE request
-api.delete('/api/path');
+api.delete('/api/path')
 ```
 
 ## ข้อกำหนดสำคัญ
@@ -157,33 +157,33 @@ export const loanApi = {
    * Submit loan application
    */
   submit: async (data: LoanSubmitSchema) => {
-    return api.post('/api/loans/submit', data);
+    return api.post('/api/loans/submit', data)
   },
 
   /**
    * Analyze title deed with AI
    */
   analyzeTitleDeed: async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
+    const formData = new FormData()
+    formData.append('file', file)
 
-    return api.post('/api/loans/title-deed/analyze', formData);
+    return api.post('/api/loans/title-deed/analyze', formData)
   },
 
   /**
    * Get loans by agent ID
    */
   getByAgentId: async (agentId: string) => {
-    return api.get(`/api/loans/agent/${agentId}`);
+    return api.get(`/api/loans/agent/${agentId}`)
   },
 
   /**
    * Update status
    */
   updateStatus: async (id: string, status: string, notes?: string) => {
-    return api.patch(`/api/loans/${id}/status`, { status, notes });
+    return api.patch(`/api/loans/${id}/status`, { status, notes })
   },
-};
+}
 ```
 
 ## Naming Convention
@@ -199,31 +199,31 @@ export const loanApi = {
 
 ```typescript
 // src/features/loan/api.ts
-import { api } from '@src/shared/lib/api-client';
+import { api } from '@src/shared/lib/api-client'
 
 export const loanApi = {
   submitApplication: async (data: any): Promise<any> => {
-    return api.post('/api/loans/submit', data);
+    return api.post('/api/loans/submit', data)
   },
 
   analyzeTitleDeed: async (file: File): Promise<any> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post('/api/loans/title-deed/analyze', formData);
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/loans/title-deed/analyze', formData)
   },
 
   uploadIdCard: async (file: File): Promise<any> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post('/api/loans/id-card/upload', formData);
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post('/api/loans/id-card/upload', formData)
   },
 
   getByAgentId: async (agentId: string): Promise<any> => {
-    return api.get(`/api/loans/agent/${agentId}`);
+    return api.get(`/api/loans/agent/${agentId}`)
   },
 
   getById: async (id: string): Promise<any> => {
-    return api.get(`/api/loans/${id}`);
+    return api.get(`/api/loans/${id}`)
   },
-};
+}
 ```

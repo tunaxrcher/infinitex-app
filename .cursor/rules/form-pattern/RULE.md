@@ -12,24 +12,22 @@ alwaysApply: false
 ## โครงสร้างพื้นฐาน
 
 ```tsx
-'use client';
+'use client'
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-
-import { useCreateEntity } from '@src/features/[feature]/hooks';
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useCreateEntity } from '@src/features/[feature]/hooks'
 import {
-  entityCreateSchema,
   type EntityCreateSchema,
-} from '@src/features/[feature]/validations';
-import { Button } from '@src/shared/ui/button';
+  entityCreateSchema,
+} from '@src/features/[feature]/validations'
+import { Button } from '@src/shared/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@src/shared/ui/dialog';
+} from '@src/shared/ui/dialog'
 import {
   Form,
   FormControl,
@@ -37,19 +35,20 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@src/shared/ui/form';
-import { Input } from '@src/shared/ui/input';
+} from '@src/shared/ui/form'
+import { Input } from '@src/shared/ui/input'
+import { useForm } from 'react-hook-form'
 
 interface EntityFormDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export function EntityFormDialog({
   open,
   onOpenChange,
 }: EntityFormDialogProps) {
-  const createMutation = useCreateEntity();
+  const createMutation = useCreateEntity()
 
   const form = useForm<EntityCreateSchema>({
     resolver: zodResolver(entityCreateSchema),
@@ -58,16 +57,16 @@ export function EntityFormDialog({
       description: '',
       status: 'ACTIVE',
     },
-  });
+  })
 
   const onSubmit = (data: EntityCreateSchema) => {
     createMutation.mutate(data, {
       onSuccess: () => {
-        form.reset();
-        onOpenChange(false);
+        form.reset()
+        onOpenChange(false)
       },
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -84,8 +83,7 @@ export function EntityFormDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+                onClick={() => onOpenChange(false)}>
                 ยกเลิก
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
@@ -96,7 +94,7 @@ export function EntityFormDialog({
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
 ```
 
@@ -212,37 +210,37 @@ export function EntityFormDialog({
 ## Multi-Step Form Pattern (สำหรับ Loan Application)
 
 ```tsx
-'use client';
+'use client'
 
-import { useState } from 'react';
+import { useState } from 'react'
 
-import { useSubmitLoanApplication } from '@src/features/loan/hooks';
+import { useSubmitLoanApplication } from '@src/features/loan/hooks'
 
 export function LoanApplicationFlow() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState<Partial<LoanApplicationData>>({});
+  const [currentStep, setCurrentStep] = useState(1)
+  const [formData, setFormData] = useState<Partial<LoanApplicationData>>({})
 
-  const submitMutation = useSubmitLoanApplication();
+  const submitMutation = useSubmitLoanApplication()
 
   const updateFormData = (data: Partial<LoanApplicationData>) => {
-    setFormData((prev) => ({ ...prev, ...data }));
-  };
+    setFormData((prev) => ({ ...prev, ...data }))
+  }
 
   const handleNext = () => {
-    setCurrentStep((prev) => prev + 1);
-  };
+    setCurrentStep((prev) => prev + 1)
+  }
 
   const handleBack = () => {
-    setCurrentStep((prev) => prev - 1);
-  };
+    setCurrentStep((prev) => prev - 1)
+  }
 
   const handleSubmit = () => {
     submitMutation.mutate(formData as LoanApplicationData, {
       onSuccess: () => {
-        setCurrentStep(5); // Go to success step
+        setCurrentStep(5) // Go to success step
       },
-    });
-  };
+    })
+  }
 
   return (
     <div>
@@ -279,7 +277,7 @@ export function LoanApplicationFlow() {
       )}
       {currentStep === 5 && <SuccessStep />}
     </div>
-  );
+  )
 }
 ```
 
@@ -340,9 +338,9 @@ const form = useForm({
 
 ```tsx
 onSuccess: () => {
-  form.reset();
-  onOpenChange(false);
-};
+  form.reset()
+  onOpenChange(false)
+}
 ```
 
 ### 3. Disable submit while pending
@@ -362,16 +360,16 @@ onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
 ### 5. Loading states with sonner
 
 ```tsx
-import { toast } from 'sonner';
+import { toast } from 'sonner'
 
 const handleSubmit = () => {
   mutation.mutate(data, {
     onSuccess: () => {
-      toast.success('บันทึกสำเร็จ');
+      toast.success('บันทึกสำเร็จ')
     },
     onError: (error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาด');
+      toast.error(error.message || 'เกิดข้อผิดพลาด')
     },
-  });
-};
+  })
+}
 ```

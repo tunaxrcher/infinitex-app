@@ -222,7 +222,10 @@ export const loanService = {
 
         if (valuationResult.success && valuationResult.valuation) {
           propertyValuation = valuationResult.valuation
-          console.log('[LoanService] AI valuation completed:', propertyValuation)
+          console.log(
+            '[LoanService] AI valuation completed:',
+            propertyValuation
+          )
 
           // Update LoanApplication with valuation data
           await prisma.loanApplication.update({
@@ -246,10 +249,7 @@ export const loanService = {
       try {
         // Generate unique loan number: LN + YYMMDD + 4 random digits
         const now = new Date()
-        const dateStr = now
-          .toISOString()
-          .slice(2, 10)
-          .replace(/-/g, '')
+        const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '')
         const randomDigits = Math.floor(1000 + Math.random() * 9000)
         const loanNumber = `LN${dateStr}${randomDigits}`
 
@@ -705,7 +705,8 @@ export const loanService = {
           `${titleDeedManualData.amName || ''} ${titleDeedManualData.pvName || ''}`.trim() ||
           propertyInfo.propertyLocation,
         // Use user-entered parcelNo as landNumber (this is what user typed)
-        landNumber: titleDeedManualData.parcelNo || propertyInfo.landNumber || '',
+        landNumber:
+          titleDeedManualData.parcelNo || propertyInfo.landNumber || '',
       }
     }
 
@@ -922,7 +923,10 @@ export const loanService = {
               supportingBuffers.push(Buffer.from(arrayBuffer))
             }
           } catch (err) {
-            console.warn('[LoanService] Failed to download supporting image:', url)
+            console.warn(
+              '[LoanService] Failed to download supporting image:',
+              url
+            )
           }
         }
       }

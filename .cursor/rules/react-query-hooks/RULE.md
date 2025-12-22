@@ -11,11 +11,13 @@ alwaysApply: false
 
 ```typescript
 // src/features/[feature-name]/hooks.ts
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner'; // หรือ toast from 'react-hot-toast'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
-import { entityApi } from './api';
-import { type EntityFiltersSchema } from './validations';
+// หรือ toast from 'react-hot-toast'
+
+import { entityApi } from './api'
+import { type EntityFiltersSchema } from './validations'
 
 // ============================================
 // Query Keys
@@ -23,14 +25,13 @@ import { type EntityFiltersSchema } from './validations';
 
 export const entityKeys = {
   all: () => ['entity'] as const,
-  list: (filters?: EntityFiltersSchema) =>
-    ['entity', 'list', filters] as const,
+  list: (filters?: EntityFiltersSchema) => ['entity', 'list', filters] as const,
   listByAgent: (agentId: string, filters?: any) =>
     ['entity', 'list', 'agent', agentId, filters] as const,
   detail: (id: string) => ['entity', 'detail', id] as const,
   search: (term: string, agentId?: string) =>
     ['entity', 'search', term, agentId] as const,
-};
+}
 
 // ============================================
 // Query Hooks
@@ -46,69 +47,69 @@ export const useGetEntityList = (filters?: EntityFiltersSchema) => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: false,
-  });
-};
+  })
+}
 
 export const useGetEntityById = (id: string) => {
   return useQuery({
     queryKey: entityKeys.detail(id),
     queryFn: () => entityApi.getById(id),
     enabled: !!id,
-  });
-};
+  })
+}
 
 // ============================================
 // Mutation Hooks
 // ============================================
 
 export const useCreateEntity = () => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: entityApi.create,
     retry: false,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: entityKeys.all() });
-      toast.success('สร้างรายการสำเร็จ');
+      queryClient.invalidateQueries({ queryKey: entityKeys.all() })
+      toast.success('สร้างรายการสำเร็จ')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาด');
+      toast.error(error.message || 'เกิดข้อผิดพลาด')
     },
-  });
-};
+  })
+}
 
 export const useUpdateEntity = () => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       entityApi.update(id, data),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: entityKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: entityKeys.all() });
-      toast.success('แก้ไขรายการสำเร็จ');
+      queryClient.invalidateQueries({ queryKey: entityKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: entityKeys.all() })
+      toast.success('แก้ไขรายการสำเร็จ')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาด');
+      toast.error(error.message || 'เกิดข้อผิดพลาด')
     },
-  });
-};
+  })
+}
 
 export const useDeleteEntity = () => {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: entityApi.delete,
     onSuccess: (_, id) => {
-      queryClient.removeQueries({ queryKey: entityKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: entityKeys.all() });
-      toast.success('ลบรายการสำเร็จ');
+      queryClient.removeQueries({ queryKey: entityKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: entityKeys.all() })
+      toast.success('ลบรายการสำเร็จ')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาด');
+      toast.error(error.message || 'เกิดข้อผิดพลาด')
     },
-  });
-};
+  })
+}
 ```
 
 ## ข้อกำหนดสำคัญ
@@ -181,29 +182,29 @@ toast.error('เกิดข้อผิดพลาด');
 
 ```typescript
 // Success
-toast.success('เพิ่มลูกค้าสำเร็จ');
-toast.success('อัปเดตข้อมูลลูกค้าสำเร็จ');
-toast.success('ลบลูกค้าสำเร็จ');
-toast.success('มอบหมายลูกค้าให้ Agent สำเร็จ');
-toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!');
-toast.success('อัพโหลดบัตรประชาชนสำเร็จ');
-toast.success('ค้นหาข้อมูลโฉนดสำเร็จ');
+toast.success('เพิ่มลูกค้าสำเร็จ')
+toast.success('อัปเดตข้อมูลลูกค้าสำเร็จ')
+toast.success('ลบลูกค้าสำเร็จ')
+toast.success('มอบหมายลูกค้าให้ Agent สำเร็จ')
+toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!')
+toast.success('อัพโหลดบัตรประชาชนสำเร็จ')
+toast.success('ค้นหาข้อมูลโฉนดสำเร็จ')
 
 // Error
-toast.error(error.message || 'เกิดข้อผิดพลาด');
-toast.error('เกิดข้อผิดพลาดในการเพิ่มลูกค้า');
-toast.error('เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ');
+toast.error(error.message || 'เกิดข้อผิดพลาด')
+toast.error('เกิดข้อผิดพลาดในการเพิ่มลูกค้า')
+toast.error('เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ')
 ```
 
 ## ตัวอย่างจริงจากโปรเจค
 
 ```typescript
 // src/features/customer/hooks.ts
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 
-import { customerApi } from './api';
-import { type CustomerFiltersSchema } from './validations';
+import { customerApi } from './api'
+import { type CustomerFiltersSchema } from './validations'
 
 export const customerKeys = {
   all: () => ['customer'] as const,
@@ -214,7 +215,7 @@ export const customerKeys = {
   detail: (id: string) => ['customer', 'detail', id] as const,
   search: (searchTerm: string, agentId?: string) =>
     ['customer', 'search', searchTerm, agentId] as const,
-};
+}
 
 export const useGetCustomerListByAgent = (filters: any = {}) => {
   return useQuery({
@@ -226,8 +227,8 @@ export const useGetCustomerListByAgent = (filters: any = {}) => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: false,
-  });
-};
+  })
+}
 
 export const useSearchCustomers = (searchTerm: string, agentId?: string) => {
   return useQuery({
@@ -235,8 +236,8 @@ export const useSearchCustomers = (searchTerm: string, agentId?: string) => {
     queryFn: () => customerApi.search(searchTerm, agentId),
     enabled: searchTerm.length >= 2, // Only search if at least 2 characters
     staleTime: 30000,
-  });
-};
+  })
+}
 ```
 
 ## Conditional Fetching
@@ -248,8 +249,8 @@ export const useGetLoansByAgentId = (agentId: string) => {
     queryKey: loanKeys.byAgent(agentId),
     queryFn: () => loanApi.getByAgentId(agentId),
     enabled: !!agentId,
-  });
-};
+  })
+}
 
 // Fetch only when search term is long enough
 export const useSearchCustomers = (searchTerm: string) => {
@@ -257,6 +258,6 @@ export const useSearchCustomers = (searchTerm: string) => {
     queryKey: customerKeys.search(searchTerm),
     queryFn: () => customerApi.search(searchTerm),
     enabled: searchTerm.length >= 2,
-  });
-};
+  })
+}
 ```
