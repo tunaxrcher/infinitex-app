@@ -91,29 +91,13 @@ export const loanService = {
             pin: hashedPin,
             userType: 'CUSTOMER',
             profile: {
-              create: {},
+              create: {
+                // Explicitly set updatedAt to prevent MySQL DateTime(0) issue with @updatedAt
+                updatedAt: new Date(),
+              },
             },
           },
           include: { profile: true },
-        })
-      } else if (data.pin) {
-        console.log('[LoanService] Updating existing user PIN')
-        const hashedPin = await bcrypt.hash(data.pin, 10)
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { pin: hashedPin },
-        })
-      } else if (isSubmittedByAgent && !user.pin) {
-        // Agent flow - set default PIN for existing user who doesn't have PIN
-        const defaultPin = data.phoneNumber.slice(-4)
-        const hashedPin = await bcrypt.hash(defaultPin, 10)
-        console.log(
-          '[LoanService] Setting default PIN for existing user in agent flow:',
-          defaultPin
-        )
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { pin: hashedPin },
         })
       }
     }
