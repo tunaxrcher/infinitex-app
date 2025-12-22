@@ -315,20 +315,17 @@ export const loanService = {
 
         console.log('[LoanService] Loan created successfully:', createdLoan.id)
 
-        // Update LoanApplication status to APPROVED
+        // Update LoanApplication with loan terms (keep status as UNDER_REVIEW for admin approval)
         await prisma.loanApplication.update({
           where: { id: loanApplication.id },
           data: {
-            status: 'APPROVED',
             approvedAmount: principalAmount,
             interestRate: defaultInterestRate,
             termMonths: defaultTermMonths,
-            reviewedAt: now,
-            reviewNotes: 'Auto-approved by agent submission',
           },
         })
 
-        console.log('[LoanService] LoanApplication status updated to APPROVED')
+        console.log('[LoanService] LoanApplication updated with loan terms')
       } catch (loanError) {
         console.error('[LoanService] Failed to create Loan:', loanError)
         // Don't fail the entire request if Loan creation fails
