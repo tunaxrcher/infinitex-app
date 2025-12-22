@@ -2,10 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
-import { IdCardStep } from '@src/features/loan/components/loan-steps/id-card-step'
 import { LoanAmountStep } from '@src/features/loan/components/loan-steps/loan-amount-step'
 import { PendingStep } from '@src/features/loan/components/loan-steps/pending-step'
-import { PhoneVerificationStep } from '@src/features/loan/components/loan-steps/phone-verification-step'
 import { SupportingImagesStep } from '@src/features/loan/components/loan-steps/supporting-images-step'
 import { TitleDeedUploadStep } from '@src/features/loan/components/loan-steps/title-deed-upload-step'
 import { Progress } from '@src/shared/ui/progress'
@@ -24,7 +22,6 @@ interface ApplicationData {
     location: string
   }
   supportingImages: File[]
-  idCardImage?: File
   loanAmount: number
   phoneNumber?: string
   pin?: string
@@ -53,8 +50,8 @@ export function AgentLoanApplicationFlow() {
     }
   }, [])
 
-  // Agent flow is now 5 steps (without Customer Selection and Phone Verification)
-  const totalSteps = 5
+  // Agent flow is now 4 steps (without ID Card, Customer Selection and Phone Verification)
+  const totalSteps = 4
   const progress = (currentStep / totalSteps) * 100
 
   const updateApplicationData = (data: Partial<ApplicationData>) => {
@@ -96,15 +93,6 @@ export function AgentLoanApplicationFlow() {
         )
       case 3:
         return (
-          <IdCardStep
-            data={applicationData}
-            onUpdate={updateApplicationData}
-            onNext={nextStep}
-            onPrev={prevStep}
-          />
-        )
-      case 4:
-        return (
           <LoanAmountStep
             data={applicationData}
             onUpdate={updateApplicationData}
@@ -113,7 +101,7 @@ export function AgentLoanApplicationFlow() {
             isAgentFlow={true}
           />
         )
-      case 5:
+      case 4:
         return <PendingStep />
       default:
         return null
@@ -127,10 +115,8 @@ export function AgentLoanApplicationFlow() {
       case 2:
         return 'อัพโหลด | รูปประกอบ (หากมี)'
       case 3:
-        return 'อัพโหลดบัตรประชาชน'
-      case 4:
         return 'กำหนดวงเงินและส่งคำขอ'
-      case 5:
+      case 4:
         return 'รออนุมัติ'
       default:
         return ''
