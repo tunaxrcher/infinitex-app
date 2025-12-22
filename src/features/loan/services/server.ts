@@ -209,7 +209,133 @@ export const loanService = {
       loanApplication.id
     )
 
-    // Step 6: Send LINE notification for agent flow
+    // Step 6: Run AI property valuation for agent flow
+    let propertyValuation = data.propertyValuation || null
+    if (isSubmittedByAgent && !propertyValuation) {
+      console.log('[LoanService] Running AI property valuation...')
+      try {
+        const valuationResult = await this.evaluatePropertyValueFromUrls(
+          data.titleDeedImageUrl,
+          data.titleDeedData,
+          data.supportingImages
+        )
+
+        if (valuationResult.success && valuationResult.valuation) {
+          propertyValuation = valuationResult.valuation
+          console.log('[LoanService] AI valuation completed:', propertyValuation)
+
+          // Update LoanApplication with valuation data
+          await prisma.loanApplication.update({
+            where: { id: loanApplication.id },
+            data: {
+              propertyValue: propertyValuation.estimatedValue || null,
+            },
+          })
+        } else {
+          console.log('[LoanService] AI valuation skipped or failed')
+        }
+      } catch (valuationError) {
+        console.error('[LoanService] AI valuation error:', valuationError)
+        // Continue without valuation
+      }
+    }
+
+    // Step 7: Create Loan record for agent flow (auto-approved)
+    let createdLoan = null
+    if (isSubmittedByAgent) {
+      try {
+        // Generate unique loan number: LN + YYMMDD + 4 random digits
+        const now = new Date()
+        const dateStr = now
+          .toISOString()
+          .slice(2, 10)
+          .replace(/-/g, '')
+        const randomDigits = Math.floor(1000 + Math.random() * 9000)
+        const loanNumber = `LN${dateStr}${randomDigits}`
+
+        // Get title deed number from titleDeedData
+        const titleDeedResult = data.titleDeedData?.result?.[0]
+        const titleDeedNumber = titleDeedResult?.parcelno || null
+
+        // Default loan terms
+        const defaultInterestRate = 15 // 15% per year
+        const defaultTermMonths = 48 // 4 years
+        const principalAmount = data.requestedLoanAmount
+
+        // Calculate monthly payment (simple calculation)
+        const monthlyInterestRate = defaultInterestRate / 100 / 12
+        const monthlyPayment =
+          (principalAmount *
+            monthlyInterestRate *
+            Math.pow(1 + monthlyInterestRate, defaultTermMonths)) /
+          (Math.pow(1 + monthlyInterestRate, defaultTermMonths) - 1)
+
+        // Calculate dates
+        const contractDate = now
+        const expiryDate = new Date(now)
+        expiryDate.setMonth(expiryDate.getMonth() + defaultTermMonths)
+
+        const nextPaymentDate = new Date(now)
+        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1)
+
+        // Create Loan record with AI valuation data
+        createdLoan = await prisma.loan.create({
+          data: {
+            loanNumber,
+            customerId: finalCustomerId,
+            agentId: agentId,
+            applicationId: loanApplication.id,
+            loanType: (data as any).loanType || 'HOUSE_LAND_MORTGAGE',
+            status: 'ACTIVE',
+            principalAmount,
+            interestRate: defaultInterestRate,
+            termMonths: defaultTermMonths,
+            monthlyPayment: Math.round(monthlyPayment * 100) / 100,
+            currentInstallment: 0,
+            totalInstallments: defaultTermMonths,
+            remainingBalance: principalAmount,
+            nextPaymentDate,
+            contractDate,
+            expiryDate,
+            titleDeedNumber,
+
+            // Collateral information
+            collateralValue: propertyValuation?.estimatedValue || null,
+            collateralDetails: data.titleDeedData || null,
+
+            // Link map from titleDeedData
+            linkMap: titleDeedResult?.qrcode_link || null,
+
+            // AI Valuation data
+            valuationResult: propertyValuation || null,
+            valuationDate: propertyValuation ? now : null,
+            estimatedValue: propertyValuation?.estimatedValue || null,
+          },
+        })
+
+        console.log('[LoanService] Loan created successfully:', createdLoan.id)
+
+        // Update LoanApplication status to APPROVED
+        await prisma.loanApplication.update({
+          where: { id: loanApplication.id },
+          data: {
+            status: 'APPROVED',
+            approvedAmount: principalAmount,
+            interestRate: defaultInterestRate,
+            termMonths: defaultTermMonths,
+            reviewedAt: now,
+            reviewNotes: 'Auto-approved by agent submission',
+          },
+        })
+
+        console.log('[LoanService] LoanApplication status updated to APPROVED')
+      } catch (loanError) {
+        console.error('[LoanService] Failed to create Loan:', loanError)
+        // Don't fail the entire request if Loan creation fails
+      }
+    }
+
+    // Step 8: Send LINE notification for agent flow
     if (isSubmittedByAgent) {
       try {
         // Extract data from titleDeedData
@@ -225,12 +351,12 @@ export const loanService = {
         const propertyLocation = propertyInfo.propertyLocation || undefined
         const propertyArea = propertyInfo.propertyArea || undefined
 
-        // Get AI notes
-        const notes = data.propertyValuation?.reasoning
-          ? `AI: ${data.propertyValuation.reasoning.substring(0, 100)}...`
+        // Get AI notes from valuation result
+        const notes = propertyValuation?.reasoning
+          ? `AI ประเมิน: ${propertyValuation.estimatedValue?.toLocaleString() || 0} บาท (${propertyValuation.confidence || 0}% confidence)`
           : undefined
 
-        await sendLoanNotification({
+        const lineResult = await sendLoanNotification({
           amount: data.requestedLoanAmount.toLocaleString(),
           ownerName: ownerName,
           propertyLocation: propertyLocation,
@@ -243,9 +369,17 @@ export const loanService = {
           notes: notes,
           titleDeedImageUrl: data.titleDeedImageUrl || undefined,
           supportingImageUrls: data.supportingImages || undefined,
+          loanApplicationId: loanApplication.id,
         })
 
-        console.log('[LoanService] LINE notification sent successfully')
+        if (lineResult.success) {
+          console.log('[LoanService] LINE notification sent successfully')
+        } else {
+          console.error(
+            '[LoanService] LINE notification failed:',
+            lineResult.error
+          )
+        }
       } catch (lineError) {
         console.error(
           '[LoanService] Failed to send LINE notification:',
@@ -257,6 +391,8 @@ export const loanService = {
 
     return {
       loanApplicationId: loanApplication.id,
+      loanId: createdLoan?.id || null,
+      loanNumber: createdLoan?.loanNumber || null,
       userId: user.id,
       agentId: isSubmittedByAgent ? agentId : undefined,
       isNewUser,
@@ -706,5 +842,95 @@ export const loanService = {
       reviewedBy,
       reviewNotes
     )
+  },
+
+  /**
+   * Evaluate property value from URLs (for submission flow)
+   * Downloads images from URLs and calls AI service
+   */
+  async evaluatePropertyValueFromUrls(
+    titleDeedImageUrl: string | null | undefined,
+    titleDeedData: any,
+    supportingImageUrls?: string[]
+  ) {
+    console.log('[LoanService] Starting property valuation from URLs')
+
+    // Check if we have sufficient data
+    const hasTitleDeedData =
+      titleDeedData && titleDeedData.result && titleDeedData.result.length > 0
+    const hasSupportingImages =
+      supportingImageUrls && supportingImageUrls.length > 0
+
+    if (!titleDeedImageUrl) {
+      console.log('[LoanService] No title deed image URL provided')
+      return {
+        success: false,
+        valuation: null,
+      }
+    }
+
+    if (!hasTitleDeedData && !hasSupportingImages) {
+      console.log('[LoanService] Insufficient data for valuation')
+      return {
+        success: false,
+        valuation: {
+          estimatedValue: 0,
+          reasoning:
+            'ข้อมูลไม่เพียงพอสำหรับการประเมิน - ต้องมีข้อมูลโฉนดหรือรูปประกอบเพิ่มเติม',
+          confidence: 0,
+        },
+      }
+    }
+
+    try {
+      // Download title deed image
+      console.log('[LoanService] Downloading title deed image...')
+      const titleDeedResponse = await fetch(titleDeedImageUrl)
+      if (!titleDeedResponse.ok) {
+        throw new Error('Failed to download title deed image')
+      }
+      const titleDeedArrayBuffer = await titleDeedResponse.arrayBuffer()
+      const titleDeedBuffer = Buffer.from(titleDeedArrayBuffer)
+
+      // Download supporting images
+      const supportingBuffers: Buffer[] = []
+      if (hasSupportingImages) {
+        console.log(
+          `[LoanService] Downloading ${supportingImageUrls!.length} supporting images...`
+        )
+        for (const url of supportingImageUrls!) {
+          try {
+            const response = await fetch(url)
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer()
+              supportingBuffers.push(Buffer.from(arrayBuffer))
+            }
+          } catch (err) {
+            console.warn('[LoanService] Failed to download supporting image:', url)
+          }
+        }
+      }
+
+      // Call AI service for valuation
+      console.log('[LoanService] Calling AI service for property valuation...')
+      const valuationResult = await aiService.evaluatePropertyValue(
+        titleDeedBuffer,
+        titleDeedData,
+        supportingBuffers.length > 0 ? supportingBuffers : undefined
+      )
+
+      console.log('[LoanService] Property valuation result:', valuationResult)
+
+      return {
+        success: true,
+        valuation: valuationResult,
+      }
+    } catch (error) {
+      console.error('[LoanService] Property valuation failed:', error)
+      return {
+        success: false,
+        valuation: null,
+      }
+    }
   },
 }

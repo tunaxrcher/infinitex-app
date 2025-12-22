@@ -3,7 +3,7 @@
  * For sending Flex Messages to LINE groups
  */
 
-const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || '' 
+const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const LINE_GROUP_ID = process.env.LINE_GROUP_ID || ''
 const LINE_API_URL = 'https://api.line.me/v2/bot/message/push'
 
@@ -20,14 +20,47 @@ export interface LoanFlexMessageData {
   notes?: string
   titleDeedImageUrl?: string
   supportingImageUrls?: string[]
+  loanApplicationId?: string
+}
+
+/**
+ * Encode URL to ensure it's valid for LINE API
+ * LINE API requires URLs to be properly encoded (spaces as %20, etc.)
+ */
+function encodeImageUrl(url: string): string {
+  if (!url) return ''
+
+  try {
+    // Parse the URL to get its components
+    const urlObj = new URL(url)
+
+    // Encode the pathname (file path) properly
+    // Split by '/' to preserve path structure, then encode each segment
+    const encodedPathSegments = urlObj.pathname.split('/').map((segment) =>
+      encodeURIComponent(decodeURIComponent(segment))
+    )
+    urlObj.pathname = encodedPathSegments.join('/')
+
+    return urlObj.toString()
+  } catch {
+    // If URL parsing fails, return as-is
+    return url
+  }
 }
 
 /**
  * Create a Flex Message for loan application
  */
 function createLoanFlexMessage(data: LoanFlexMessageData) {
-  // Get first two supporting images if available
-  const supportingImages = data.supportingImageUrls?.slice(0, 2) || []
+  // Get first two supporting images if available and encode URLs
+  const supportingImages = (data.supportingImageUrls?.slice(0, 2) || [])
+    .map((url) => encodeImageUrl(url))
+    .filter((url) => url && url.startsWith('https://'))
+
+  // Encode title deed URL
+  const titleDeedUrl = data.titleDeedImageUrl
+    ? encodeImageUrl(data.titleDeedImageUrl)
+    : null
 
   // Build image layout
   const imageLayout: any = {
@@ -37,10 +70,10 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
     contents: [],
   }
 
-  if (data.titleDeedImageUrl) {
+  if (titleDeedUrl && titleDeedUrl.startsWith('https://')) {
     imageLayout.contents.push({
       type: 'image',
-      url: data.titleDeedImageUrl,
+      url: titleDeedUrl,
       size: 'full',
       aspectMode: 'cover',
       aspectRatio: '4:5',
@@ -164,6 +197,11 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
   }
 
   // Build footer with action buttons
+  const baseUrl = 'https://admin-demo.unityx.group'
+  const detailUrl = data.loanApplicationId
+    ? `${baseUrl}/loan/check/${data.loanApplicationId}`
+    : baseUrl
+
   const footer: any = {
     type: 'box',
     layout: 'vertical',
@@ -176,7 +214,7 @@ function createLoanFlexMessage(data: LoanFlexMessageData) {
         action: {
           type: 'uri',
           label: 'ดูรายละเอียด',
-          uri: 'https://demo.unityx.group/',
+          uri: detailUrl,
         },
       },
     ],

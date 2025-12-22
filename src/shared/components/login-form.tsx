@@ -378,7 +378,7 @@ export function LoginForm() {
                   </div>
 
                   {/* Demo Info */}
-                  <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 space-y-3">
+                  {/* <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 space-y-3">
                     <p className="text-sm font-semibold text-primary flex items-center gap-2">
                       <Sparkles className="h-4 w-4" />
                       ข้อมูลสำหรับทดสอบระบบ
@@ -425,7 +425,7 @@ export function LoginForm() {
                         </Button>
                       </div>
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </CardContent>
             </Card>
