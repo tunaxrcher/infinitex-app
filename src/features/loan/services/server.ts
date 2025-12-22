@@ -266,18 +266,21 @@ export const loanService = {
         const latitude = titleDeedResult?.parcellat || null
         const longitude = titleDeedResult?.parcellon || null
 
-        // Default loan terms
-        const defaultInterestRate = 0 // 15% per year default 0
-        const defaultTermMonths = 0 // 4 years  default 0
+        // Default loan terms (0 means pending review/approval)
+        const defaultInterestRate = 0 // 0% = pending approval
+        const defaultTermMonths = 0 // 0 = pending approval
         const principalAmount = data.requestedLoanAmount
 
-        // Calculate monthly payment (simple calculation)
-        const monthlyInterestRate = defaultInterestRate / 100 / 12
-        const monthlyPayment =
-          (principalAmount *
-            monthlyInterestRate *
-            Math.pow(1 + monthlyInterestRate, defaultTermMonths)) /
-          (Math.pow(1 + monthlyInterestRate, defaultTermMonths) - 1)
+        // Calculate monthly payment (handle zero interest/term case)
+        let monthlyPayment = 0
+        if (defaultInterestRate > 0 && defaultTermMonths > 0) {
+          const monthlyInterestRate = defaultInterestRate / 100 / 12
+          monthlyPayment =
+            (principalAmount *
+              monthlyInterestRate *
+              Math.pow(1 + monthlyInterestRate, defaultTermMonths)) /
+            (Math.pow(1 + monthlyInterestRate, defaultTermMonths) - 1)
+        }
 
         // Calculate dates
         const contractDate = now
@@ -316,9 +319,9 @@ export const loanService = {
             linkMap: titleDeedResult?.qrcode_link || null,
 
             // AI Valuation data
-            valuationResult: propertyValuation || null,
+            valuationResult: propertyValuation ?? undefined,
             valuationDate: propertyValuation ? now : null,
-            estimatedValue: propertyValuation?.estimatedValue || null,
+            estimatedValue: propertyValuation?.estimatedValue ?? null,
 
             // Property location (from LandMaps API)
             latitude,
