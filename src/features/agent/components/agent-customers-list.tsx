@@ -11,26 +11,39 @@ import { Button } from '@src/shared/ui/button'
 import { Card, CardContent } from '@src/shared/ui/card'
 import { Input } from '@src/shared/ui/input'
 import { Progress } from '@src/shared/ui/progress'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@src/shared/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@src/shared/ui/tabs'
 import {
   AlertCircle,
   Calendar,
   CreditCard,
   FileText,
+  Filter,
   Loader2,
-  Phone,
   Search,
   TrendingUp,
   User,
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
-// Helper functions
-const getCustomerName = (customer: any) => {
-  if (!customer?.profile) return 'ไม่ระบุ'
-  return `${customer.profile.firstName || ''} ${customer.profile.lastName || ''}`.trim()
-}
+// Loan status filter options
+type LoanStatusFilter = 'all' | 'not_due' | 'overdue' | 'completed' | 'cancelled'
 
+const LOAN_STATUS_OPTIONS: { value: LoanStatusFilter; label: string }[] = [
+  { value: 'all', label: 'ทั้งหมด' },
+  { value: 'not_due', label: 'ยังไม่ถึงกำหนด' },
+  { value: 'overdue', label: 'เกินกำหนดชำระ' },
+  { value: 'completed', label: 'ปิดบัญชี' },
+  { value: 'cancelled', label: 'ยกเลิก' },
+]
+
+// Helper functions
 const formatDate = (date: Date | string) => {
   const d = new Date(date)
   return d.toLocaleDateString('th-TH', {
@@ -127,6 +140,7 @@ export function AgentCustomersList() {
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState('loans')
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<LoanStatusFilter>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -137,25 +151,36 @@ export function AgentCustomersList() {
   // Use only real data from database
   const allData = loansData?.success && loansData?.data ? loansData.data : []
 
-  // Separate loans and applications
+  // Separate loans and applications based on new requirements:
+  // - สินเชื่อ tab: Loans (which come from APPROVED applications)
+  // - ใบสมัคร tab: Applications that are NOT APPROVED and NOT CANCELLED
   const allLoans = useMemo(
     () => allData.filter((item: any) => item.type === 'LOAN'),
     [allData]
   )
 
   const allApplications = useMemo(
-    () => allData.filter((item: any) => item.type === 'APPLICATION'),
+    () =>
+      allData.filter(
+        (item: any) =>
+          item.type === 'APPLICATION' &&
+          item.status !== 'APPROVED' &&
+          item.status !== 'CANCELLED'
+      ),
     [allData]
   )
 
-  // Filter function for both loans and applications
-  const filterItems = (items: any[], searchTerm: string) => {
+  // Filter function for search
+  const filterBySearch = (items: any[], searchTerm: string) => {
     if (!searchTerm) return items
 
     const searchLower = searchTerm.toLowerCase()
     const searchNumber = parseFloat(searchTerm.replace(/,/g, ''))
 
     return items.filter((item: any) => {
+      // Search by ID
+      const idMatch = item.id?.toLowerCase().includes(searchLower)
+
       // Search by property location
       const locationMatch = item.propertyLocation
         ?.toLowerCase()
@@ -164,37 +189,69 @@ export function AgentCustomersList() {
       // Search by owner name (from agent input)
       const ownerNameMatch = item.ownerName?.toLowerCase().includes(searchLower)
 
-      // Search by loan number/ID
-      const loanNumberMatch =
-        item.loanNumber?.toLowerCase().includes(searchLower) ||
-        item.id?.toLowerCase().includes(searchLower)
+      // Search by loan number
+      const loanNumberMatch = item.loanNumber?.toLowerCase().includes(searchLower)
 
-      // Search by loan amount
+      // Search by loan amount (principalAmount, remainingBalance, monthlyPayment)
       const principal = Number(item.principalAmount) || 0
       const remaining = Number(item.remainingBalance) || 0
       const monthly = Number(item.monthlyPayment) || 0
+      const requested = Number(item.requestedAmount) || 0
 
       const amountMatch =
         !isNaN(searchNumber) &&
         (principal === searchNumber ||
           remaining === searchNumber ||
           monthly === searchNumber ||
+          requested === searchNumber ||
           Math.abs(principal - searchNumber) < 1000 ||
           Math.abs(remaining - searchNumber) < 1000 ||
-          Math.abs(monthly - searchNumber) < 100)
+          Math.abs(monthly - searchNumber) < 100 ||
+          Math.abs(requested - searchNumber) < 1000)
 
-      return locationMatch || ownerNameMatch || loanNumberMatch || amountMatch
+      return idMatch || locationMatch || ownerNameMatch || loanNumberMatch || amountMatch
     })
   }
 
-  // Filter loans and applications separately
-  const filteredLoans = useMemo(
-    () => filterItems(allLoans, searchTerm),
-    [allLoans, searchTerm]
-  )
+  // Filter function for loan status
+  const filterByStatus = (items: any[], statusFilter: LoanStatusFilter) => {
+    if (statusFilter === 'all') return items
 
+    return items.filter((item: any) => {
+      const daysUntilPayment = getDaysUntilPayment(item.nextPaymentDate)
+
+      switch (statusFilter) {
+        case 'not_due':
+          // ยังไม่ถึงกำหนด: ACTIVE loans where payment date is in the future
+          return item.status === 'ACTIVE' && daysUntilPayment >= 0
+        case 'overdue':
+          // เกินกำหนดชำระ: ACTIVE or DEFAULTED loans where payment date is in the past
+          return (
+            (item.status === 'ACTIVE' || item.status === 'DEFAULTED') &&
+            daysUntilPayment < 0
+          )
+        case 'completed':
+          // ปิดบัญชี: COMPLETED loans
+          return item.status === 'COMPLETED'
+        case 'cancelled':
+          // ยกเลิก: CANCELLED loans
+          return item.status === 'CANCELLED'
+        default:
+          return true
+      }
+    })
+  }
+
+  // Filter loans with both search and status filter
+  const filteredLoans = useMemo(() => {
+    let result = filterBySearch(allLoans, searchTerm)
+    result = filterByStatus(result, statusFilter)
+    return result
+  }, [allLoans, searchTerm, statusFilter])
+
+  // Filter applications with search only
   const filteredApplications = useMemo(
-    () => filterItems(allApplications, searchTerm),
+    () => filterBySearch(allApplications, searchTerm),
     [allApplications, searchTerm]
   )
 
@@ -208,10 +265,15 @@ export function AgentCustomersList() {
   const endIndex = startIndex + itemsPerPage
   const paginatedData = activeData.slice(startIndex, endIndex)
 
-  // Reset to first page when search term or tab changes
+  // Reset to first page when search term, tab, or status filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, activeTab])
+  }, [searchTerm, activeTab, statusFilter])
+
+  // Reset status filter when switching tabs
+  useEffect(() => {
+    setStatusFilter('all')
+  }, [activeTab])
 
   if (isLoading) {
     return (
@@ -248,15 +310,45 @@ export function AgentCustomersList() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Search Bar */}
-        <div className="relative mt-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="ค้นหาด้วยสถานที่, เลขที่สัญญา, หรือยอดเงิน"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+        {/* Search Bar and Filters */}
+        <div className="space-y-3 mt-4">
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ค้นหาด้วย ID, สถานที่, ชื่อเจ้าของ, หรือยอดเงิน"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Status Filter - Only show for Loans tab */}
+          {activeTab === 'loans' && (
+            <div className="flex items-center gap-2 justify-end">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as LoanStatusFilter)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="เลือกสถานะ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LOAN_STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* {statusFilter !== 'all' && (
+                <Badge variant="secondary" className="text-xs">
+                  กรอง: {LOAN_STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label}
+                </Badge>
+              )} */}
+            </div>
+          )}
         </div>
 
         {/* Loans Tab */}
@@ -605,8 +697,8 @@ export function AgentCustomersList() {
       {activeData.length === 0 && (
         <div className="text-center py-8">
           <p className="text-muted-foreground">
-            {searchTerm
-              ? 'ไม่พบข้อมูลที่ค้นหา'
+            {searchTerm || statusFilter !== 'all'
+              ? `ไม่พบข้อมูลที่ค้นหา${statusFilter !== 'all' ? ` (สถานะ: ${LOAN_STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label})` : ''}`
               : activeTab === 'loans'
                 ? 'ไม่มีสินเชื่อ'
                 : 'ไม่มีใบสมัครสินเชื่อ'}
