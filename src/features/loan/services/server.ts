@@ -253,9 +253,18 @@ export const loanService = {
         const randomDigits = Math.floor(1000 + Math.random() * 9000)
         const loanNumber = `LN${dateStr}${randomDigits}`
 
-        // Get title deed number from titleDeedData
+        // Get title deed data from LandMaps API
         const titleDeedResult = data.titleDeedData?.result?.[0]
-        const titleDeedNumber = titleDeedResult?.parcelno || null
+
+        // Get title deed number from user input (manual data) first, fallback to LandMaps API
+        const titleDeedNumber =
+          data.titleDeedManualData?.parcelNo ||
+          titleDeedResult?.parcelno ||
+          null
+
+        // Get coordinates from LandMaps API
+        const latitude = titleDeedResult?.parcellat || null
+        const longitude = titleDeedResult?.parcellon || null
 
         // Default loan terms
         const defaultInterestRate = 0 // 15% per year default 0
@@ -310,6 +319,10 @@ export const loanService = {
             valuationResult: propertyValuation || null,
             valuationDate: propertyValuation ? now : null,
             estimatedValue: propertyValuation?.estimatedValue || null,
+
+            // Property location (from LandMaps API)
+            latitude,
+            longitude,
           },
         })
 
@@ -668,36 +681,39 @@ export const loanService = {
   ) {
     let propertyInfo: any = {}
 
-    // From title deed data (LandsMapsAPI)
+    // From title deed data (LandsMapsAPI) - get location info (but NOT landNumber)
     if (titleDeedData && titleDeedData.result && titleDeedData.result[0]) {
       const deed = titleDeedData.result[0]
       propertyInfo = {
         propertyLocation:
           `${deed.tumbolname || ''} ${deed.amphurname || ''} ${deed.provname || ''}`.trim(),
         propertyArea: `${deed.rai || 0} ไร่ ${deed.ngan || 0} งาน ${deed.wa || 0} ตารางวา`,
-        landNumber: deed.parcelno || '',
+        // Don't use landNumber from LandMaps API - will use user manual input
         ownerName: deed.owner_name || '',
         propertyType: deed.land_type || 'ที่ดิน',
       }
     }
 
-    // From manual data
+    // From manual data (user input) - PRIORITIZE parcelNo from here
     if (titleDeedManualData) {
       propertyInfo = {
         ...propertyInfo,
         propertyLocation:
-          `${titleDeedManualData.amName || ''} ${titleDeedManualData.pvName || ''}`.trim(),
-        landNumber: titleDeedManualData.parcelNo || '',
+          `${titleDeedManualData.amName || ''} ${titleDeedManualData.pvName || ''}`.trim() ||
+          propertyInfo.propertyLocation,
+        // Use user-entered parcelNo as landNumber (this is what user typed)
+        landNumber: titleDeedManualData.parcelNo || propertyInfo.landNumber || '',
       }
     }
 
-    // From AI analysis
+    // From AI analysis - only use if no other data available
     if (titleDeedAnalysis) {
       propertyInfo = {
         ...propertyInfo,
         propertyLocation:
           propertyInfo.propertyLocation ||
           `${titleDeedAnalysis.amName || ''} ${titleDeedAnalysis.pvName || ''}`.trim(),
+        // Only use AI analysis parcelNo if manual data not available
         landNumber: propertyInfo.landNumber || titleDeedAnalysis.parcelNo || '',
       }
     }
