@@ -33,7 +33,12 @@ import {
 import { useSession } from 'next-auth/react'
 
 // Loan status filter options
-type LoanStatusFilter = 'all' | 'not_due' | 'overdue' | 'completed' | 'cancelled'
+type LoanStatusFilter =
+  | 'all'
+  | 'not_due'
+  | 'overdue'
+  | 'completed'
+  | 'cancelled'
 
 const LOAN_STATUS_OPTIONS: { value: LoanStatusFilter; label: string }[] = [
   { value: 'all', label: 'ทั้งหมด' },
@@ -190,7 +195,9 @@ export function AgentCustomersList() {
       const ownerNameMatch = item.ownerName?.toLowerCase().includes(searchLower)
 
       // Search by loan number
-      const loanNumberMatch = item.loanNumber?.toLowerCase().includes(searchLower)
+      const loanNumberMatch = item.loanNumber
+        ?.toLowerCase()
+        .includes(searchLower)
 
       // Search by loan amount (principalAmount, remainingBalance, monthlyPayment)
       const principal = Number(item.principalAmount) || 0
@@ -209,7 +216,13 @@ export function AgentCustomersList() {
           Math.abs(monthly - searchNumber) < 100 ||
           Math.abs(requested - searchNumber) < 1000)
 
-      return idMatch || locationMatch || ownerNameMatch || loanNumberMatch || amountMatch
+      return (
+        idMatch ||
+        locationMatch ||
+        ownerNameMatch ||
+        loanNumberMatch ||
+        amountMatch
+      )
     })
   }
 
@@ -290,10 +303,10 @@ export function AgentCustomersList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-white">รายการสินเชื่อของฉัน</h1>
-          <p className="text-sm text-muted-foreground">
+          {/* <p className="text-sm text-muted-foreground">
             สินเชื่อ {allLoans.length} รายการ | ใบสมัคร {allApplications.length}{' '}
             รายการ
-          </p>
+          </p> */}
         </div>
       </div>
 
@@ -312,25 +325,16 @@ export function AgentCustomersList() {
 
         {/* Search Bar and Filters */}
         <div className="space-y-3 mt-4">
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="ค้นหาด้วย ID, สถานที่, ชื่อเจ้าของ, หรือยอดเงิน"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
 
-          {/* Status Filter - Only show for Loans tab */}
-          {activeTab === 'loans' && (
+                {/* Status Filter - Only show for Loans tab */}
+                {activeTab === 'loans' && (
             <div className="flex items-center gap-2 justify-end">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select
                 value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as LoanStatusFilter)}
-              >
+                onValueChange={(value) =>
+                  setStatusFilter(value as LoanStatusFilter)
+                }>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="เลือกสถานะ" />
                 </SelectTrigger>
@@ -349,6 +353,19 @@ export function AgentCustomersList() {
               )} */}
             </div>
           )}
+          
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="ค้นหาด้วย ID, สถานที่, ชื่อเจ้าของ, หรือยอดเงิน"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+    
         </div>
 
         {/* Loans Tab */}

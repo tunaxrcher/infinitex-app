@@ -24,7 +24,7 @@ import {
 import { useTheme } from 'next-themes'
 
 const userInfo = {
-  name: 'คุณสมชาย ใจดี',
+  name: 'คุณ (ข้อมูลทดสอบ)',
   phone: '081-234-5678',
   memberSince: 'มีนาคม 2567',
   coins: 150,

@@ -115,7 +115,7 @@ export function NotificationsList() {
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground">การแจ้งเตือน</h1>
+          <h1 className="text-xl font-bold text-foreground">การแจ้งเตือน (ข้อมูลทดสอบ)</h1>
           <p className="text-sm text-muted-foreground">
             {unreadCount > 0
               ? `${unreadCount} ข้อความใหม่`

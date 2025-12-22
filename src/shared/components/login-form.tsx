@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -16,14 +16,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@src/shared/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@src/shared/ui/dialog'
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
 import { RadioGroup, RadioGroupItem } from '@src/shared/ui/radio-group'
@@ -31,6 +23,7 @@ import {
   Briefcase,
   CheckCircle,
   Copy,
+  Delete,
   Eye,
   EyeOff,
   Phone,
@@ -38,18 +31,19 @@ import {
   Sparkles,
   UserRound,
 } from 'lucide-react'
+import { AnimatePresence, motion } from 'motion/react'
 import toast from 'react-hot-toast'
+
+const PIN_LENGTH = 4
 
 export function LoginForm() {
   const [phoneNumber, setPhoneNumber] = useState('')
-  const [pinDigits, setPinDigits] = useState(['', '', '', ''])
-  const [showPin, setShowPin] = useState(false)
+  const [pin, setPin] = useState('')
   const [userType, setUserType] = useState<UserType>('AGENT')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showPinDialog, setShowPinDialog] = useState(false)
-
-  const pinInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const [showPinScreen, setShowPinScreen] = useState(false)
+  const [shake, setShake] = useState(false)
 
   const { login } = useAuth()
   const router = useRouter()
@@ -58,102 +52,70 @@ export function LoginForm() {
   const handlePhoneSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (phoneNumber.length >= 12) {
-      setShowPinDialog(true)
-      // Focus first PIN input after a short delay
-      setTimeout(() => {
-        pinInputRefs.current[0]?.focus()
-      }, 100)
+      setShowPinScreen(true)
+      setPin('')
+      setError('')
     }
   }
 
-  const handlePinChange = (index: number, value: string) => {
-    // Only allow single digit
-    const digit = value.replace(/\D/g, '').slice(0, 1)
+  const handleNumberPress = useCallback(
+    async (num: string) => {
+      if (pin.length >= PIN_LENGTH || isLoading) return
 
-    const newPinDigits = [...pinDigits]
-    newPinDigits[index] = digit
-    setPinDigits(newPinDigits)
+      const newPin = pin + num
+      setPin(newPin)
+      setError('')
 
-    // Auto-focus next field if digit entered
-    if (digit && index < 3) {
-      requestAnimationFrame(() => {
-        const nextInput = pinInputRefs.current[index + 1]
-        if (nextInput) {
-          nextInput.focus()
-          nextInput.select()
+      // Auto-submit when PIN is complete
+      if (newPin.length === PIN_LENGTH) {
+        setIsLoading(true)
+        try {
+          const success = await login(phoneNumber, newPin, userType)
+          if (success) {
+            toast.success('เข้าสู่ระบบสำเร็จ!')
+
+            // Redirect to intended page or homepage
+            const redirectTo = searchParams.get('redirect')
+            if (redirectTo) {
+              router.push(redirectTo)
+            } else {
+              // Always redirect to homepage after login
+              router.push('/')
+            }
+          } else {
+            setShake(true)
+            setTimeout(() => setShake(false), 500)
+            setError('เบอร์โทรศัพท์, PIN หรือประเภทผู้ใช้ไม่ถูกต้อง')
+            setPin('')
+          }
+        } catch (err: any) {
+          setShake(true)
+          setTimeout(() => setShake(false), 500)
+          if (err.message?.includes('Too many attempts')) {
+            setError(err.message)
+          } else {
+            setError('เกิดข้อผิดพลาด กรุณาลองใหม่')
+          }
+          setPin('')
+        } finally {
+          setIsLoading(false)
         }
-      })
-    }
-  }
+      }
+    },
+    [pin, isLoading, login, phoneNumber, userType, router, searchParams]
+  )
 
-  const handlePinKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !pinDigits[index] && index > 0) {
-      // Focus previous input on backspace
-      requestAnimationFrame(() => {
-        const prevInput = pinInputRefs.current[index - 1]
-        if (prevInput) {
-          prevInput.focus()
-          prevInput.select()
-        }
-      })
-    }
-  }
-
-  const handlePinPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault()
-    const pastedData = e.clipboardData.getData('text/plain')
-    const digits = pastedData.replace(/\D/g, '').slice(0, 4).split('')
-
-    if (digits.length > 0) {
-      const newPinDigits = [...pinDigits]
-      digits.forEach((digit, i) => {
-        if (i < 4) {
-          newPinDigits[i] = digit
-        }
-      })
-      setPinDigits(newPinDigits)
-
-      // Focus the last filled input or the next empty one
-      const focusIndex = Math.min(digits.length, 3)
-      requestAnimationFrame(() => {
-        pinInputRefs.current[focusIndex]?.focus()
-      })
-    }
-  }
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleDelete = useCallback(() => {
+    if (isLoading) return
+    setPin((prev) => prev.slice(0, -1))
     setError('')
-    setIsLoading(true)
+  }, [isLoading])
 
-    try {
-      const pin = pinDigits.join('')
-      const success = await login(phoneNumber, pin, userType)
-      if (success) {
-        toast.success('เข้าสู่ระบบสำเร็จ!')
-
-        // Redirect to intended page or homepage
-        const redirectTo = searchParams.get('redirect')
-        if (redirectTo) {
-          router.push(redirectTo)
-        } else {
-          // Always redirect to homepage after login
-          router.push('/')
-        }
-      } else {
-        setError('เบอร์โทรศัพท์, PIN หรือประเภทผู้ใช้ไม่ถูกต้อง')
-      }
-    } catch (error: any) {
-      // Better error handling based on error type
-      if (error.message?.includes('Too many attempts')) {
-        setError(error.message)
-      } else {
-        setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const handleCancel = useCallback(() => {
+    setShowPinScreen(false)
+    setPin('')
+    setError('')
+  }, [])
 
   const formatPhoneNumber = (value: string) => {
     // Remove non-digits
@@ -176,114 +138,178 @@ export function LoginForm() {
     setPhoneNumber(formatted)
   }
 
-  const copyToClipboard = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success(`คัดลอก${label}แล้ว: ${text}`)
-    } catch (err) {
-      toast.error('ไม่สามารถคัดลอกได้')
-    }
+  const keypadNumbers = [
+    ['1', '2', '3'],
+    ['4', '5', '6'],
+    ['7', '8', '9'],
+    ['', '0', 'delete'],
+  ]
+
+  const letterMap: Record<string, string> = {
+    '2': 'ABC',
+    '3': 'DEF',
+    '4': 'GHI',
+    '5': 'JKL',
+    '6': 'MNO',
+    '7': 'PQRS',
+    '8': 'TUV',
+    '9': 'WXYZ',
   }
 
   return (
     <>
-      {/* PIN Dialog */}
-      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              กรอก PIN 4 หลัก
-            </DialogTitle>
-            <DialogDescription>
-              กรุณากรอกรหัส PIN เพื่อเข้าสู่ระบบ
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleLoginSubmit}>
-            <div className="space-y-4 py-4">
-              {/* PIN Input */}
-              <div className="flex gap-3 justify-center">
-                {pinDigits.map((digit, index) => (
-                  <div key={index} className="relative">
-                    <Input
-                      ref={(el) => {
-                        pinInputRefs.current[index] = el
-                      }}
-                      type={showPin ? 'text' : 'password'}
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handlePinChange(index, e.target.value)}
-                      onKeyDown={(e) => handlePinKeyDown(index, e)}
-                      onPaste={index === 0 ? handlePinPaste : undefined}
-                      className="w-12 h-12 text-center text-lg font-semibold"
-                      placeholder="•"
-                      autoComplete="off"
-                    />
+      {/* iOS-style PIN Entry Screen */}
+      <AnimatePresence>
+        {showPinScreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-9999 isolate flex items-center justify-center overflow-hidden">
+            {/* Background - transparent with blur to see content behind */}
+            <div
+              className="absolute inset-0 z-0 bg-black/70"
+              style={{
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+              }}
+            />
+
+            {/* Content */}
+            <div className="relative z-10 flex flex-col items-center w-full max-w-sm px-8">
+              {/* Logo */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.1 }}
+                className="mb-6">
+                <Image
+                  src="/images/logo.png"
+                  alt="InfiniteX"
+                  width={80}
+                  height={80}
+                  className="rounded-2xl shadow-lg"
+                />
+              </motion.div>
+
+              {/* Title */}
+              <motion.h1
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-2xl font-light text-white mb-8 tracking-wider"
+               >
+                PIN ของคุณ
+              </motion.h1>
+
+              {/* PIN Dots */}
+              <motion.div
+                className="flex gap-4 mb-4"
+                animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
+                transition={{ duration: 0.4 }}>
+                {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{
+                      scale: 1,
+                      opacity: 1,
+                      backgroundColor:
+                        i < pin.length
+                          ? 'rgba(255, 255, 255, 1)'
+                          : 'transparent',
+                    }}
+                    transition={{ delay: i * 0.05 }}
+                    className="w-3.5 h-3.5 rounded-full border-2 border-white/80"
+                  />
+                ))}
+              </motion.div>
+
+              {/* Error Message */}
+              <AnimatePresence mode="wait">
+                {error && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-red-300 text-sm mb-6 h-5 text-center">
+                    {error}
+                  </motion.p>
+                )}
+                {!error && <div className="h-5 mb-6" />}
+              </AnimatePresence>
+
+              {/* Keypad */}
+              <div className="grid gap-y-4 mt-4">
+                {keypadNumbers.map((row, rowIndex) => (
+                  <div key={rowIndex} className="flex gap-6 justify-center">
+                    {row.map((key) => {
+                      if (key === '') {
+                        return <div key="empty" className="w-20 h-20" />
+                      }
+
+                      if (key === 'delete') {
+                        return (
+                          <motion.button
+                            key="delete"
+                            whileTap={{ scale: 0.9 }}
+                            onClick={handleDelete}
+                            disabled={isLoading || pin.length === 0}
+                            className="w-20 h-20 flex items-center justify-center text-white disabled:opacity-30">
+                            <Delete className="w-7 h-7" />
+                          </motion.button>
+                        )
+                      }
+
+                      return (
+                        <motion.button
+                          key={key}
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{
+                            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          }}
+                          onClick={() => handleNumberPress(key)}
+                          disabled={isLoading}
+                          className="w-20 h-20 rounded-full flex flex-col items-center justify-center bg-white/10 border border-white/20 backdrop-blur-sm disabled:opacity-50 transition-colors">
+                          <span className="text-3xl font-light text-white">
+                            {key}
+                          </span>
+                          {letterMap[key] && (
+                            <span className="text-[10px] font-medium text-white/70 tracking-[0.2em] mt-0.5">
+                              {letterMap[key]}
+                            </span>
+                          )}
+                        </motion.button>
+                      )
+                    })}
                   </div>
                 ))}
               </div>
 
-              {/* Show/Hide PIN Button */}
-              <div className="flex justify-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPin(!showPin)}
-                  className="text-xs">
-                  {showPin ? (
-                    <>
-                      <EyeOff className="h-3 w-3 mr-1" />
-                      ซ่อน PIN
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-3 w-3 mr-1" />
-                      แสดง PIN
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Error Message */}
-              {error && (
-                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <p className="text-sm text-destructive">{error}</p>
-                </div>
+              {/* Loading indicator */}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-8">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </motion.div>
               )}
-            </div>
 
-            <DialogFooter className="flex gap-2">
-              {/* <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setShowPinDialog(false)
-                  setPinDigits(['', '', '', ''])
-                  setError('')
-                }}
-                className="flex-1"
-                disabled={isLoading}>
-                ยกเลิก
-              </Button> */}
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={pinDigits.some((d) => !d) || isLoading}>
-                {isLoading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    กำลังเข้าสู่ระบบ...
-                  </div>
-                ) : (
-                  'ยืนยัน'
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              {/* Bottom buttons */}
+              <div className="flex justify-center w-full mt-12 px-2">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="text-white/80 text-base font-light tracking-wide disabled:opacity-50">
+                  ยกเลิก
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
         <div className="w-full max-w-md space-y-6">
@@ -312,7 +338,7 @@ export function LoginForm() {
                 <div className="space-y-4">
                   {/* Phone Number Input */}
                   <div className="space-y-2">
-                    <Label htmlFor="phone">เบอร์โทรศัพท์ (demo)</Label>
+                    <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -376,56 +402,6 @@ export function LoginForm() {
                       </div>
                     </RadioGroup>
                   </div>
-
-                  {/* Demo Info */}
-                  {/* <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-4 space-y-3">
-                    <p className="text-sm font-semibold text-primary flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" />
-                      ข้อมูลสำหรับทดสอบระบบ
-                    </p>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between bg-background/50 rounded-lg p-3">
-                        <div className="text-sm">
-                          <div className="font-medium text-foreground">
-                            ลูกค้า
-                          </div>
-                          <div className="text-muted-foreground">
-                            080-123-4567 | PIN: 1234
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 hover:bg-primary/10"
-                          onClick={() =>
-                            copyToClipboard('080-123-4567', 'เบอร์ลูกค้า')
-                          }>
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="flex items-center justify-between bg-background/50 rounded-lg p-3">
-                        <div className="text-sm">
-                          <div className="font-medium text-foreground">
-                            เอเจนต์
-                          </div>
-                          <div className="text-muted-foreground">
-                            089-123-4567 | PIN: 9999
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 hover:bg-primary/10"
-                          onClick={() =>
-                            copyToClipboard('089-123-4567', 'เบอร์เอเจนต์')
-                          }>
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div> */}
                 </div>
               </CardContent>
             </Card>
