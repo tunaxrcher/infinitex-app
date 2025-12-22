@@ -14,10 +14,7 @@ alwaysApply: false
 import { NextRequest, NextResponse } from 'next/server';
 
 import { entityService } from '@src/features/[feature]/services/server';
-import {
-  entityCreateSchema,
-  entityFiltersSchema,
-} from '@src/features/[feature]/validations';
+import { entityCreateSchema } from '@src/features/[feature]/validations';
 
 // ============================================
 // GET - List/Search
@@ -26,24 +23,30 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const filters = Object.fromEntries(searchParams.entries());
-    const validatedFilters = entityFiltersSchema.parse(filters);
+    const search = searchParams.get('search');
 
-    const result = await entityService.getList(validatedFilters);
+    // Get user info from headers (set by middleware)
+    const userId = request.headers.get('x-user-id');
+    const userType = request.headers.get('x-user-type');
 
-    return NextResponse.json({
-      success: true,
-      message: 'สำเร็จ',
-      data: result.data,
-      meta: result.meta,
-    });
-  } catch (error: any) {
-    console.error('[API Error] GET /api/entities:', error);
+    // Check authorization if needed
+    if (!userId || userType !== 'AGENT') {
+      return NextResponse.json(
+        { error: 'Agent access required' },
+        { status: 403 }
+      );
+    }
+
+    const filters = {
+      search: search || undefined,
+    };
+
+    const result = await entityService.getList(userId, filters);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('GET /api/entities error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || 'เกิดข้อผิดพลาด',
-      },
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     );
   }
@@ -56,22 +59,35 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Validate request body
     const validatedData = entityCreateSchema.parse(body);
 
-    const result = await entityService.create(validatedData);
+    // Get user info from headers
+    const userId = request.headers.get('x-user-id');
+    const userType = request.headers.get('x-user-type');
 
-    return NextResponse.json({
-      success: true,
-      message: 'สร้างรายการสำเร็จ',
-      data: result,
-    });
-  } catch (error: any) {
-    console.error('[API Error] POST /api/entities:', error);
+    if (!userId || userType !== 'AGENT') {
+      return NextResponse.json(
+        { error: 'Agent access required' },
+        { status: 403 }
+      );
+    }
+
+    const result = await entityService.create(validatedData, userId);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error('POST /api/entities error:', error);
+
+    if (error instanceof Error && error.name === 'ZodError') {
+      return NextResponse.json(
+        { error: 'ข้อมูลไม่ถูกต้อง', details: error.message },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || 'เกิดข้อผิดพลาด',
-      },
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     );
   }
@@ -98,19 +114,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const result = await entityService.getById(id);
 
-    return NextResponse.json({
-      success: true,
-      message: 'สำเร็จ',
-      data: result,
-    });
-  } catch (error: any) {
-    console.error(`[API Error] GET /api/entities/${id}:`, error);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error(`GET /api/entities/${id} error:`, error);
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || 'เกิดข้อผิดพลาด',
-      },
-      { status: error.message === 'ไม่พบข้อมูล' ? 404 : 500 }
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
+      { status: error instanceof Error && error.message === 'ไม่พบข้อมูล' ? 404 : 500 }
     );
   }
 }
@@ -126,26 +135,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const validatedData = entityUpdateSchema.parse(body);
 
     const result = await entityService.update(id, validatedData);
-
-    return NextResponse.json({
-      success: true,
-      message: 'แก้ไขรายการสำเร็จ',
-      data: result,
-    });
-  } catch (error: any) {
-    console.error(`[API Error] PUT /api/entities/${id}:`, error);
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error(`PUT /api/entities/${id} error:`, error);
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || 'เกิดข้อผิดพลาด',
-      },
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     );
   }
 }
 
 // ============================================
-// DELETE - Soft Delete
+// DELETE - Delete
 // ============================================
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
@@ -153,17 +154,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     await entityService.delete(id);
 
-    return NextResponse.json({
-      success: true,
-      message: 'ลบรายการสำเร็จ',
-    });
-  } catch (error: any) {
-    console.error(`[API Error] DELETE /api/entities/${id}:`, error);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(`DELETE /api/entities/${id} error:`, error);
     return NextResponse.json(
-      {
-        success: false,
-        message: error.message || 'เกิดข้อผิดพลาด',
-      },
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     );
   }
@@ -174,88 +169,99 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
 **API Route ต้องบาง (thin) - ไม่ควรมี business logic ใดๆ**
 
-```typescript
-// ❌ ผิด - เขียน logic ใน route.ts
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-
-  // ❌ ไม่ควรมี business logic ใน route
-  const existingUser = await prisma.user.findUnique({
-    where: { phoneNumber: body.phone },
-  });
-  if (existingUser) {
-    throw new Error('เบอร์นี้ถูกใช้งานแล้ว');
-  }
-
-  const user = await prisma.user.create({
-    data: { ...body },
-  });
-
-  return NextResponse.json({ success: true, data: user });
-}
-
-// ✅ ถูก - route เรียก service เท่านั้น
-export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const validatedData = userCreateSchema.parse(body);
-
-  const result = await userService.create(validatedData);
-
-  return NextResponse.json({ success: true, data: result });
-}
-```
-
 ### หน้าที่ของ API Route:
 
 1. ✅ รับ request (query params, body, formData)
-2. ✅ Validate ด้วย Zod schema
-3. ✅ เรียก service method
-4. ✅ Return response ในรูปแบบมาตรฐาน
-5. ✅ Handle errors และ log
+2. ✅ ดึง user info จาก headers (`x-user-id`, `x-user-type`)
+3. ✅ ตรวจสอบ authorization เบื้องต้น
+4. ✅ Validate ด้วย Zod schema
+5. ✅ เรียก service method
+6. ✅ Return response
+7. ✅ Handle errors และ log
 
 ### สิ่งที่ไม่ควรทำใน API Route:
 
 - ❌ เขียน query database โดยตรง
-- ❌ เขียน business logic (validation rules, calculations)
+- ❌ เขียน business logic
 - ❌ เรียก repository โดยตรง (ต้องผ่าน service)
 - ❌ Import prisma โดยตรง
 
 ---
 
-## Response Format
+## Auth Pattern
+
+ใช้ headers จาก middleware:
 
 ```typescript
-// Success response
-{
-  success: true,
-  message: 'สำเร็จ',  // ภาษาไทย
-  data: result,
-  meta?: { page, limit, total, totalPages },  // สำหรับ pagination
+// Get user info from headers (set by middleware)
+const userId = request.headers.get('x-user-id');
+const userType = request.headers.get('x-user-type');
+
+// Check authorization
+if (!userId) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
-// Error response
-{
-  success: false,
-  message: error.message || 'เกิดข้อผิดพลาด',
+if (userType !== 'AGENT') {
+  return NextResponse.json({ error: 'Agent access required' }, { status: 403 });
 }
+```
+
+## Response Format
+
+**โปรเจคนี้ใช้ 2 รูปแบบ:**
+
+### แบบที่ 1: Return data โดยตรง (ใช้บ่อย)
+
+```typescript
+const result = await entityService.getList(filters);
+return NextResponse.json(result);
+```
+
+### แบบที่ 2: Wrapped response (เมื่อต้องการ success flag)
+
+```typescript
+return NextResponse.json({
+  success: true,
+  data: result,
+  message: 'สำเร็จ',
+});
+```
+
+### Error response
+
+```typescript
+return NextResponse.json(
+  { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
+  { status: 500 }
+);
 ```
 
 ## Error Logging
 
 ```typescript
-console.error('[API Error] METHOD /api/path:', error);
+console.error('GET /api/customers error:', error);
+console.error(`PUT /api/customers/${id} error:`, error);
 ```
 
 ## Validation Pattern
 
 ```typescript
 // Query params
-const filters = Object.fromEntries(searchParams.entries());
-const validatedFilters = entityFiltersSchema.parse(filters);
+const searchParams = request.nextUrl.searchParams;
+const search = searchParams.get('search');
 
-// Body
+// Body with Zod
 const body = await request.json();
 const validatedData = entityCreateSchema.parse(body);
+
+// Handle Zod errors
+if (error instanceof Error && error.name === 'ZodError') {
+  return NextResponse.json(
+    { error: 'ข้อมูลไม่ถูกต้อง', details: error.message },
+    { status: 400 }
+  );
+}
 ```
 
 ## File Upload Pattern
@@ -265,42 +271,26 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
 
-    // Get file
     const file = formData.get('file') as File;
     if (!file) {
       return NextResponse.json(
-        { success: false, message: 'กรุณาเลือกไฟล์' },
+        { error: 'กรุณาเลือกไฟล์' },
         { status: 400 }
       );
     }
 
-    // Process with service
     const result = await fileService.processAndUpload(file);
 
     return NextResponse.json({
       success: true,
-      message: 'อัปโหลดสำเร็จ',
       data: result,
     });
-  } catch (error: any) {
-    console.error('[API Error] POST /api/upload:', error);
+  } catch (error) {
+    console.error('POST /api/upload error:', error);
     return NextResponse.json(
-      { success: false, message: error.message || 'เกิดข้อผิดพลาด' },
+      { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
       { status: 500 }
     );
   }
 }
-```
-
-## Common Success Messages
-
-```typescript
-'สำเร็จ';
-'สร้างรายการสำเร็จ';
-'แก้ไขรายการสำเร็จ';
-'ลบรายการสำเร็จ';
-'อนุมัติสำเร็จ';
-'ยกเลิกสำเร็จ';
-'อัปโหลดสำเร็จ';
-'ส่งคำขอสินเชื่อสำเร็จ';
 ```

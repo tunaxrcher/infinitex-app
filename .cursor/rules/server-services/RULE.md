@@ -12,12 +12,12 @@ alwaysApply: false
 
 ```typescript
 // src/features/[feature-name]/services/server.ts
+import { prisma } from '@src/shared/lib/db';
 import 'server-only';
 
 import { entityRepository } from '../repositories/entityRepository';
 import {
   type EntityCreateSchema,
-  type EntityFiltersSchema,
   type EntityUpdateSchema,
 } from '../validations';
 
@@ -26,42 +26,35 @@ export const entityService = {
   // Query Methods
   // ============================================
 
-  async getList(filters: EntityFiltersSchema) {
-    const where: any = { deletedAt: null };
+  async getList(userId: string, filters: any = {}) {
+    try {
+      const entities = await entityRepository.findByUserId(userId);
 
-    // Build where clause from filters
-    if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { code: { contains: filters.search, mode: 'insensitive' } },
-      ];
-    }
+      // Transform data for frontend
+      const result = entities.map((item) => ({
+        id: item.id,
+        name: item.profile?.fullName || 'ไม่ระบุชื่อ',
+        // ... transform fields
+      }));
 
-    if (filters.status) {
-      where.status = filters.status;
-    }
-
-    if (filters.dateFrom || filters.dateTo) {
-      where.createdAt = {};
-      if (filters.dateFrom) {
-        where.createdAt.gte = new Date(filters.dateFrom);
+      // Apply search filter if provided
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        return result.filter((item) =>
+          item.name.toLowerCase().includes(searchTerm)
+        );
       }
-      if (filters.dateTo) {
-        where.createdAt.lte = new Date(filters.dateTo);
-      }
-    }
 
-    return entityRepository.paginate({
-      where,
-      orderBy: { createdAt: 'desc' },
-      page: Number(filters.page) || 1,
-      limit: Number(filters.limit) || 10,
-    });
+      return result;
+    } catch (error) {
+      console.error('Error fetching entities:', error);
+      throw new Error('ไม่สามารถดึงข้อมูลได้');
+    }
   },
 
   async getById(id: string) {
-    const entity = await entityRepository.findById(id);
-    if (!entity || entity.deletedAt) {
+    const entity = await entityRepository.findWithDetails(id);
+    if (!entity) {
       throw new Error('ไม่พบข้อมูล');
     }
     return entity;
@@ -71,42 +64,78 @@ export const entityService = {
   // Mutation Methods
   // ============================================
 
-  async create(data: EntityCreateSchema) {
-    // Business logic validation
-    await this.validateBusinessRules(data);
+  async create(data: EntityCreateSchema, userId?: string) {
+    try {
+      // Business logic validation
+      const existing = await entityRepository.findByPhoneNumber(data.phoneNumber);
+      if (existing) {
+        throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว');
+      }
 
-    return entityRepository.create(data);
+      // Create entity
+      const entity = await entityRepository.createWithProfile(
+        { ...data },
+        { ...profileData }
+      );
+
+      // Create relationship if userId provided
+      if (userId) {
+        await prisma.agentCustomer.create({
+          data: {
+            agentId: userId,
+            customerId: entity.id,
+            isActive: true,
+          },
+        });
+      }
+
+      return entity;
+    } catch (error) {
+      console.error('Error creating entity:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('ไม่สามารถสร้างข้อมูลได้');
+    }
   },
 
   async update(id: string, data: EntityUpdateSchema) {
-    // Verify existence
-    await this.getById(id);
+    try {
+      const existing = await entityRepository.findById(id);
+      if (!existing) {
+        throw new Error('ไม่พบข้อมูล');
+      }
 
-    // Business logic validation
-    await this.validateBusinessRules(data);
-
-    return entityRepository.update(id, {
-      ...data,
-      updatedAt: new Date(),
-    });
+      return entityRepository.update({
+        where: { id },
+        data: {
+          ...data,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error('Error updating entity:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('ไม่สามารถอัปเดตข้อมูลได้');
+    }
   },
 
   async delete(id: string) {
-    // Verify existence
-    await this.getById(id);
-
-    // Soft delete
-    return entityRepository.update(id, {
-      deletedAt: new Date(),
-    });
-  },
-
-  // ============================================
-  // Business Logic Methods
-  // ============================================
-
-  async validateBusinessRules(data: any) {
-    // Add business validation logic here
+    try {
+      // Soft delete by setting isActive to false
+      return entityRepository.update({
+        where: { id },
+        data: {
+          isActive: false,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error('Error deleting entity:', error);
+      throw new Error('ไม่สามารถลบข้อมูลได้');
+    }
   },
 };
 ```
@@ -116,196 +145,202 @@ export const entityService = {
 ### 1. Server-Only Directive
 
 ```typescript
-import 'server-only'; // บรรทัดแรกเสมอ!
+import { prisma } from '@src/shared/lib/db';
+import 'server-only';
 ```
+
+> Note: ในโปรเจคนี้ `import 'server-only'` อาจไม่อยู่บรรทัดแรก แต่ต้องมีอยู่
 
 ### 2. ID Format - String (cuid)
 
 ```typescript
 // ✅ ถูก - String ID
 async getById(id: string) {
-  const entity = await entityRepository.findById(id);
+  const entity = await entityRepository.findWithDetails(id);
   // ...
-}
-
-// ❌ ผิด - Number ID
-async getById(id: number) {
-  // ไม่ใช้ Number ในโปรเจคนี้
 }
 ```
 
-### 3. Error Messages ภาษาไทย
+### 3. Error Handling Pattern
+
+```typescript
+async create(data: any) {
+  try {
+    // Business logic...
+    return result;
+  } catch (error) {
+    console.error('Error creating entity:', error);
+    if (error instanceof Error) {
+      throw error;  // Re-throw known errors
+    }
+    throw new Error('ไม่สามารถสร้างข้อมูลได้');  // Generic error
+  }
+}
+```
+
+### 4. Error Messages ภาษาไทย
 
 ```typescript
 throw new Error('ไม่พบข้อมูล');
-throw new Error('ไม่มีสิทธิ์ดำเนินการ');
-throw new Error('ข้อมูลซ้ำ');
-throw new Error('สถานะไม่ถูกต้อง');
-throw new Error('กรุณาอัพโหลดรูปโฉนดที่ดิน');
+throw new Error('ไม่พบข้อมูลลูกค้า');
+throw new Error('ไม่สามารถดึงข้อมูลลูกค้าได้');
+throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว');
+throw new Error('ลูกค้าชื่อ "xxx" มีอยู่ในระบบแล้ว');
+throw new Error('ลูกค้านี้อยู่ภายใต้ Agent นี้อยู่แล้ว');
+throw new Error('ไม่สามารถมอบหมายลูกค้าให้ Agent ได้');
 ```
 
-### 4. Soft Delete Pattern
+### 5. Soft Delete Pattern
+
+ใช้ `isActive: false`:
 
 ```typescript
 async delete(id: string) {
-  // Verify existence
-  await this.getById(id);
-
-  // Soft delete
-  return entityRepository.update(id, {
-    deletedAt: new Date(),
-  });
-}
-```
-
-### 5. Filter Building Pattern
-
-```typescript
-const where: any = { deletedAt: null };
-
-if (filters.search) {
-  where.OR = [
-    /* search fields */
-  ];
-}
-
-if (filters.status) {
-  where.status = filters.status;
-}
-
-// Date range
-if (filters.dateFrom || filters.dateTo) {
-  where.createdAt = {};
-  if (filters.dateFrom) where.createdAt.gte = new Date(filters.dateFrom);
-  if (filters.dateTo) where.createdAt.lte = new Date(filters.dateTo);
-}
-```
-
-### Method Structure
-
-1. **Query methods**: `getList`, `getById`, `getByField`
-2. **Mutation methods**: `create`, `update`, `delete`
-3. **Business logic**: `validateBusinessRules`, custom validations
-4. **Helpers**: private methods สำหรับ logic ที่ซ้ำ
-
-## ตัวอย่างจริงจากโปรเจค
-
-```typescript
-// src/features/loan/services/server.ts
-import 'server-only';
-
-import { prisma } from '@src/shared/lib/db';
-import { uploadToStorage } from '@src/shared/lib/storage';
-import { analyzeImageWithAI } from '@src/shared/lib/ai-services';
-
-import { loanApplicationRepository } from '../repositories/loanApplicationRepository';
-
-export const loanService = {
-  async getByAgentId(agentId: string) {
-    return loanApplicationRepository.findByAgentId(agentId);
-  },
-
-  async getById(id: string) {
-    const application = await loanApplicationRepository.findById(id);
-    if (!application) {
-      throw new Error('ไม่พบข้อมูลคำขอสินเชื่อ');
-    }
-    return application;
-  },
-
-  async analyzeTitleDeed(file: File) {
-    // Upload file
-    const fileUrl = await uploadToStorage(file, 'title-deeds');
-
-    // Analyze with AI
-    const analysis = await analyzeImageWithAI(file);
-
-    return {
-      fileUrl,
-      analysis,
-    };
-  },
-
-  async submitApplication(data: LoanApplicationSubmissionSchema) {
-    // Validate required fields
-    if (!data.titleDeedImage) {
-      throw new Error('กรุณาอัพโหลดรูปโฉนดที่ดิน');
-    }
-
-    if (!data.requestedAmount || data.requestedAmount <= 0) {
-      throw new Error('กรุณาระบุจำนวนเงินที่ต้องการกู้');
-    }
-
-    // Create application
-    return loanApplicationRepository.create({
-      customerId: data.customerId,
-      agentId: data.agentId,
-      status: 'SUBMITTED',
-      submittedAt: new Date(),
-      // ... other fields
-    });
-  },
-
-  async updateStatus(
-    id: string,
-    status: string,
-    reviewNotes?: string
-  ) {
-    const application = await this.getById(id);
-
-    // Validate status transition
-    const validTransitions: Record<string, string[]> = {
-      'DRAFT': ['SUBMITTED', 'CANCELLED'],
-      'SUBMITTED': ['UNDER_REVIEW', 'CANCELLED'],
-      'UNDER_REVIEW': ['APPROVED', 'REJECTED'],
-    };
-
-    const allowed = validTransitions[application.status] || [];
-    if (!allowed.includes(status)) {
-      throw new Error('การเปลี่ยนสถานะไม่ถูกต้อง');
-    }
-
-    return loanApplicationRepository.update(id, {
-      status,
-      reviewNotes,
-      reviewedAt: new Date(),
-    });
-  },
-};
-```
-
-## AI Service Integration
-
-```typescript
-async analyzeWithAI(file: File) {
   try {
-    const result = await analyzeImageWithAI(file);
-    return result;
+    return entityRepository.update({
+      where: { id },
+      data: {
+        isActive: false,
+        updatedAt: new Date(),
+      },
+    });
   } catch (error) {
-    console.error('AI Analysis Error:', error);
-    throw new Error('ไม่สามารถวิเคราะห์รูปภาพได้ กรุณาลองใหม่อีกครั้ง');
+    console.error('Error deleting entity:', error);
+    throw new Error('ไม่สามารถลบข้อมูลได้');
   }
 }
 ```
 
-## File Upload Pattern
+### 6. Data Transformation
 
 ```typescript
-async uploadAndProcess(file: File, folder: string) {
-  // Validate file
-  const maxSize = 10 * 1024 * 1024; // 10MB
-  if (file.size > maxSize) {
-    throw new Error('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 10MB)');
+async getListByAgent(agentId: string, filters: any = {}) {
+  try {
+    const agentCustomers = await customerRepository.findByAgentId(agentId);
+
+    // Transform data for frontend
+    const customers = agentCustomers.map((ac) => ({
+      id: ac.customer.id,
+      name: ac.customer.profile
+        ? `${ac.customer.profile.firstName || ''} ${ac.customer.profile.lastName || ''}`.trim()
+        : 'ไม่ระบุชื่อ',
+      phoneNumber: ac.customer.phoneNumber,
+      loanCount: ac.customer.loans.length,
+      applicationCount: ac.customer.loanApplications.length,
+      lastApplicationStatus: ac.customer.loanApplications[0]?.status || null,
+      assignedAt: ac.assignedAt,
+      profile: ac.customer.profile,
+      isActive: ac.customer.isActive,
+    }));
+
+    // Apply search filter if provided
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      return customers.filter(
+        (customer) =>
+          customer.name.toLowerCase().includes(searchTerm) ||
+          customer.phoneNumber.includes(searchTerm)
+      );
+    }
+
+    return customers;
+  } catch (error) {
+    console.error('Error fetching agent customers:', error);
+    throw new Error('ไม่สามารถดึงข้อมูลลูกค้าได้');
   }
-
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error('รองรับเฉพาะไฟล์รูปภาพ (JPEG, PNG, WebP)');
-  }
-
-  // Upload to storage
-  const fileUrl = await uploadToStorage(file, folder);
-
-  return { fileUrl };
 }
 ```
+
+### 7. Duplicate Check Pattern
+
+```typescript
+async create(data: CustomerCreateSchema, agentId?: string) {
+  try {
+    // Normalize phone number
+    const normalizedPhone = data.phoneNumber.replace(/\D/g, '');
+
+    // Check if phone number already exists
+    const existingCustomer = await customerRepository.findByPhoneNumber(normalizedPhone);
+    if (existingCustomer) {
+      throw new Error('เบอร์โทรศัพท์นี้มีอยู่ในระบบแล้ว');
+    }
+
+    // Check if name already exists for this agent
+    if (agentId) {
+      const existingName = await prisma.agentCustomer.findFirst({
+        where: {
+          agentId,
+          isActive: true,
+          customer: {
+            profile: {
+              firstName: data.firstName,
+              lastName: data.lastName || null,
+            },
+          },
+        },
+      });
+
+      if (existingName) {
+        const fullName = data.lastName
+          ? `${data.firstName} ${data.lastName}`
+          : data.firstName;
+        throw new Error(`ลูกค้าชื่อ "${fullName}" มีอยู่ในระบบแล้ว`);
+      }
+    }
+
+    // Create customer...
+  } catch (error) {
+    // Error handling...
+  }
+}
+```
+
+### 8. Relationship Management
+
+```typescript
+async assignToAgent(customerId: string, agentId: string) {
+  try {
+    // Check if relationship already exists
+    const existing = await prisma.agentCustomer.findUnique({
+      where: {
+        agentId_customerId: {
+          agentId,
+          customerId,
+        },
+      },
+    });
+
+    if (existing) {
+      // Reactivate if exists but inactive
+      if (!existing.isActive) {
+        return prisma.agentCustomer.update({
+          where: { id: existing.id },
+          data: { isActive: true },
+        });
+      }
+      throw new Error('ลูกค้านี้อยู่ภายใต้ Agent นี้อยู่แล้ว');
+    }
+
+    // Create new relationship
+    return prisma.agentCustomer.create({
+      data: {
+        agentId,
+        customerId,
+        isActive: true,
+      },
+    });
+  } catch (error) {
+    console.error('Error assigning customer to agent:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('ไม่สามารถมอบหมายลูกค้าให้ Agent ได้');
+  }
+}
+```
+
+## Method Structure
+
+1. **Query methods**: `getList`, `getById`, `getByField`, `search`
+2. **Mutation methods**: `create`, `update`, `delete`, `assignTo`
+3. **All methods should have try-catch with proper error handling**

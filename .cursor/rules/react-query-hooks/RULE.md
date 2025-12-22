@@ -12,20 +12,24 @@ alwaysApply: false
 ```typescript
 // src/features/[feature-name]/hooks.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from 'sonner'; // หรือ toast from 'react-hot-toast'
 
 import { entityApi } from './api';
-import { type EntityCreateSchema, type EntityFiltersSchema } from './validations';
+import { type EntityFiltersSchema } from './validations';
 
 // ============================================
 // Query Keys
 // ============================================
 
 export const entityKeys = {
-  all: () => ['entities'] as const,
+  all: () => ['entity'] as const,
   list: (filters?: EntityFiltersSchema) =>
-    ['entities', 'list', filters] as const,
-  detail: (id: string) => ['entities', 'detail', id] as const,
+    ['entity', 'list', filters] as const,
+  listByAgent: (agentId: string, filters?: any) =>
+    ['entity', 'list', 'agent', agentId, filters] as const,
+  detail: (id: string) => ['entity', 'detail', id] as const,
+  search: (term: string, agentId?: string) =>
+    ['entity', 'search', term, agentId] as const,
 };
 
 // ============================================
@@ -37,10 +41,11 @@ export const useGetEntityList = (filters?: EntityFiltersSchema) => {
     queryKey: entityKeys.list(filters),
     queryFn: () => entityApi.getList(filters),
     placeholderData: (previousData) => previousData,
-    staleTime: 30000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
-    retry: 1,
+    refetchOnMount: false,
+    retry: false,
   });
 };
 
@@ -60,7 +65,8 @@ export const useCreateEntity = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: EntityCreateSchema) => entityApi.create(data),
+    mutationFn: entityApi.create,
+    retry: false,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: entityKeys.all() });
       toast.success('สร้างรายการสำเร็จ');
@@ -75,7 +81,7 @@ export const useUpdateEntity = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: EntityUpdateSchema }) =>
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       entityApi.update(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: entityKeys.detail(id) });
@@ -92,7 +98,7 @@ export const useDeleteEntity = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => entityApi.delete(id),
+    mutationFn: entityApi.delete,
     onSuccess: (_, id) => {
       queryClient.removeQueries({ queryKey: entityKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: entityKeys.all() });
@@ -107,6 +113,22 @@ export const useDeleteEntity = () => {
 
 ## ข้อกำหนดสำคัญ
 
+### Toast Library
+
+โปรเจคใช้ทั้ง `sonner` และ `react-hot-toast`:
+
+```typescript
+// แนะนำ: ใช้ sonner
+import { toast } from 'sonner';
+toast.success('สำเร็จ');
+toast.error('เกิดข้อผิดพลาด');
+
+// หรือ react-hot-toast (ใช้ในบาง features)
+import toast from 'react-hot-toast';
+toast.success('สำเร็จ');
+toast.error('เกิดข้อผิดพลาด');
+```
+
 ### Query Keys Pattern
 
 - ใช้ factory function สำหรับ query keys
@@ -116,11 +138,12 @@ export const useDeleteEntity = () => {
 ### Query Hooks Naming
 
 - `useGet[Entity]List` - ดึงรายการ
-- `useGet[Entity]ById` - ดึงรายละเอียด
+- `useGet[Entity]ById` / `useGet[Entity]` - ดึงรายละเอียด
 - `useCreate[Entity]` - สร้างใหม่
 - `useUpdate[Entity]` - แก้ไข
 - `useDelete[Entity]` - ลบ
-- `use[Action][Entity]` - custom actions (e.g., `useSubmitLoanApplication`)
+- `useSearch[Entities]` - ค้นหา
+- `use[Action][Entity]` - custom actions
 
 ### Query Options ที่แนะนำ
 
@@ -129,137 +152,111 @@ export const useDeleteEntity = () => {
   queryKey: entityKeys.list(filters),
   queryFn: () => entityApi.getList(filters),
   placeholderData: (previousData) => previousData, // ป้องกัน loading flash
-  staleTime: 30000,           // 30 seconds
-  gcTime: 5 * 60 * 1000,      // 5 minutes
-  refetchOnWindowFocus: false,
-  retry: 1,
-  enabled: !!requiredParam,   // Conditional fetching
+  staleTime: 5 * 60 * 1000,     // 5 minutes - ข้อมูลไม่เปลี่ยนบ่อย
+  gcTime: 10 * 60 * 1000,       // 10 minutes
+  refetchOnWindowFocus: false,  // ป้องกัน refetch เมื่อ focus window
+  refetchOnMount: false,        // ป้องกัน refetch เมื่อ mount component ใหม่
+  retry: false,                 // ปิด retry เพื่อป้องกัน request ซ้ำ
+  enabled: !!requiredParam,     // Conditional fetching
 }
 ```
 
-### Mutation Pattern
+### Mutation Options
 
-1. `invalidateQueries` - ทำให้ cache หมดอายุ
-2. `removeQueries` - ลบ cache สำหรับ delete operations
-3. Toast notifications ภาษาไทย (ใช้ `sonner`)
+```typescript
+{
+  mutationFn: entityApi.create,
+  retry: false,  // ปิด retry เพื่อป้องกัน request ซ้ำ
+  onSuccess: (data) => {
+    queryClient.invalidateQueries({ queryKey: entityKeys.all() });
+    toast.success('สำเร็จ');
+  },
+  onError: (error: Error) => {
+    toast.error(error.message || 'เกิดข้อผิดพลาด');
+  },
+}
+```
 
 ## Toast Messages ที่ใช้บ่อย
 
 ```typescript
-import { toast } from 'sonner';
-
 // Success
-toast.success('สร้างรายการสำเร็จ');
-toast.success('แก้ไขรายการสำเร็จ');
-toast.success('ลบรายการสำเร็จ');
-toast.success('อัปเดตสถานะสำเร็จ');
-toast.success('บันทึกสำเร็จ');
+toast.success('เพิ่มลูกค้าสำเร็จ');
+toast.success('อัปเดตข้อมูลลูกค้าสำเร็จ');
+toast.success('ลบลูกค้าสำเร็จ');
+toast.success('มอบหมายลูกค้าให้ Agent สำเร็จ');
 toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!');
+toast.success('อัพโหลดบัตรประชาชนสำเร็จ');
+toast.success('ค้นหาข้อมูลโฉนดสำเร็จ');
 
 // Error
 toast.error(error.message || 'เกิดข้อผิดพลาด');
-
-// Loading (for long operations)
-toast.loading('กำลังดำเนินการ...');
+toast.error('เกิดข้อผิดพลาดในการเพิ่มลูกค้า');
+toast.error('เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ');
 ```
 
-## Custom Mutation Examples
+## ตัวอย่างจริงจากโปรเจค
 
 ```typescript
-/**
- * Submit loan application
- */
-export const useSubmitLoanApplication = () => {
-  return useMutation({
-    mutationFn: (data: LoanApplicationSubmissionSchema) =>
-      loanApi.submitApplication(data),
-    onSuccess: (result) => {
-      toast.success('ส่งคำขอสินเชื่อเรียบร้อยแล้ว!');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการส่งคำขอสินเชื่อ');
-    },
+// src/features/customer/hooks.ts
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+
+import { customerApi } from './api';
+import { type CustomerFiltersSchema } from './validations';
+
+export const customerKeys = {
+  all: () => ['customer'] as const,
+  list: (filters?: CustomerFiltersSchema) =>
+    ['customer', 'list', filters] as const,
+  listByAgent: (agentId: string, filters?: any) =>
+    ['customer', 'list', 'agent', agentId, filters] as const,
+  detail: (id: string) => ['customer', 'detail', id] as const,
+  search: (searchTerm: string, agentId?: string) =>
+    ['customer', 'search', searchTerm, agentId] as const,
+};
+
+export const useGetCustomerListByAgent = (filters: any = {}) => {
+  return useQuery({
+    queryKey: customerKeys.listByAgent('current', filters),
+    queryFn: () => customerApi.getListByAgent(filters),
+    placeholderData: (previousData) => previousData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false,
   });
 };
 
-/**
- * Analyze title deed image
- */
-export const useAnalyzeTitleDeed = () => {
-  return useMutation({
-    mutationFn: (file: File) => loanApi.analyzeTitleDeed(file),
-    onError: (error: Error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการวิเคราะห์โฉนด');
-    },
-  });
-};
-
-/**
- * Update status
- */
-export const useUpdateLoanStatus = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, status, notes }: UpdateStatusParams) =>
-      loanApi.updateStatus(id, status, notes),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: loanKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: loanKeys.all() });
-      toast.success('อัปเดตสถานะสำเร็จ');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-    },
+export const useSearchCustomers = (searchTerm: string, agentId?: string) => {
+  return useQuery({
+    queryKey: customerKeys.search(searchTerm, agentId),
+    queryFn: () => customerApi.search(searchTerm, agentId),
+    enabled: searchTerm.length >= 2, // Only search if at least 2 characters
+    staleTime: 30000,
   });
 };
 ```
 
-## Queries with Dependencies
+## Conditional Fetching
 
 ```typescript
-/**
- * Get loans by agent ID (enabled only when agentId exists)
- */
+// Fetch only when parameter exists
 export const useGetLoansByAgentId = (agentId: string) => {
   return useQuery({
     queryKey: loanKeys.byAgent(agentId),
     queryFn: () => loanApi.getByAgentId(agentId),
     enabled: !!agentId,
-    staleTime: 0,
-    gcTime: 0,
   });
 };
-```
 
-## ตัวอย่างการใช้งานใน Component
-
-```typescript
-'use client';
-
-import { useGetLoansByAgentId, useSubmitLoanApplication } from '@src/features/loan/hooks';
-
-export function LoanList({ agentId }: { agentId: string }) {
-  const { data, isLoading, error } = useGetLoansByAgentId(agentId);
-  const submitMutation = useSubmitLoanApplication();
-
-  const handleSubmit = (data: LoanData) => {
-    submitMutation.mutate(data, {
-      onSuccess: () => {
-        // Additional success handling
-      },
-    });
-  };
-
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error.message} />;
-
-  return (
-    <div>
-      {data?.data?.map((loan) => (
-        <LoanCard key={loan.id} loan={loan} />
-      ))}
-    </div>
-  );
-}
+// Fetch only when search term is long enough
+export const useSearchCustomers = (searchTerm: string) => {
+  return useQuery({
+    queryKey: customerKeys.search(searchTerm),
+    queryFn: () => customerApi.search(searchTerm),
+    enabled: searchTerm.length >= 2,
+  });
+};
 ```

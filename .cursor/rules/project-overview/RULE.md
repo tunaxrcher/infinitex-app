@@ -27,7 +27,7 @@ alwaysApply: true
 | Forms         | React Hook Form + Zod               |
 | Tables        | @tanstack/react-table               |
 | AI Services   | Vercel AI SDK + OpenAI/Gemini       |
-| Notifications | sonner                              |
+| Notifications | sonner (แนะนำ) หรือ react-hot-toast |
 
 ## Development Commands
 
@@ -62,8 +62,9 @@ npm run db:seed          # Run seed script
 @src/shared/lib/*                   # Utilities
 @src/shared/hooks/*                 # Shared hooks
 @src/shared/providers/*             # React providers
-@src/shared/validations/*           # Shared Zod schemas
+@src/shared/validations/*           # Shared Zod schemas (e.g., baseTableSchema)
 @src/shared/contexts/*              # React contexts
+@src/shared/repositories/*          # BaseRepository class
 ```
 
 ## Directory Structure
@@ -87,8 +88,8 @@ src/features/
 
 - `api.ts` - Client-side API calls
 - `hooks.ts` - React Query hooks
-- `validations.ts` - Zod schemas
-- `repositories/` - Database access (extends BaseRepository)
+- `validations.ts` - Zod schemas (extends `baseTableSchema` for filters)
+- `repositories/` - Database access (extends `BaseRepository`)
 - `services/server.ts` - Server-side business logic (marked with `"server-only"`)
 - `components/` - Feature-specific components
 
@@ -104,8 +105,8 @@ src/shared/
 ├── contexts/        # React contexts (auth)
 ├── types/           # TypeScript type definitions
 ├── middleware/      # API middleware
-├── repositories/    # Base repository class
-└── validations/     # Shared Zod schemas
+├── repositories/    # BaseRepository class
+└── validations/     # Shared Zod schemas (baseTableSchema)
 ```
 
 ### `src/app/` - Next.js App Router
@@ -139,12 +140,12 @@ src/app/
 │  └─> HTTP calls ไปยัง API routes                         │
 ├─────────────────────────────────────────────────────────┤
 │  API Routes (route.ts)                                  │
-│  └─> Validate + เรียก service                            │
+│  └─> Validate + เรียก service + Auth headers            │
 ├─────────────────────────────────────────────────────────┤
 │  Services (server.ts)                                   │
 │  └─> Business logic, เรียก repository                    │
 ├─────────────────────────────────────────────────────────┤
-│  Repositories                                           │
+│  Repositories (extends BaseRepository)                  │
 │  └─> Database queries via Prisma                        │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -165,15 +166,17 @@ src/app/
 
 ## Key Files
 
-| File                             | Purpose                    |
-| -------------------------------- | -------------------------- |
-| `@src/shared/lib/api-client.ts`  | API client (`api`)         |
-| `@src/shared/lib/db.ts`          | Prisma client (`prisma`)   |
-| `@src/shared/lib/auth.ts`        | Auth utilities             |
-| `@src/shared/lib/storage.ts`     | File storage (S3)          |
-| `@src/shared/lib/utils.ts`       | Utility functions (`cn`)   |
-| `@src/shared/lib/ai-services.ts` | AI integration (OpenAI)    |
-| `@src/shared/contexts/auth-context.tsx` | Auth context        |
+| File                                      | Purpose                              |
+| ----------------------------------------- | ------------------------------------ |
+| `@src/shared/lib/api-client.ts`           | API client (`api`)                   |
+| `@src/shared/lib/db.ts`                   | Prisma client (`prisma`)             |
+| `@src/shared/lib/auth.ts`                 | Auth utilities                       |
+| `@src/shared/lib/storage.ts`              | File storage (S3)                    |
+| `@src/shared/lib/utils.ts`                | Utility functions (`cn`)             |
+| `@src/shared/lib/ai-services.ts`          | AI integration (OpenAI)              |
+| `@src/shared/contexts/auth-context.tsx`   | Auth context                         |
+| `@src/shared/repositories/baseRepository.ts` | BaseRepository class              |
+| `@src/shared/validations/pagination.ts`   | baseTableSchema for pagination       |
 
 ## Important Notes
 
@@ -181,10 +184,11 @@ src/app/
 - **Tailwind v4**: ใช้ `@tailwindcss/postcss` plugin
 - **Next.js 14**: App Router, React Server Components
 - **Thai Language**: Error messages และ UI text ใช้ภาษาไทย
-- **Soft Delete**: ใช้ `deletedAt` field แทนการลบจริง
+- **Soft Delete**: ใช้ `deletedAt` หรือ `isActive: false` แทนการลบจริง
 - **String IDs**: ใช้ `cuid()` สำหรับ primary keys (ไม่ใช่ auto-increment)
 - **Mobile-First**: UI ออกแบบสำหรับ mobile เป็นหลัก
-- **Sonner**: ใช้ `sonner` สำหรับ toast notifications
+- **Toast**: ใช้ `sonner` (แนะนำ) หรือ `react-hot-toast`
+- **Auth Headers**: API routes ใช้ `x-user-id` และ `x-user-type` จาก middleware
 
 ## Database Schema Overview
 

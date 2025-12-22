@@ -12,93 +12,110 @@ alwaysApply: false
 
 ```typescript
 // src/features/[feature-name]/repositories/entityRepository.ts
-import { Prisma } from '@prisma/client';
-
 import { prisma } from '@src/shared/lib/db';
+import { BaseRepository } from '@src/shared/repositories/baseRepository';
 
-export class EntityRepository {
-  // ============================================
-  // Find Methods
-  // ============================================
-
-  async findMany(options: {
-    where?: Prisma.EntityWhereInput;
-    skip?: number;
-    take?: number;
-    orderBy?: Prisma.EntityOrderByWithRelationInput;
-    include?: Prisma.EntityInclude;
-  }) {
-    return prisma.entity.findMany(options);
+export class EntityRepository extends BaseRepository<typeof prisma.entity> {
+  constructor() {
+    super(prisma.entity);
   }
 
-  async findById(id: string, include?: Prisma.EntityInclude) {
-    return prisma.entity.findUnique({
+  // ============================================
+  // Custom Find Methods
+  // ============================================
+
+  async findWithDetails(id: string) {
+    return this.model.findUnique({
       where: { id },
-      include,
-    });
-  }
-
-  async count(where?: Prisma.EntityWhereInput) {
-    return prisma.entity.count({ where });
-  }
-
-  // ============================================
-  // Mutation Methods
-  // ============================================
-
-  async create(data: Prisma.EntityCreateInput) {
-    return prisma.entity.create({ data });
-  }
-
-  async update(id: string, data: Prisma.EntityUpdateInput) {
-    return prisma.entity.update({
-      where: { id },
-      data,
-    });
-  }
-
-  async delete(id: string) {
-    // Soft delete - ใช้ update แทน delete
-    return prisma.entity.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-    });
-  }
-
-  // ============================================
-  // Pagination
-  // ============================================
-
-  async paginate(options: {
-    where?: Prisma.EntityWhereInput;
-    page: number;
-    limit: number;
-    orderBy?: Prisma.EntityOrderByWithRelationInput;
-    include?: Prisma.EntityInclude;
-  }) {
-    const { where, page, limit, orderBy, include } = options;
-    const skip = (page - 1) * limit;
-
-    const [data, total] = await Promise.all([
-      this.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy,
-        include,
-      }),
-      this.count(where),
-    ]);
-
-    return {
-      data,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+      include: {
+        profile: true,
+        relatedItems: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
+    });
+  }
+
+  async findByAgentId(agentId: string) {
+    return prisma.agentCustomer.findMany({
+      where: {
+        agentId,
+        isActive: true,
+      },
+      include: {
+        customer: {
+          include: {
+            profile: true,
+            loans: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedAt: 'desc',
+      },
+    });
+  }
+
+  // ============================================
+  // Custom Create Methods
+  // ============================================
+
+  async createWithProfile(entityData: any, profileData: any) {
+    return this.model.create({
+      data: {
+        ...entityData,
+        profile: {
+          create: profileData,
+        },
+      },
+      include: {
+        profile: true,
+      },
+    });
+  }
+
+  // ============================================
+  // Search Methods
+  // ============================================
+
+  async searchByNameOrPhone(searchTerm: string, agentId?: string) {
+    const whereClause: any = {
+      userType: 'CUSTOMER',
+      OR: [
+        { phoneNumber: { contains: searchTerm } },
+        {
+          profile: {
+            OR: [
+              { firstName: { contains: searchTerm } },
+              { lastName: { contains: searchTerm } },
+            ],
+          },
+        },
+      ],
     };
+
+    if (agentId) {
+      whereClause.customerAgents = {
+        some: { agentId, isActive: true },
+      };
+    }
+
+    return this.model.findMany({
+      where: whereClause,
+      include: { profile: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ============================================
+  // Lookup Methods
+  // ============================================
+
+  async findByPhoneNumber(phoneNumber: string) {
+    return this.model.findUnique({
+      where: { phoneNumber },
+      include: { profile: true },
+    });
   }
 }
 
@@ -106,7 +123,43 @@ export class EntityRepository {
 export const entityRepository = new EntityRepository();
 ```
 
+## BaseRepository Class
+
+โปรเจคมี `BaseRepository` ที่ repositories ต้อง extend:
+
+```typescript
+// src/shared/repositories/baseRepository.ts
+export abstract class BaseRepository<TModel extends Record<string, any>> {
+  constructor(protected readonly model: TModel) {}
+
+  // Built-in methods จาก BaseRepository:
+  // - create(args)
+  // - update(args)
+  // - delete(args)
+  // - findManyWithCursor(args)
+  // - exists(where)
+  // - paginate({ where, orderBy, include, select, page, limit })
+  // - findOrCreate(where, create)
+  // - updateOrCreate(where, update, create)
+}
+```
+
 ## ข้อกำหนดสำคัญ
+
+### Extend BaseRepository
+
+```typescript
+import { prisma } from '@src/shared/lib/db';
+import { BaseRepository } from '@src/shared/repositories/baseRepository';
+
+export class CustomerRepository extends BaseRepository<typeof prisma.user> {
+  constructor() {
+    super(prisma.user);
+  }
+
+  // Custom methods...
+}
+```
 
 ### ID Format - ใช้ String (cuid)
 
@@ -114,110 +167,73 @@ export const entityRepository = new EntityRepository();
 
 ```typescript
 // ✅ ถูก - String ID
-async findById(id: string, include?: Prisma.EntityInclude) {
-  return prisma.entity.findUnique({
-    where: { id },
-    include,
-  });
+async findById(id: string) {
+  return this.model.findUnique({ where: { id } });
 }
 
 // ❌ ผิด - Number ID
-async findById(id: number) {
-  return prisma.entity.findUnique({
-    where: { id: Number(id) },
-  });
-}
+async findById(id: number) { ... }
 ```
-
-### Class Structure
-
-- Import `Prisma` types จาก `@prisma/client`
-- Import `prisma` จาก `@src/shared/lib/db`
-- Export ทั้ง class และ singleton instance
 
 ### Naming Convention
 
 | Type     | Format     | Example                       |
 | -------- | ---------- | ----------------------------- |
-| Class    | PascalCase | `LoanApplicationRepository`   |
-| Instance | camelCase  | `loanApplicationRepository`   |
-| File     | camelCase  | `loanApplicationRepository.ts`|
+| Class    | PascalCase | `CustomerRepository`          |
+| Instance | camelCase  | `customerRepository`          |
+| File     | camelCase  | `customerRepository.ts`       |
 
-### Standard Methods
-
-| Method                   | Purpose                     |
-| ------------------------ | --------------------------- |
-| `findMany(options)`      | ค้นหาหลาย records           |
-| `findById(id, include?)` | ค้นหาตาม ID                 |
-| `count(where?)`          | นับจำนวน records            |
-| `create(data)`           | สร้าง record ใหม่           |
-| `update(id, data)`       | แก้ไข record                |
-| `delete(id)`             | Soft delete (set deletedAt) |
-| `paginate(options)`      | Pagination พร้อม meta       |
-
-### Soft Delete Pattern (สำคัญมาก!)
+### Methods จาก BaseRepository
 
 ```typescript
-// ❌ ห้ามใช้ delete() โดยตรง
-await prisma.entity.delete({ where: { id } });
+// Create - ใช้ Prisma args pattern
+await customerRepository.create({
+  data: { phoneNumber, userType: 'CUSTOMER' },
+});
 
-// ✅ ใช้ update() เพื่อ set deletedAt
+// Update
+await customerRepository.update({
+  where: { id },
+  data: { isActive: false },
+  include: { profile: true },
+});
+
+// Delete
+await customerRepository.delete({
+  where: { id },
+});
+
+// Paginate
+const result = await customerRepository.paginate({
+  where: { isActive: true },
+  orderBy: { createdAt: 'desc' },
+  include: { profile: true },
+  page: 1,
+  limit: 10,
+});
+// Returns: { data: [...], pagination: { total, totalPages, page, limit, ... } }
+
+// Check exists
+const exists = await customerRepository.exists({ id });
+```
+
+### Soft Delete Pattern
+
+ใช้ `isActive: false` หรือ `deletedAt`:
+
+```typescript
 async delete(id: string) {
-  return prisma.entity.update({
+  return this.update({
+    where: { id },
+    data: { isActive: false },
+  });
+}
+
+// หรือ
+async delete(id: string) {
+  return this.update({
     where: { id },
     data: { deletedAt: new Date() },
-  });
-}
-```
-
-### Paginate Response Format
-
-```typescript
-{
-  data: Entity[],
-  meta: {
-    page: number,
-    limit: number,
-    total: number,
-    totalPages: number,
-  }
-}
-```
-
-### Custom Query Methods (เพิ่มตามความต้องการ)
-
-```typescript
-async findByStatus(status: string) {
-  return this.findMany({
-    where: { status, deletedAt: null },
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
-async findByCustomerId(customerId: string) {
-  return this.findMany({
-    where: { customerId, deletedAt: null },
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
-async findByAgentId(agentId: string) {
-  return this.findMany({
-    where: { agentId, deletedAt: null },
-    orderBy: { createdAt: 'desc' },
-  });
-}
-
-async search(keyword: string) {
-  return this.findMany({
-    where: {
-      OR: [
-        { name: { contains: keyword } },
-        { code: { contains: keyword } },
-      ],
-      deletedAt: null,
-    },
-    take: 10,
   });
 }
 ```
@@ -225,45 +241,24 @@ async search(keyword: string) {
 ### Include Relations
 
 ```typescript
-async findWithRelations(id: string) {
-  return this.findById(id, {
-    customer: { select: { id: true, phoneNumber: true } },
-    agent: { select: { id: true, phoneNumber: true } },
-    profile: true,
-  });
-}
-
-async findByIdWithApplication(id: string) {
-  return prisma.loan.findUnique({
+async findWithDetails(id: string) {
+  return this.model.findUnique({
     where: { id },
     include: {
-      application: true,
-      customer: {
-        include: { profile: true },
+      profile: true,
+      loanApplications: {
+        orderBy: { createdAt: 'desc' },
+      },
+      loans: {
+        orderBy: { createdAt: 'desc' },
+      },
+      customerAgents: {
+        where: { isActive: true },
+        include: {
+          agent: { include: { profile: true } },
+        },
       },
     },
-  });
-}
-```
-
-### Transaction Pattern
-
-```typescript
-// ใน service layer, ไม่ใช่ repository
-async createWithLog(data: any, userId: string) {
-  return prisma.$transaction(async (tx) => {
-    const entity = await tx.entity.create({ data });
-
-    await tx.auditLog.create({
-      data: {
-        entity: 'Entity',
-        entityId: entity.id,
-        action: 'CREATE',
-        newData: entity,
-      },
-    });
-
-    return entity;
   });
 }
 ```
@@ -271,63 +266,63 @@ async createWithLog(data: any, userId: string) {
 ## ตัวอย่างจริงจากโปรเจค
 
 ```typescript
-// src/features/loan/repositories/loanApplicationRepository.ts
-import { Prisma } from '@prisma/client';
-
+// src/features/customer/repositories/customerRepository.ts
 import { prisma } from '@src/shared/lib/db';
+import { BaseRepository } from '@src/shared/repositories/baseRepository';
 
-export class LoanApplicationRepository {
-  async findById(id: string) {
-    return prisma.loanApplication.findUnique({
-      where: { id },
-      include: {
-        customer: {
-          include: { profile: true },
-        },
-        agent: true,
-      },
-    });
-  }
-
-  async findByCustomerId(customerId: string) {
-    return prisma.loanApplication.findMany({
-      where: { customerId },
-      orderBy: { createdAt: 'desc' },
-    });
+export class CustomerRepository extends BaseRepository<typeof prisma.user> {
+  constructor() {
+    super(prisma.user);
   }
 
   async findByAgentId(agentId: string) {
-    return prisma.loanApplication.findMany({
-      where: { agentId },
-      orderBy: { createdAt: 'desc' },
+    return prisma.agentCustomer.findMany({
+      where: { agentId, isActive: true },
       include: {
         customer: {
-          include: { profile: true },
+          include: {
+            profile: true,
+            loanApplications: {
+              select: { id: true, status: true, createdAt: true },
+              orderBy: { createdAt: 'desc' },
+            },
+            loans: {
+              select: { id: true, status: true, loanNumber: true },
+            },
+          },
         },
       },
+      orderBy: { assignedAt: 'desc' },
     });
   }
 
-  async create(data: Prisma.LoanApplicationCreateInput) {
-    return prisma.loanApplication.create({ data });
+  async createWithProfile(customerData: any, profileData: any) {
+    return this.model.create({
+      data: {
+        ...customerData,
+        userType: 'CUSTOMER',
+        profile: { create: profileData },
+      },
+      include: { profile: true },
+    });
   }
 
-  async update(id: string, data: Prisma.LoanApplicationUpdateInput) {
-    return prisma.loanApplication.update({
-      where: { id },
-      data,
+  async findByPhoneNumber(phoneNumber: string) {
+    return this.model.findUnique({
+      where: { phoneNumber },
+      include: { profile: true },
     });
   }
 }
 
-export const loanApplicationRepository = new LoanApplicationRepository();
+export const customerRepository = new CustomerRepository();
 ```
 
 ## Checklist สำหรับ Repository ใหม่
 
-- [ ] Import `Prisma` และ `prisma`
-- [ ] สร้าง class พร้อม standard methods
+- [ ] Extend `BaseRepository`
+- [ ] Import `prisma` จาก `@src/shared/lib/db`
 - [ ] ใช้ String ID (cuid) ไม่ใช่ Number
-- [ ] Implement `paginate()` method (ถ้าต้องการ)
-- [ ] ใช้ soft delete ใน `delete()` method
+- [ ] ใช้ `this.model` สำหรับ Prisma operations พื้นฐาน
+- [ ] ใช้ `prisma.xxx` สำหรับ query related models
 - [ ] Export ทั้ง class และ singleton instance

@@ -21,8 +21,8 @@ Components  →  Hooks  →  API Client  →  API Route  →  Service  →  Repo
 | Hooks      | เรียก api.ts, จัดการ cache       | เรียก service โดยตรง                   |
 | API Client | HTTP requests, handle response   | Business logic                         |
 | API Route  | Validate, เรียก service          | Query DB โดยตรง, Business logic        |
-| Service    | Business logic, เรียก repository | เข้าถึง Prisma โดยตรง (ใช้ repository) |
-| Repository | Database queries                 | Business logic                         |
+| Service    | Business logic, เรียก repository | เข้าถึง Prisma โดยตรง (ยกเว้นจำเป็น)   |
+| Repository | Database queries (extends Base)  | Business logic                         |
 
 ## 2. Type Safety
 
@@ -30,51 +30,71 @@ Components  →  Hooks  →  API Client  →  API Route  →  Service  →  Repo
 
 ```typescript
 // ✅ ถูก
-const validatedData = loanCreateSchema.parse(body);
-const result = await loanService.create(validatedData);
+const validatedData = customerCreateSchema.parse(body);
+const result = await customerService.create(validatedData);
 
 // ❌ ผิด
-const result = await loanService.create(body); // ไม่ validate
+const result = await customerService.create(body); // ไม่ validate
 ```
 
 ### Export types from Zod schemas
 
 ```typescript
-export const loanCreateSchema = z.object({ ... });
-export type LoanCreateSchema = z.infer<typeof loanCreateSchema>;
+export const customerCreateSchema = z.object({ ... });
+export type CustomerCreateSchema = z.infer<typeof customerCreateSchema>;
+```
+
+### Use baseTableSchema for filters
+
+```typescript
+import { baseTableSchema } from '@src/shared/validations/pagination';
+
+export const customerFiltersSchema = baseTableSchema.extend({
+  status: z.string().optional(),
+  agentId: z.string().optional(),
+});
 ```
 
 ## 3. Error Handling
 
-### Service layer - throw with Thai message
+### Service layer - try-catch with Thai message
 
 ```typescript
-if (!entity) {
-  throw new Error('ไม่พบข้อมูล');
-}
-
-if (entity.status !== 'DRAFT') {
-  throw new Error('สถานะไม่ถูกต้องสำหรับการดำเนินการนี้');
+async create(data: any) {
+  try {
+    // Business logic...
+    return result;
+  } catch (error) {
+    console.error('Error creating entity:', error);
+    if (error instanceof Error) {
+      throw error;  // Re-throw known errors
+    }
+    throw new Error('ไม่สามารถสร้างข้อมูลได้');
+  }
 }
 ```
 
-### Hook layer - sonner toast notification
+### Hook layer - toast notification
 
 ```typescript
+// ใช้ sonner (แนะนำ)
 import { toast } from 'sonner';
+
+// หรือ react-hot-toast
+import toast from 'react-hot-toast';
 
 onError: (error: Error) => {
   toast.error(error.message || 'เกิดข้อผิดพลาด');
 };
 ```
 
-### API route - JSON response with logging
+### API route - JSON error response
 
 ```typescript
-catch (error: any) {
-  console.error('[API Error] POST /api/loans:', error);
+catch (error) {
+  console.error('POST /api/customers error:', error);
   return NextResponse.json(
-    { success: false, message: error.message || 'เกิดข้อผิดพลาด' },
+    { error: error instanceof Error ? error.message : 'เกิดข้อผิดพลาด' },
     { status: 500 }
   );
 }
@@ -82,21 +102,27 @@ catch (error: any) {
 
 ## 4. Soft Delete Pattern
 
-**ห้ามลบข้อมูลจริง - ใช้ soft delete เสมอ:**
+**ห้ามลบข้อมูลจริง - ใช้ soft delete:**
 
 ```typescript
-// ✅ Soft delete
-async delete(id: string, userId?: string) {
-  return prisma.entity.update({
+// ใช้ isActive: false
+async delete(id: string) {
+  return repository.update({
     where: { id },
     data: {
-      deletedAt: new Date(),
+      isActive: false,
+      updatedAt: new Date(),
     },
   });
 }
 
-// Query ต้องกรอง deletedAt
-const where = { deletedAt: null, ...otherFilters };
+// หรือใช้ deletedAt
+async delete(id: string) {
+  return repository.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
+}
 ```
 
 ## 5. ID Format
@@ -110,9 +136,7 @@ async findById(id: string) {
 }
 
 // ❌ ผิด - Number ID
-async findById(id: number) {
-  return prisma.entity.findUnique({ where: { id } });
-}
+async findById(id: number) { ... }
 ```
 
 ## 6. React Query Best Practices
@@ -122,11 +146,12 @@ async findById(id: number) {
 ```typescript
 {
   placeholderData: (prev) => prev,  // ป้องกัน loading flash
-  staleTime: 30000,                 // 30 seconds
-  gcTime: 5 * 60 * 1000,            // 5 minutes
+  staleTime: 5 * 60 * 1000,         // 5 minutes
+  gcTime: 10 * 60 * 1000,           // 10 minutes
   refetchOnWindowFocus: false,
-  retry: 1,
-  enabled: !!requiredParam,         // Conditional fetching
+  refetchOnMount: false,
+  retry: false,                      // ป้องกัน request ซ้ำ
+  enabled: !!requiredParam,
 }
 ```
 
@@ -134,63 +159,74 @@ async findById(id: number) {
 
 ```typescript
 onSuccess: () => {
-  queryClient.invalidateQueries({ queryKey: ['loans'] });
+  queryClient.invalidateQueries({ queryKey: entityKeys.all() });
   toast.success('บันทึกสำเร็จ');
 };
 ```
 
 ## 7. Server-Only Directive
 
-**ทุก service file ต้องมี:**
+**Service files ต้องมี:**
 
 ```typescript
 // src/features/[feature]/services/server.ts
-import 'server-only'; // บรรทัดแรก!
+import { prisma } from '@src/shared/lib/db';
+import 'server-only';
 
 // ...rest of code
 ```
 
-## 8. Response Format (API)
+## 8. Repository Pattern
 
-### Success response
+**Extend BaseRepository:**
 
 ```typescript
-{
-  success: true,
-  message: 'สำเร็จ',
-  data: result,
-  meta: { page, limit, total, totalPages }  // for pagination
+import { prisma } from '@src/shared/lib/db';
+import { BaseRepository } from '@src/shared/repositories/baseRepository';
+
+export class CustomerRepository extends BaseRepository<typeof prisma.user> {
+  constructor() {
+    super(prisma.user);
+  }
+
+  // Custom methods...
+}
+
+export const customerRepository = new CustomerRepository();
+```
+
+## 9. API Response Format
+
+**โปรเจคนี้ใช้ 2 รูปแบบ:**
+
+```typescript
+// แบบ 1: Return data โดยตรง (ใช้บ่อย)
+return NextResponse.json(result);
+
+// แบบ 2: Wrapped response
+return NextResponse.json({ success: true, data: result });
+
+// Error response
+return NextResponse.json(
+  { error: 'เกิดข้อผิดพลาด' },
+  { status: 500 }
+);
+```
+
+## 10. Auth Pattern
+
+**ใช้ headers จาก middleware:**
+
+```typescript
+const userId = request.headers.get('x-user-id');
+const userType = request.headers.get('x-user-type');
+
+if (!userId || userType !== 'AGENT') {
+  return NextResponse.json({ error: 'Agent access required' }, { status: 403 });
 }
 ```
 
-### Error response
-
-```typescript
-{
-  success: false,
-  message: error.message || 'เกิดข้อผิดพลาด',
-  error?: errorDetails  // optional, for debugging
-}
-```
-
-## 9. Toast Notifications
-
-ใช้ `sonner` สำหรับ toast:
-
-```typescript
-import { toast } from 'sonner';
-
-// Success
-toast.success('บันทึกสำเร็จ');
-
-// Error
-toast.error('เกิดข้อผิดพลาด');
-
-// Loading
-toast.loading('กำลังดำเนินการ...');
-```
-
-## 10. Code Organization
+## 11. Code Organization
 
 ### Keep files focused
 
@@ -201,7 +237,7 @@ toast.loading('กำลังดำเนินการ...');
 ### Import Order
 
 ```typescript
-// 1. React/Next imports
+// 1. 'use client' directive (ถ้าต้องการ)
 'use client';
 
 // 2. External packages
@@ -210,11 +246,12 @@ import { toast } from 'sonner';
 
 // 3. Shared modules
 import { api } from '@src/shared/lib/api-client';
+import { baseTableSchema } from '@src/shared/validations/pagination';
 import { Button } from '@src/shared/ui/button';
 
 // 4. Feature modules (relative)
-import { loanApi } from './api';
-import { type LoanCreateSchema } from './validations';
+import { entityApi } from './api';
+import { type EntityCreateSchema } from './validations';
 ```
 
 ### Avoid
