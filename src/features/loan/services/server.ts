@@ -258,8 +258,8 @@ export const loanService = {
         const titleDeedNumber = titleDeedResult?.parcelno || null
 
         // Default loan terms
-        const defaultInterestRate = 15 // 15% per year
-        const defaultTermMonths = 48 // 4 years
+        const defaultInterestRate = 0 // 15% per year default 0
+        const defaultTermMonths = 0 // 4 years  default 0
         const principalAmount = data.requestedLoanAmount
 
         // Calculate monthly payment (simple calculation)
