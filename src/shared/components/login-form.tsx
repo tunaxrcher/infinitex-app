@@ -197,8 +197,7 @@ export function LoginForm() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="text-2xl font-light text-white mb-8 tracking-wider"
-               >
+                className="text-2xl font-light text-white mb-8 tracking-wider">
                 PIN ของคุณ
               </motion.h1>
 

@@ -1,12 +1,10 @@
-import { PrismaClient } from '@prisma/client'
 import type {
   ApplicationStatus,
   LoanApplication,
   LoanType,
 } from '@prisma/client'
+import { prisma } from '@src/shared/lib/db'
 import { BaseRepository } from '@src/shared/repositories/baseRepository'
-
-const prisma = new PrismaClient()
 
 export class LoanApplicationRepository extends BaseRepository<
   typeof prisma.loanApplication

@@ -1,7 +1,5 @@
 import { api } from '@src/shared/lib/api-client'
 
-import { loanService } from './services/server'
-
 export const loanApi = {
   /**
    * Submit loan application

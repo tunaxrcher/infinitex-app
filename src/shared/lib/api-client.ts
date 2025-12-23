@@ -1,117 +1,70 @@
 // src/shared/lib/api-client.ts
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
+
+/**
+ * Handle response and throw error if not ok
+ */
+async function handleResponse(response: Response) {
+  if (response.ok) {
+    return response.json()
+  }
+
+  // Handle specific status codes
+  if (response.status === 413) {
+    throw new Error('ขนาดไฟล์ใหญ่เกินไป กรุณาลดจำนวนหรือขนาดไฟล์ (สูงสุด 20MB)')
+  }
+
+  const errorData = await response.json().catch(() => ({}))
+  const errorMessage =
+    errorData.error ||
+    errorData.message ||
+    `HTTP error! status: ${response.status}`
+  throw new Error(errorMessage)
+}
+
 export const api = {
   get: async (url: string) => {
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: JSON_HEADERS,
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage =
-        errorData.error ||
-        errorData.message ||
-        `HTTP error! status: ${response.status}`
-      throw new Error(errorMessage)
-    }
-
-    return response.json()
+    return handleResponse(response)
   },
 
   post: async (url: string, data: any) => {
-    // Check if data is FormData
     const isFormData = data instanceof FormData
-
     const response = await fetch(url, {
       method: 'POST',
-      headers: isFormData
-        ? {} // Let browser set Content-Type with boundary for FormData
-        : {
-            'Content-Type': 'application/json',
-          },
+      headers: isFormData ? {} : JSON_HEADERS,
       body: isFormData ? data : JSON.stringify(data),
     })
-
-    if (!response.ok) {
-      // Handle 413 Request Entity Too Large specifically
-      if (response.status === 413) {
-        throw new Error(
-          'ขนาดไฟล์ใหญ่เกินไป กรุณาลดจำนวนหรือขนาดไฟล์ (สูงสุด 20MB)'
-        )
-      }
-
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage =
-        errorData.error ||
-        errorData.message ||
-        `HTTP error! status: ${response.status}`
-      throw new Error(errorMessage)
-    }
-
-    return response.json()
+    return handleResponse(response)
   },
 
   put: async (url: string, data: any) => {
     const response = await fetch(url, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: JSON_HEADERS,
       body: JSON.stringify(data),
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage =
-        errorData.error ||
-        errorData.message ||
-        `HTTP error! status: ${response.status}`
-      throw new Error(errorMessage)
-    }
-
-    return response.json()
+    return handleResponse(response)
   },
 
   patch: async (url: string, data?: any) => {
     const response = await fetch(url, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: JSON_HEADERS,
       body: data ? JSON.stringify(data) : undefined,
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage =
-        errorData.error ||
-        errorData.message ||
-        `HTTP error! status: ${response.status}`
-      throw new Error(errorMessage)
-    }
-
-    return response.json()
+    return handleResponse(response)
   },
 
   delete: async (url: string) => {
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: JSON_HEADERS,
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      const errorMessage =
-        errorData.error ||
-        errorData.message ||
-        `HTTP error! status: ${response.status}`
-      throw new Error(errorMessage)
-    }
-
-    return response.json()
+    return handleResponse(response)
   },
 }

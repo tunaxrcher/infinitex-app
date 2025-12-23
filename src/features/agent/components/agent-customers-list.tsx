@@ -325,9 +325,8 @@ export function AgentCustomersList() {
 
         {/* Search Bar and Filters */}
         <div className="space-y-3 mt-4">
-
-                {/* Status Filter - Only show for Loans tab */}
-                {activeTab === 'loans' && (
+          {/* Status Filter - Only show for Loans tab */}
+          {activeTab === 'loans' && (
             <div className="flex items-center gap-2 justify-end">
               <Filter className="h-4 w-4 text-muted-foreground" />
               <Select
@@ -353,7 +352,7 @@ export function AgentCustomersList() {
               )} */}
             </div>
           )}
-          
+
           {/* Search Input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -364,8 +363,6 @@ export function AgentCustomersList() {
               className="pl-10"
             />
           </div>
-
-    
         </div>
 
         {/* Loans Tab */}

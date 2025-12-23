@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client'
 import amphurData from '@src/data/amphur.json'
 import provinceData from '@src/data/province.json'
 import LandsMapsAPI from '@src/shared/lib/LandsMapsAPI'
 import { aiService } from '@src/shared/lib/ai-services'
+import { prisma } from '@src/shared/lib/db'
 import { sendLoanNotification } from '@src/shared/lib/line-api'
 import { storage } from '@src/shared/lib/storage'
 import bcrypt from 'bcryptjs'
@@ -14,9 +14,241 @@ import {
   type ManualLookupSchema,
 } from '../validations'
 
-const prisma = new PrismaClient()
-
 export const loanService = {
+  // ============================================================
+  // PRIVATE HELPER FUNCTIONS
+  // ============================================================
+
+  /**
+   * Find or create user for loan application
+   */
+  async _findOrCreateUser(
+    phoneNumber: string,
+    pin: string | undefined,
+    isSubmittedByAgent: boolean,
+    customerId?: string
+  ) {
+    // Use existing logged-in customer
+    if (customerId) {
+      const user = await prisma.user.findUnique({
+        where: { id: customerId },
+        include: { profile: true },
+      })
+      if (!user) throw new Error('ไม่พบข้อมูลผู้ใช้ที่เข้าสู่ระบบ')
+      return { user, isNewUser: false }
+    }
+
+    // Lookup by phone number
+    const existingUser = await prisma.user.findUnique({
+      where: { phoneNumber },
+      include: { profile: true },
+    })
+
+    if (existingUser) {
+      return { user: existingUser, isNewUser: false }
+    }
+
+    // Create new user
+    const hashedPin = await this._generateHashedPin(
+      pin,
+      phoneNumber,
+      isSubmittedByAgent
+    )
+
+    const newUser = await prisma.user.create({
+      data: {
+        phoneNumber,
+        pin: hashedPin,
+        userType: 'CUSTOMER',
+        profile: { create: { updatedAt: new Date() } },
+      },
+      include: { profile: true },
+    })
+
+    return { user: newUser, isNewUser: true }
+  },
+
+  /**
+   * Generate hashed PIN for user
+   */
+  async _generateHashedPin(
+    pin: string | undefined,
+    phoneNumber: string,
+    isSubmittedByAgent: boolean
+  ): Promise<string | null> {
+    if (pin) {
+      return bcrypt.hash(pin, 10)
+    }
+    if (isSubmittedByAgent) {
+      const defaultPin = phoneNumber.slice(-4)
+      return bcrypt.hash(defaultPin, 10)
+    }
+    return null
+  },
+
+  /**
+   * Run AI valuation and update loan application
+   */
+  async _runAgentFlowValuation(
+    loanApplicationId: string,
+    existingValuation: any,
+    titleDeedImageUrl: string | null | undefined,
+    titleDeedData: any,
+    supportingImages?: string[]
+  ) {
+    if (existingValuation) return existingValuation
+
+    try {
+      const result = await this.evaluatePropertyValueFromUrls(
+        titleDeedImageUrl,
+        titleDeedData,
+        supportingImages
+      )
+
+      if (result.success && result.valuation) {
+        await prisma.loanApplication.update({
+          where: { id: loanApplicationId },
+          data: { propertyValue: result.valuation.estimatedValue || null },
+        })
+        return result.valuation
+      }
+    } catch (error) {
+      console.error('[LoanService] AI valuation error:', error)
+    }
+    return null
+  },
+
+  /**
+   * Create loan record for agent flow
+   */
+  async _createLoanForAgentFlow(
+    loanApplicationId: string,
+    customerId: string,
+    agentId: string,
+    data: LoanApplicationSubmissionSchema,
+    propertyValuation: any
+  ) {
+    const now = new Date()
+    const titleDeedResult = data.titleDeedData?.result?.[0]
+
+    // Generate loan number: LN + YYMMDD + 4 random digits
+    const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '')
+    const randomDigits = Math.floor(1000 + Math.random() * 9000)
+    const loanNumber = `LN${dateStr}${randomDigits}`
+
+    const principalAmount = data.requestedLoanAmount
+    const nextPaymentDate = new Date(now)
+    nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1)
+
+    const loan = await prisma.loan.create({
+      data: {
+        loanNumber,
+        customerId,
+        agentId,
+        applicationId: loanApplicationId,
+        loanType: (data as any).loanType || 'HOUSE_LAND_MORTGAGE',
+        status: 'ACTIVE',
+        principalAmount,
+        interestRate: 0,
+        termMonths: 0,
+        monthlyPayment: 0,
+        currentInstallment: 0,
+        totalInstallments: 0,
+        remainingBalance: principalAmount,
+        nextPaymentDate,
+        contractDate: now,
+        expiryDate: now,
+        titleDeedNumber:
+          data.titleDeedManualData?.parcelNo ||
+          titleDeedResult?.parcelno ||
+          null,
+        collateralValue: propertyValuation?.estimatedValue || null,
+        collateralDetails: data.titleDeedData || null,
+        linkMap: titleDeedResult?.qrcode_link || null,
+        valuationResult: propertyValuation ?? undefined,
+        valuationDate: propertyValuation ? now : null,
+        estimatedValue: propertyValuation?.estimatedValue ?? null,
+        latitude: titleDeedResult?.parcellat || null,
+        longitude: titleDeedResult?.parcellon || null,
+      },
+    })
+
+    // Update loan application with loan terms
+    await prisma.loanApplication.update({
+      where: { id: loanApplicationId },
+      data: { approvedAmount: principalAmount, interestRate: 0, termMonths: 0 },
+    })
+
+    return loan
+  },
+
+  /**
+   * Send LINE notification for agent flow
+   */
+  async _sendLineNotificationForAgentFlow(
+    data: LoanApplicationSubmissionSchema,
+    loanApplicationId: string,
+    propertyInfo: any,
+    propertyValuation: any
+  ) {
+    const titleDeedResult = data.titleDeedData?.result?.[0]
+
+    const notes = propertyValuation?.reasoning
+      ? `AI ประเมิน: ${propertyValuation.estimatedValue?.toLocaleString() || 0} บาท (${propertyValuation.confidence || 0}% confidence)`
+      : undefined
+
+    const result = await sendLoanNotification({
+      amount: data.requestedLoanAmount.toLocaleString(),
+      ownerName: (data as any).ownerName || undefined,
+      propertyLocation: propertyInfo.propertyLocation || undefined,
+      propertyArea: propertyInfo.propertyArea || undefined,
+      parcelNo: titleDeedResult?.parcelno || undefined,
+      amphur: titleDeedResult?.amphurname || undefined,
+      province: titleDeedResult?.provname || undefined,
+      latitude: titleDeedResult?.parcellat || undefined,
+      longitude: titleDeedResult?.parcellon || undefined,
+      notes,
+      titleDeedImageUrl: data.titleDeedImageUrl || undefined,
+      supportingImageUrls: data.supportingImages || undefined,
+      loanApplicationId,
+    })
+
+    if (!result.success) {
+      console.error('[LoanService] LINE notification failed:', result.error)
+    }
+  },
+
+  /**
+   * Upload file with fallback to base64
+   */
+  async _uploadFileWithFallback(
+    file: File,
+    folder: string,
+    filenamePrefix: string
+  ) {
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+
+    try {
+      const result = await storage.uploadFile(buffer, file.type, {
+        folder,
+        filename: `${filenamePrefix}_${Date.now()}_${file.name}`,
+      })
+      return { success: true, imageUrl: result.url, imageKey: result.key }
+    } catch (error) {
+      console.error(`[LoanService] Upload failed for ${folder}:`, error)
+      return {
+        success: true,
+        imageUrl: `data:${file.type};base64,${buffer.toString('base64')}`,
+        imageKey: `temp_${Date.now()}_${file.name}`,
+      }
+    }
+  },
+
+  // ============================================================
+  // PUBLIC API
+  // ============================================================
+
   /**
    * Submit loan application with complete workflow
    */
@@ -25,90 +257,15 @@ export const loanService = {
     agentId?: string,
     customerId?: string
   ) {
-    console.log('[LoanService] Starting loan application submission')
-    console.log('[LoanService] Submission context:', {
-      agentId,
-      customerId,
-      phoneNumber: data.phoneNumber,
-      isSubmittedByAgent: !!agentId,
-      isSubmittedByLoggedInCustomer: !!customerId,
-    })
-
     const isSubmittedByAgent = !!agentId
-    const isSubmittedByLoggedInCustomer = !!customerId
 
-    // Step 1: Handle user creation/update
-    let user
-    let isNewUser = false
-
-    if (isSubmittedByLoggedInCustomer) {
-      // Use existing logged-in customer
-      console.log('[LoanService] Using logged-in customer')
-      user = await prisma.user.findUnique({
-        where: { id: customerId },
-        include: { profile: true },
-      })
-
-      if (!user) {
-        throw new Error('ไม่พบข้อมูลผู้ใช้ที่เข้าสู่ระบบ')
-      }
-    } else {
-      // Handle phone-based user creation/update (for both agent and customer flows)
-      console.log(
-        '[LoanService] Looking up user by phone number:',
-        data.phoneNumber
-      )
-      user = await prisma.user.findUnique({
-        where: { phoneNumber: data.phoneNumber },
-        include: { profile: true },
-      })
-
-      if (!user) {
-        console.log(
-          '[LoanService] Creating new user for phone:',
-          data.phoneNumber
-        )
-        isNewUser = true
-
-        // Generate PIN based on flow type
-        let hashedPin = null
-        if (data.pin) {
-          // Customer provided PIN
-          hashedPin = await bcrypt.hash(data.pin, 10)
-        } else if (isSubmittedByAgent) {
-          // Agent flow - generate default PIN (last 4 digits of phone number)
-          const defaultPin = data.phoneNumber.slice(-4)
-          hashedPin = await bcrypt.hash(defaultPin, 10)
-          console.log(
-            '[LoanService] Generated default PIN for agent flow:',
-            defaultPin
-          )
-        }
-
-        user = await prisma.user.create({
-          data: {
-            phoneNumber: data.phoneNumber,
-            pin: hashedPin,
-            userType: 'CUSTOMER',
-            profile: {
-              create: {
-                // Explicitly set updatedAt to prevent MySQL DateTime(0) issue with @updatedAt
-                updatedAt: new Date(),
-              },
-            },
-          },
-          include: { profile: true },
-        })
-      }
-    }
-
-    console.log('[LoanService] Final user for loan application:', {
-      userId: user.id,
-      phoneNumber: user.phoneNumber,
-      userType: user.userType,
-      isNewUser,
+    // Step 1: Find or create user
+    const { user, isNewUser } = await this._findOrCreateUser(
+      data.phoneNumber,
+      data.pin,
       isSubmittedByAgent,
-    })
+      customerId
+    )
 
     // Step 2: Prepare property information
     const propertyInfo = this.extractPropertyInfo(
@@ -117,19 +274,13 @@ export const loanService = {
       data.titleDeedAnalysis
     )
 
-    // Step 3: Determine customerId for loan application
-    // If agent flow and phone is 0000000000, find that user
+    // Step 3: Determine final customer ID
     let finalCustomerId = user.id
     if (isSubmittedByAgent && data.phoneNumber === '0000000000') {
       const defaultCustomer = await prisma.user.findUnique({
         where: { phoneNumber: '0000000000' },
       })
-      if (defaultCustomer) {
-        finalCustomerId = defaultCustomer.id
-        console.log(
-          '[LoanService] Using default customer (0000000000) for agent flow'
-        )
-      }
+      if (defaultCustomer) finalCustomerId = defaultCustomer.id
     }
 
     // Step 4: Create loan application
@@ -142,33 +293,19 @@ export const loanService = {
       completedSteps: [1, 2, 3, 4, 5],
       isNewUser,
       submittedByAgent: isSubmittedByAgent,
-
-      // Owner name (from agent input)
       ownerName: (data as any).ownerName || null,
-
-      // Title deed information
       titleDeedImage: data.titleDeedImageUrl,
       titleDeedData: data.titleDeedData || {},
-
-      // Supporting documents
       supportingImages: data.supportingImages,
-
-      // ID Card
       idCardFrontImage: data.idCardImageUrl,
-
-      // Loan amount
       requestedAmount: data.requestedLoanAmount,
       maxApprovedAmount: data.loanAmount,
-
-      // Property information
       ...propertyInfo,
       propertyValue: data.propertyValuation?.estimatedValue,
-
-      // Submission timestamp
       submittedAt: new Date(),
     })
 
-    // Step 4: Create audit log
+    // Step 5: Create audit log
     await this.createAuditLog(loanApplication.id, user.id, agentId, {
       isNewUser,
       submittedByAgent: isSubmittedByAgent,
@@ -178,211 +315,51 @@ export const loanService = {
       supportingImagesCount: data.supportingImages?.length || 0,
     })
 
-    // Step 5: Update user profile if ID card provided
+    // Step 6: Update user profile if ID card provided
     if (data.idCardImageUrl && user.profile) {
       await prisma.userProfile.update({
         where: { id: user.profile.id },
-        data: {
-          idCardFrontImage: data.idCardImageUrl,
-        },
+        data: { idCardFrontImage: data.idCardImageUrl },
       })
     }
 
-    console.log(
-      '[LoanService] Loan application created successfully:',
-      loanApplication.id
-    )
-
-    // Step 6: Run AI property valuation for agent flow
+    // Step 7-9: Agent flow specific operations
     let propertyValuation = data.propertyValuation || null
-    if (isSubmittedByAgent && !propertyValuation) {
-      console.log('[LoanService] Running AI property valuation...')
-      try {
-        const valuationResult = await this.evaluatePropertyValueFromUrls(
-          data.titleDeedImageUrl,
-          data.titleDeedData,
-          data.supportingImages
-        )
-
-        if (valuationResult.success && valuationResult.valuation) {
-          propertyValuation = valuationResult.valuation
-          console.log(
-            '[LoanService] AI valuation completed:',
-            propertyValuation
-          )
-
-          // Update LoanApplication with valuation data
-          await prisma.loanApplication.update({
-            where: { id: loanApplication.id },
-            data: {
-              propertyValue: propertyValuation.estimatedValue || null,
-            },
-          })
-        } else {
-          console.log('[LoanService] AI valuation skipped or failed')
-        }
-      } catch (valuationError) {
-        console.error('[LoanService] AI valuation error:', valuationError)
-        // Continue without valuation
-      }
-    }
-
-    // Step 7: Create Loan record for agent flow (auto-approved)
     let createdLoan = null
+
     if (isSubmittedByAgent) {
+      // Run AI valuation
+      propertyValuation = await this._runAgentFlowValuation(
+        loanApplication.id,
+        propertyValuation,
+        data.titleDeedImageUrl,
+        data.titleDeedData,
+        data.supportingImages
+      )
+
+      // Create loan record
       try {
-        // Generate unique loan number: LN + YYMMDD + 4 random digits
-        const now = new Date()
-        const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '')
-        const randomDigits = Math.floor(1000 + Math.random() * 9000)
-        const loanNumber = `LN${dateStr}${randomDigits}`
-
-        // Get title deed data from LandMaps API
-        const titleDeedResult = data.titleDeedData?.result?.[0]
-
-        // Get title deed number from user input (manual data) first, fallback to LandMaps API
-        const titleDeedNumber =
-          data.titleDeedManualData?.parcelNo ||
-          titleDeedResult?.parcelno ||
-          null
-
-        // Get coordinates from LandMaps API
-        const latitude = titleDeedResult?.parcellat || null
-        const longitude = titleDeedResult?.parcellon || null
-
-        // Default loan terms (0 means pending review/approval)
-        const defaultInterestRate = 0 // 0% = pending approval
-        const defaultTermMonths = 0 // 0 = pending approval
-        const principalAmount = data.requestedLoanAmount
-
-        // Calculate monthly payment (handle zero interest/term case)
-        let monthlyPayment = 0
-        if (defaultInterestRate > 0 && defaultTermMonths > 0) {
-          const monthlyInterestRate = defaultInterestRate / 100 / 12
-          monthlyPayment =
-            (principalAmount *
-              monthlyInterestRate *
-              Math.pow(1 + monthlyInterestRate, defaultTermMonths)) /
-            (Math.pow(1 + monthlyInterestRate, defaultTermMonths) - 1)
-        }
-
-        // Calculate dates
-        const contractDate = now
-        const expiryDate = new Date(now)
-        expiryDate.setMonth(expiryDate.getMonth() + defaultTermMonths)
-
-        const nextPaymentDate = new Date(now)
-        nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1)
-
-        // Create Loan record with AI valuation data
-        createdLoan = await prisma.loan.create({
-          data: {
-            loanNumber,
-            customerId: finalCustomerId,
-            agentId: agentId,
-            applicationId: loanApplication.id,
-            loanType: (data as any).loanType || 'HOUSE_LAND_MORTGAGE',
-            status: 'ACTIVE',
-            principalAmount,
-            interestRate: defaultInterestRate,
-            termMonths: defaultTermMonths,
-            monthlyPayment: Math.round(monthlyPayment * 100) / 100,
-            currentInstallment: 0,
-            totalInstallments: defaultTermMonths,
-            remainingBalance: principalAmount,
-            nextPaymentDate,
-            contractDate,
-            expiryDate,
-            titleDeedNumber,
-
-            // Collateral information
-            collateralValue: propertyValuation?.estimatedValue || null,
-            collateralDetails: data.titleDeedData || null,
-
-            // Link map from titleDeedData
-            linkMap: titleDeedResult?.qrcode_link || null,
-
-            // AI Valuation data
-            valuationResult: propertyValuation ?? undefined,
-            valuationDate: propertyValuation ? now : null,
-            estimatedValue: propertyValuation?.estimatedValue ?? null,
-
-            // Property location (from LandMaps API)
-            latitude,
-            longitude,
-          },
-        })
-
-        console.log('[LoanService] Loan created successfully:', createdLoan.id)
-
-        // Update LoanApplication with loan terms (keep status as UNDER_REVIEW for admin approval)
-        await prisma.loanApplication.update({
-          where: { id: loanApplication.id },
-          data: {
-            approvedAmount: principalAmount,
-            interestRate: defaultInterestRate,
-            termMonths: defaultTermMonths,
-          },
-        })
-
-        console.log('[LoanService] LoanApplication updated with loan terms')
-      } catch (loanError) {
-        console.error('[LoanService] Failed to create Loan:', loanError)
-        // Don't fail the entire request if Loan creation fails
-      }
-    }
-
-    // Step 8: Send LINE notification for agent flow
-    if (isSubmittedByAgent) {
-      try {
-        // Extract data from titleDeedData
-        const titleDeedResult = data.titleDeedData?.result?.[0]
-        const parcelNo = titleDeedResult?.parcelno || undefined
-        const amphur = titleDeedResult?.amphurname || undefined
-        const province = titleDeedResult?.provname || undefined
-        const latitude = titleDeedResult?.parcellat || undefined
-        const longitude = titleDeedResult?.parcellon || undefined
-
-        // Get owner name and location
-        const ownerName = (data as any).ownerName || undefined
-        const propertyLocation = propertyInfo.propertyLocation || undefined
-        const propertyArea = propertyInfo.propertyArea || undefined
-
-        // Get AI notes from valuation result
-        const notes = propertyValuation?.reasoning
-          ? `AI ประเมิน: ${propertyValuation.estimatedValue?.toLocaleString() || 0} บาท (${propertyValuation.confidence || 0}% confidence)`
-          : undefined
-
-        const lineResult = await sendLoanNotification({
-          amount: data.requestedLoanAmount.toLocaleString(),
-          ownerName: ownerName,
-          propertyLocation: propertyLocation,
-          propertyArea: propertyArea,
-          parcelNo: parcelNo,
-          amphur: amphur,
-          province: province,
-          latitude: latitude,
-          longitude: longitude,
-          notes: notes,
-          titleDeedImageUrl: data.titleDeedImageUrl || undefined,
-          supportingImageUrls: data.supportingImages || undefined,
-          loanApplicationId: loanApplication.id,
-        })
-
-        if (lineResult.success) {
-          console.log('[LoanService] LINE notification sent successfully')
-        } else {
-          console.error(
-            '[LoanService] LINE notification failed:',
-            lineResult.error
-          )
-        }
-      } catch (lineError) {
-        console.error(
-          '[LoanService] Failed to send LINE notification:',
-          lineError
+        createdLoan = await this._createLoanForAgentFlow(
+          loanApplication.id,
+          finalCustomerId,
+          agentId!,
+          data,
+          propertyValuation
         )
-        // Don't fail the entire request if LINE notification fails
+      } catch (error) {
+        console.error('[LoanService] Failed to create Loan:', error)
+      }
+
+      // Send LINE notification
+      try {
+        await this._sendLineNotificationForAgentFlow(
+          data,
+          loanApplication.id,
+          propertyInfo,
+          propertyValuation
+        )
+      } catch (error) {
+        console.error('[LoanService] Failed to send LINE notification:', error)
       }
     }
 
@@ -464,138 +441,34 @@ export const loanService = {
    * Upload and process ID card
    */
   async uploadIdCard(file: File) {
-    console.log('[LoanService] Uploading ID card')
-
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    try {
-      const uploadResult = await storage.uploadFile(buffer, file.type, {
-        folder: 'id-cards',
-        filename: `id_card_${Date.now()}_${file.name}`,
-      })
-
-      return {
-        success: true,
-        imageUrl: uploadResult.url,
-        imageKey: uploadResult.key,
-      }
-    } catch (uploadError) {
-      console.error('[LoanService] ID card upload failed:', uploadError)
-
-      const fallbackResult = {
-        url: `data:${file.type};base64,${buffer.toString('base64')}`,
-        key: `temp_${Date.now()}_${file.name}`,
-      }
-
-      return {
-        success: true,
-        imageUrl: fallbackResult.url,
-        imageKey: fallbackResult.key,
-      }
-    }
+    return this._uploadFileWithFallback(file, 'id-cards', 'id_card')
   },
 
   /**
    * Upload supporting image (single file - kept for backward compatibility)
    */
   async uploadSupportingImage(file: File) {
-    console.log('[LoanService] Uploading supporting image')
-
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-
-    try {
-      const uploadResult = await storage.uploadFile(buffer, file.type, {
-        folder: 'supporting-images',
-        filename: `supporting_${Date.now()}_${file.name}`,
-      })
-
-      return {
-        success: true,
-        imageUrl: uploadResult.url,
-        imageKey: uploadResult.key,
-      }
-    } catch (uploadError) {
-      console.error(
-        '[LoanService] Supporting image upload failed:',
-        uploadError
-      )
-
-      // Fallback to base64 if upload fails
-      const fallbackResult = {
-        url: `data:${file.type};base64,${buffer.toString('base64')}`,
-        key: `temp_${Date.now()}_${file.name}`,
-      }
-
-      return {
-        success: true,
-        imageUrl: fallbackResult.url,
-        imageKey: fallbackResult.key,
-      }
-    }
+    return this._uploadFileWithFallback(file, 'supporting-images', 'supporting')
   },
 
   /**
    * Upload multiple supporting images in batch
    */
   async uploadSupportingImages(files: File[]) {
-    console.log(`[LoanService] Uploading ${files.length} supporting images`)
-
     const uploadResults = await Promise.allSettled(
       files.map(async (file, index) => {
-        const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-
-        try {
-          const uploadResult = await storage.uploadFile(buffer, file.type, {
-            folder: 'supporting-images',
-            filename: `supporting_${Date.now()}_${index}_${file.name}`,
-          })
-
-          return {
-            success: true,
-            imageUrl: uploadResult.url,
-            imageKey: uploadResult.key,
-            fileName: file.name,
-          }
-        } catch (uploadError) {
-          console.error(
-            `[LoanService] Supporting image upload failed for ${file.name}:`,
-            uploadError
-          )
-
-          // Fallback to base64 if upload fails
-          const fallbackResult = {
-            url: `data:${file.type};base64,${buffer.toString('base64')}`,
-            key: `temp_${Date.now()}_${index}_${file.name}`,
-          }
-
-          return {
-            success: true,
-            imageUrl: fallbackResult.url,
-            imageKey: fallbackResult.key,
-            fileName: file.name,
-          }
-        }
+        const result = await this._uploadFileWithFallback(
+          file,
+          'supporting-images',
+          `supporting_${index}`
+        )
+        return { ...result, fileName: file.name }
       })
     )
 
-    // Process results
     const successfulUploads = uploadResults
-      .filter((result) => result.status === 'fulfilled')
-      .map((result) => (result as PromiseFulfilledResult<any>).value)
-
-    const failedUploads = uploadResults
-      .filter((result) => result.status === 'rejected')
-      .map((result) => (result as PromiseRejectedResult).reason)
-
-    if (failedUploads.length > 0) {
-      console.error(
-        `[LoanService] ${failedUploads.length} uploads failed:`,
-        failedUploads
-      )
-    }
+      .filter((r) => r.status === 'fulfilled')
+      .map((r) => (r as PromiseFulfilledResult<any>).value)
 
     return {
       success: true,

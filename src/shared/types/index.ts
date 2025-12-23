@@ -1,6 +1,4 @@
 // src/shared/types/index.ts
-import { EnumAdminStatus } from '@prisma/client'
-import { PERMISSIONS } from '@src/shared/lib/constants'
 
 export interface SuccessResponse<T> {
   success: true
@@ -41,6 +39,3 @@ export interface PaginatedResponse<T = any> {
 }
 
 export type SortDirection = 'asc' | 'desc'
-
-export type PermissionType = keyof typeof PERMISSIONS
-export type PermissionValue = (typeof PERMISSIONS)[PermissionType]

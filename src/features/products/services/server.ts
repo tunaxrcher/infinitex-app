@@ -6,6 +6,88 @@ import { loanRepository } from '../repositories/loanRepository'
 import { type LoanCreateSchema, type LoanUpdateSchema } from '../validations'
 
 export const loanService = {
+  // ============================================================
+  // PRIVATE HELPER FUNCTIONS
+  // ============================================================
+
+  /**
+   * Map application to loan-like structure for consistent display
+   */
+  _mapApplicationToLoanLike(app: any) {
+    return {
+      ...app,
+      type: 'APPLICATION' as const,
+      displayStatus: app.status,
+      loanNumber: `APP-${app.id.slice(-8)}`,
+      loanType: app.loanType,
+      principalAmount: app.requestedAmount,
+      monthlyPayment: 0,
+      remainingBalance: app.requestedAmount,
+      currentInstallment: 0,
+      totalInstallments: 0,
+      nextPaymentDate: app.submittedAt || app.createdAt,
+    }
+  },
+
+  /**
+   * Combine loans and applications, then sort by creation date
+   */
+  _combineLoansAndApplications(loans: any[], applications: any[]) {
+    const combinedData = [
+      ...loans.map((loan) => ({
+        ...loan,
+        type: 'LOAN' as const,
+        displayStatus: loan.status,
+      })),
+      ...applications.map((app) => this._mapApplicationToLoanLike(app)),
+    ]
+
+    return combinedData.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+  },
+
+  /**
+   * Filter applications for agent view (exclude duplicates with loans)
+   */
+  _filterApplicationsForAgentView(applications: any[], loans: any[]) {
+    const loanApplicationIds = new Set(
+      loans.filter((l) => l.applicationId).map((l) => l.applicationId)
+    )
+
+    return applications.filter((app) => {
+      const isPending = ['SUBMITTED', 'UNDER_REVIEW', 'DRAFT'].includes(
+        app.status
+      )
+      const isRejected = app.status === 'REJECTED'
+      const isApprovedWithoutLoan =
+        app.status === 'APPROVED' && !loanApplicationIds.has(app.id)
+
+      return isPending || isRejected || isApprovedWithoutLoan
+    })
+  },
+
+  /**
+   * Calculate monthly payment using standard amortization formula
+   */
+  _calculateMonthlyPayment(
+    principal: number,
+    interestRate: number,
+    termMonths: number
+  ): number {
+    if (interestRate === 0 || termMonths === 0) return 0
+    const monthlyRate = interestRate / 100 / 12
+    const payment =
+      (principal * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
+      (Math.pow(1 + monthlyRate, termMonths) - 1)
+    return Math.round(payment * 100) / 100
+  },
+
+  // ============================================================
+  // PUBLIC API
+  // ============================================================
+
   async getList(filters: any) {
     // Build where clause for filtering
     const where: any = {}
@@ -95,161 +177,49 @@ export const loanService = {
   },
 
   async getByCustomerId(customerId: string) {
-    // Get both loans and loan applications for the customer
     const [loans, applications] = await Promise.all([
       loanRepository.findByCustomerId(customerId),
       prisma.loanApplication.findMany({
         where: { customerId },
         include: {
-          customer: {
-            include: {
-              profile: true,
-            },
-          },
-          agent: {
-            include: {
-              profile: true,
-            },
-          },
+          customer: { include: { profile: true } },
+          agent: { include: { profile: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
     ])
 
-    // Combine and format the data
-    const combinedData = [
-      // Add loans with type indicator
-      ...loans.map((loan) => ({
-        ...loan,
-        type: 'LOAN' as const,
-        displayStatus: loan.status,
-      })),
-      // Add applications with type indicator
-      ...applications.map((app) => ({
-        ...app,
-        type: 'APPLICATION' as const,
-        displayStatus: app.status,
-        // Map application fields to loan-like structure for consistency
-        loanNumber: `APP-${app.id.slice(-8)}`,
-        loanType: app.loanType,
-        principalAmount: app.requestedAmount,
-        monthlyPayment: 0,
-        remainingBalance: app.requestedAmount,
-        currentInstallment: 0,
-        totalInstallments: 0,
-        nextPaymentDate: app.submittedAt || app.createdAt,
-      })),
-    ]
-
-    // Sort by creation date (newest first)
-    return combinedData.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
+    return this._combineLoansAndApplications(loans, applications)
   },
 
   async getByAgentId(agentId: string) {
-    // Get both loans and loan applications for the agent
     const [loans, applications] = await Promise.all([
       loanRepository.findByAgentId(agentId),
       prisma.loanApplication.findMany({
         where: { agentId },
         include: {
-          customer: {
-            include: {
-              profile: true,
-            },
-          },
-          agent: {
-            include: {
-              profile: true,
-            },
-          },
+          customer: { include: { profile: true } },
+          agent: { include: { profile: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
     ])
 
-    // Create a set of application IDs that have corresponding loans
-    const loanApplicationIds = new Set(
+    const filteredApplications = this._filterApplicationsForAgentView(
+      applications,
       loans
-        .filter((loan) => loan.applicationId)
-        .map((loan) => loan.applicationId)
     )
-
-    // Filter applications based on clear rules:
-    // 1. Show applications that are pending approval (SUBMITTED, UNDER_REVIEW, DRAFT)
-    // 2. Show applications that are rejected (REJECTED)
-    // 3. Hide applications that are approved AND have corresponding loans (to avoid duplicates)
-    const filteredApplications = applications.filter((app) => {
-      // Always show pending applications (waiting for approval)
-      if (['SUBMITTED', 'UNDER_REVIEW', 'DRAFT'].includes(app.status)) {
-        return true
-      }
-
-      // Always show rejected applications
-      if (app.status === 'REJECTED') {
-        return true
-      }
-
-      // For approved applications, only hide if there's a corresponding loan
-      if (app.status === 'APPROVED' && loanApplicationIds.has(app.id)) {
-        return false // Hide because the loan will be shown instead
-      }
-
-      // Show approved applications that don't have corresponding loans yet
-      if (app.status === 'APPROVED' && !loanApplicationIds.has(app.id)) {
-        return true
-      }
-
-      // Hide other statuses by default
-      return false
-    })
-
-    // Combine and format the data
-    const combinedData = [
-      // Add loans with type indicator
-      ...loans.map((loan) => ({
-        ...loan,
-        type: 'LOAN' as const,
-        displayStatus: loan.status,
-      })),
-      // Add filtered applications with type indicator
-      ...filteredApplications.map((app) => ({
-        ...app,
-        type: 'APPLICATION' as const,
-        displayStatus: app.status,
-        // Map application fields to loan-like structure for consistency
-        loanNumber: `APP-${app.id.slice(-8)}`,
-        loanType: app.loanType,
-        principalAmount: app.requestedAmount,
-        monthlyPayment: 0,
-        remainingBalance: app.requestedAmount,
-        currentInstallment: 0,
-        totalInstallments: 0,
-        nextPaymentDate: app.submittedAt || app.createdAt,
-      })),
-    ]
-
-    // Sort by creation date (newest first)
-    return combinedData.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    )
+    return this._combineLoansAndApplications(loans, filteredApplications)
   },
 
   async create(data: LoanCreateSchema, createdBy?: string) {
-    // Generate loan number
     const loanCount = await loanRepository.model.count()
     const loanNumber = `FX-${new Date().getFullYear()}-${String(loanCount + 1).padStart(6, '0')}`
-
-    // Calculate monthly payment (simple calculation)
-    const monthlyInterestRate = data.interestRate / 100 / 12
-    const monthlyPayment =
-      (data.principalAmount *
-        monthlyInterestRate *
-        Math.pow(1 + monthlyInterestRate, data.termMonths)) /
-      (Math.pow(1 + monthlyInterestRate, data.termMonths) - 1)
+    const monthlyPayment = this._calculateMonthlyPayment(
+      data.principalAmount,
+      data.interestRate,
+      data.termMonths
+    )
 
     return loanRepository.create({
       data: {
@@ -259,10 +229,10 @@ export const loanService = {
         principalAmount: data.principalAmount,
         interestRate: data.interestRate,
         termMonths: data.termMonths,
-        monthlyPayment: Math.round(monthlyPayment * 100) / 100,
+        monthlyPayment,
         totalInstallments: data.termMonths,
         remainingBalance: data.principalAmount,
-        nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         contractDate: new Date(),
         expiryDate: new Date(
           Date.now() + data.termMonths * 30 * 24 * 60 * 60 * 1000
@@ -270,7 +240,7 @@ export const loanService = {
         titleDeedNumber: data.titleDeedNumber,
         collateralValue: data.collateralValue,
         collateralDetails: data.collateralDetails,
-        applicationId: '', // This should be provided from loan application
+        applicationId: '',
       },
     })
   },
@@ -278,29 +248,21 @@ export const loanService = {
   async update(id: string, data: LoanUpdateSchema, updatedBy?: string) {
     const existingLoan = await this.getById(id)
 
-    // Recalculate monthly payment if principal amount, interest rate, or term changed
     let monthlyPayment = existingLoan.monthlyPayment
     if (data.principalAmount || data.interestRate || data.termMonths) {
       const principal = data.principalAmount || existingLoan.principalAmount
       const rate = data.interestRate || existingLoan.interestRate
       const term = data.termMonths || existingLoan.termMonths
-
-      const monthlyInterestRate = Number(rate) / 100 / 12
-      monthlyPayment =
-        (Number(principal) *
-          monthlyInterestRate *
-          Math.pow(1 + monthlyInterestRate, term)) /
-        (Math.pow(1 + monthlyInterestRate, term) - 1)
-      monthlyPayment = Math.round(monthlyPayment * 100) / 100
+      monthlyPayment = this._calculateMonthlyPayment(
+        Number(principal),
+        Number(rate),
+        term
+      )
     }
 
     return loanRepository.update({
       where: { id },
-      data: {
-        ...data,
-        monthlyPayment,
-        updatedAt: new Date(),
-      },
+      data: { ...data, monthlyPayment, updatedAt: new Date() },
     })
   },
 

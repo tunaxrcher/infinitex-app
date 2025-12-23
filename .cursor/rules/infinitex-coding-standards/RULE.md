@@ -100,6 +100,8 @@ import { type LoanCreateSchema } from './validations'
 // 1. 'use client' directive (ถ้าต้องการ)
 
 // 1. 'use client' directive (ถ้าต้องการ)
+
+// 1. 'use client' directive (ถ้าต้องการ)
 ```
 
 ## Error Messages (ภาษาไทย)
