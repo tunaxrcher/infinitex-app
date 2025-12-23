@@ -156,9 +156,11 @@ export function AgentCustomersList() {
   // Use only real data from database
   const allData = loansData?.success && loansData?.data ? loansData.data : []
 
-  // Separate loans and applications based on new requirements:
-  // - สินเชื่อ tab: Loans (which come from APPROVED applications)
-  // - ใบสมัคร tab: Applications that are NOT APPROVED and NOT CANCELLED
+  // Separate loans and applications based on requirements:
+  // - สินเชื่อ tab: Loans from 'loans' table (Loan records)
+  // - ใบสมัคร tab: Applications from 'loan_applications' table (LoanApplication records)
+  //   - Show all applications except CANCELLED
+  //   - Include APPROVED applications that haven't been converted to loans yet
   const allLoans = useMemo(
     () => allData.filter((item: any) => item.type === 'LOAN'),
     [allData]
@@ -168,9 +170,7 @@ export function AgentCustomersList() {
     () =>
       allData.filter(
         (item: any) =>
-          item.type === 'APPLICATION' &&
-          item.status !== 'APPROVED' &&
-          item.status !== 'CANCELLED'
+          item.type === 'APPLICATION' && item.status !== 'CANCELLED'
       ),
     [allData]
   )
