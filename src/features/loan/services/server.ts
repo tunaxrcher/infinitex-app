@@ -108,7 +108,12 @@ export const loanService = {
       if (result.success && result.valuation) {
         await prisma.loanApplication.update({
           where: { id: loanApplicationId },
-          data: { propertyValue: result.valuation.estimatedValue || null },
+          data: {
+            propertyValue: result.valuation.estimatedValue || null,
+            valuationResult: result.valuation,
+            valuationDate: new Date(),
+            estimatedValue: result.valuation.estimatedValue ?? null,
+          },
         })
         return result.valuation
       }
@@ -116,70 +121,6 @@ export const loanService = {
       console.error('[LoanService] AI valuation error:', error)
     }
     return null
-  },
-
-  /**
-   * Create loan record for agent flow
-   */
-  async _createLoanForAgentFlow(
-    loanApplicationId: string,
-    customerId: string,
-    agentId: string,
-    data: LoanApplicationSubmissionSchema,
-    propertyValuation: any
-  ) {
-    const now = new Date()
-    const titleDeedResult = data.titleDeedData?.result?.[0]
-
-    // Generate loan number: LN + YYMMDD + 4 random digits
-    const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '')
-    const randomDigits = Math.floor(1000 + Math.random() * 9000)
-    const loanNumber = `LN${dateStr}${randomDigits}`
-
-    const principalAmount = data.requestedLoanAmount
-    const nextPaymentDate = new Date(now)
-    nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1)
-
-    const loan = await prisma.loan.create({
-      data: {
-        loanNumber,
-        customerId,
-        agentId,
-        applicationId: loanApplicationId,
-        loanType: (data as any).loanType || 'HOUSE_LAND_MORTGAGE',
-        status: 'ACTIVE',
-        principalAmount,
-        interestRate: 0,
-        termMonths: 0,
-        monthlyPayment: 0,
-        currentInstallment: 0,
-        totalInstallments: 0,
-        remainingBalance: principalAmount,
-        nextPaymentDate,
-        contractDate: now,
-        expiryDate: now,
-        titleDeedNumber:
-          data.titleDeedManualData?.parcelNo ||
-          titleDeedResult?.parcelno ||
-          null,
-        collateralValue: propertyValuation?.estimatedValue || null,
-        collateralDetails: data.titleDeedData || null,
-        linkMap: titleDeedResult?.qrcode_link || null,
-        valuationResult: propertyValuation ?? undefined,
-        valuationDate: propertyValuation ? now : null,
-        estimatedValue: propertyValuation?.estimatedValue ?? null,
-        latitude: titleDeedResult?.parcellat || null,
-        longitude: titleDeedResult?.parcellon || null,
-      },
-    })
-
-    // Update loan application with loan terms
-    await prisma.loanApplication.update({
-      where: { id: loanApplicationId },
-      data: { approvedAmount: principalAmount, interestRate: 0, termMonths: 0 },
-    })
-
-    return loan
   },
 
   /**
@@ -300,6 +241,8 @@ export const loanService = {
       idCardFrontImage: data.idCardImageUrl,
       requestedAmount: data.requestedLoanAmount,
       maxApprovedAmount: data.loanAmount,
+      termMonths: 0,
+      interestRate: 0,
       ...propertyInfo,
       propertyValue: data.propertyValuation?.estimatedValue,
       submittedAt: new Date(),
@@ -323,34 +266,20 @@ export const loanService = {
       })
     }
 
-    // Step 7-9: Agent flow specific operations
+    // Step 7: Run AI valuation and save to LoanApplication
     let propertyValuation = data.propertyValuation || null
-    let createdLoan = null
 
+    // Run AI valuation if not already done
+    propertyValuation = await this._runAgentFlowValuation(
+      loanApplication.id,
+      propertyValuation,
+      data.titleDeedImageUrl,
+      data.titleDeedData,
+      data.supportingImages
+    )
+
+    // Step 8: Send LINE notification (for agent submissions)
     if (isSubmittedByAgent) {
-      // Run AI valuation
-      propertyValuation = await this._runAgentFlowValuation(
-        loanApplication.id,
-        propertyValuation,
-        data.titleDeedImageUrl,
-        data.titleDeedData,
-        data.supportingImages
-      )
-
-      // Create loan record
-      try {
-        createdLoan = await this._createLoanForAgentFlow(
-          loanApplication.id,
-          finalCustomerId,
-          agentId!,
-          data,
-          propertyValuation
-        )
-      } catch (error) {
-        console.error('[LoanService] Failed to create Loan:', error)
-      }
-
-      // Send LINE notification
       try {
         await this._sendLineNotificationForAgentFlow(
           data,
@@ -365,8 +294,6 @@ export const loanService = {
 
     return {
       loanApplicationId: loanApplication.id,
-      loanId: createdLoan?.id || null,
-      loanNumber: createdLoan?.loanNumber || null,
       userId: user.id,
       agentId: isSubmittedByAgent ? agentId : undefined,
       isNewUser,

@@ -133,6 +133,10 @@ export class LoanApplicationRepository extends BaseRepository<
     requestedAmount: number
     maxApprovedAmount?: number
 
+    // Loan terms (default 0, set by admin later)
+    termMonths?: number
+    interestRate?: number
+
     // Property information
     propertyType?: string
     propertyValue?: number
