@@ -10,7 +10,7 @@
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN || ''
 const LINE_GROUP_ID = process.env.LINE_GROUP_ID || ''
 const LINE_API_URL = 'https://api.line.me/v2/bot/message/push'
-const ADMIN_BASE_URL = 'https://admin-demo.unityx.group'
+const ADMIN_BASE_URL = process.env.ADMIN_BASE_URL
 
 // Flex message styling constants
 const COLORS = {
