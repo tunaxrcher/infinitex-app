@@ -1,5 +1,6 @@
 import type {
   ApplicationStatus,
+  DeedMode,
   LoanApplication,
   LoanType,
 } from '@prisma/client'
@@ -29,6 +30,9 @@ export class LoanApplicationRepository extends BaseRepository<
           include: {
             profile: true,
           },
+        },
+        titleDeeds: {
+          orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
         },
       },
     })
@@ -117,10 +121,23 @@ export class LoanApplicationRepository extends BaseRepository<
     completedSteps: number[]
     isNewUser: boolean
     submittedByAgent: boolean
+    deedMode?: DeedMode
 
-    // Title deed information
-    titleDeedImage?: string
-    titleDeedData?: any
+    // Title deeds (both single and multiple mode - all deeds go here)
+    titleDeeds?: Array<{
+      imageUrl?: string
+      imageKey?: string
+      provinceName?: string
+      amphurName?: string
+      parcelNo?: string
+      landAreaText?: string
+      ownerName?: string
+      titleDeedData?: any
+      latitude?: string
+      longitude?: string
+      sortOrder?: number
+      isPrimary?: boolean
+    }>
 
     // Supporting documents
     supportingImages?: string[]
@@ -137,20 +154,16 @@ export class LoanApplicationRepository extends BaseRepository<
     termMonths?: number
     interestRate?: number
 
-    // Property information
-    propertyType?: string
+    // Property information (kept for AI valuation)
     propertyValue?: number
-    propertyArea?: string
-    propertyLocation?: string
-    propertyAddress?: string
-    landNumber?: string
     ownerName?: string
+    totalPropertyValue?: number
 
     // Submission timestamp
     submittedAt?: Date
   }) {
-    // Extract customerId and agentId for nested connect
-    const { customerId, agentId, ...restData } = data
+    // Extract customerId, agentId, and titleDeeds for nested operations
+    const { customerId, agentId, titleDeeds, ...restData } = data
 
     return this.model.create({
       data: {
@@ -165,7 +178,27 @@ export class LoanApplicationRepository extends BaseRepository<
         }),
         completedSteps: data.completedSteps,
         supportingImages: data.supportingImages || [],
-        titleDeedData: data.titleDeedData || {},
+        deedMode: data.deedMode || 'SINGLE',
+        // Create title deeds if provided (both single and multiple mode)
+        ...(titleDeeds &&
+          titleDeeds.length > 0 && {
+            titleDeeds: {
+              create: titleDeeds.map((deed, index) => ({
+                imageUrl: deed.imageUrl,
+                imageKey: deed.imageKey,
+                provinceName: deed.provinceName,
+                amphurName: deed.amphurName,
+                parcelNo: deed.parcelNo,
+                landAreaText: deed.landAreaText,
+                ownerName: deed.ownerName,
+                titleDeedData: deed.titleDeedData || undefined,
+                latitude: deed.latitude,
+                longitude: deed.longitude,
+                sortOrder: deed.sortOrder ?? index,
+                isPrimary: deed.isPrimary ?? index === 0,
+              })),
+            },
+          }),
       },
       include: {
         customer: {
@@ -178,6 +211,7 @@ export class LoanApplicationRepository extends BaseRepository<
             profile: true,
           },
         },
+        titleDeeds: true,
       },
     })
   }
@@ -199,6 +233,27 @@ export class LoanApplicationRepository extends BaseRepository<
         reviewedBy,
         reviewNotes,
       },
+    })
+  }
+
+  /**
+   * Get title deeds for an application
+   * All applications should now have titleDeeds records
+   */
+  async getTitleDeeds(applicationId: string) {
+    const titleDeeds = await prisma.titleDeed.findMany({
+      where: { applicationId },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+    })
+    return titleDeeds
+  }
+
+  /**
+   * Get primary title deed for an application
+   */
+  async getPrimaryTitleDeed(applicationId: string) {
+    return prisma.titleDeed.findFirst({
+      where: { applicationId, isPrimary: true },
     })
   }
 }

@@ -29,6 +29,21 @@ export const propertyValuationSchema = z.object({
 
 export type PropertyValuationSchema = z.infer<typeof propertyValuationSchema>
 
+// Title deed item schema for multiple deeds
+export const titleDeedItemSchema = z.object({
+  id: z.string(),
+  imageUrl: z.string().url().optional(),
+  imageKey: z.string().optional(),
+  provinceName: z.string(),
+  amphurName: z.string(),
+  parcelNo: z.string(),
+  landAreaRai: z.string().optional(),
+  landAreaNgan: z.string().optional(),
+  landAreaWa: z.string().optional(),
+})
+
+export type TitleDeedItemSchema = z.infer<typeof titleDeedItemSchema>
+
 // Loan application submission schema
 export const loanApplicationSubmissionSchema = z.object({
   phoneNumber: z
@@ -40,8 +55,9 @@ export const loanApplicationSubmissionSchema = z.object({
     .enum(['HOUSE_LAND_MORTGAGE', 'CAR_REGISTRATION', 'FINX_PLUS'])
     .optional(),
   ownerName: z.string().nullable().optional(),
+  deedMode: z.enum(['single', 'multiple']).optional().default('single'),
 
-  // Title deed information
+  // Title deed information (single mode)
   titleDeedImage: z.string().nullable().optional(),
   titleDeedImageUrl: z.string().url().nullable().optional(),
   titleDeedImageKey: z.string().nullable().optional(),
@@ -57,6 +73,9 @@ export const loanApplicationSubmissionSchema = z.object({
     })
     .nullable()
     .optional(),
+
+  // Title deeds (multiple mode)
+  titleDeeds: z.array(titleDeedItemSchema).optional(),
 
   // Supporting images
   supportingImages: z.array(z.string()).default([]),

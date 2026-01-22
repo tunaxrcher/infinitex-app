@@ -9,6 +9,7 @@
     "pretty": "prettier --config ./.prettierrc --write ./app/**/*.{js,jsx,mjs,cjs,ts,tsx,json}",
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "tsx ./prisma/seed.ts",
+    "db:generate-user": "tsx ./prisma/generate-user.ts",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
     "prettier:write": "prettier --write --ignore-unknown ."
@@ -20,6 +21,7 @@
     "@auth/core": "0.34.2",
     "@auth/prisma-adapter": "^2.7.1",
     "@hookform/resolvers": "^3.10.0",
+    "@paralleldrive/cuid2": "^3.0.6",
     "@prisma/client": "^6.6.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",

@@ -5,11 +5,11 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
+import { cn } from '@src/shared/lib/utils'
 import { Button } from '@src/shared/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -23,7 +23,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/shared/ui/select'
-import { Briefcase, MapPin, Plus } from 'lucide-react'
+import { FileText, Files, MapPin, Plus, Sparkles, PenLine } from 'lucide-react'
+
+type DeedMode = 'single' | 'multiple'
 
 interface FloatingActionButtonProps {
   href?: string
@@ -36,6 +38,7 @@ export function FloatingActionButton({
   const [showDialog, setShowDialog] = useState(false)
   const [ownerNameInput, setOwnerNameInput] = useState('')
   const [loanTypeInput, setLoanTypeInput] = useState('HOUSE_LAND_MORTGAGE')
+  const [deedMode, setDeedMode] = useState<DeedMode>('single')
 
   const handleConfirm = () => {
     // Store data in sessionStorage to pass to apply page
@@ -44,6 +47,7 @@ export function FloatingActionButton({
       JSON.stringify({
         ownerName: ownerNameInput.trim() || undefined,
         loanType: loanTypeInput,
+        deedMode: deedMode,
       })
     )
     setShowDialog(false)
@@ -51,15 +55,23 @@ export function FloatingActionButton({
   }
 
   const handleSkip = () => {
-    // Store only loan type
+    // Store only loan type and deed mode
     sessionStorage.setItem(
       'loanApplicationData',
       JSON.stringify({
         loanType: loanTypeInput,
+        deedMode: deedMode,
       })
     )
     setShowDialog(false)
     router.push(href)
+  }
+
+  const handleOpenDialog = () => {
+    // Reset state when opening dialog
+    setOwnerNameInput('')
+    setDeedMode('single')
+    setShowDialog(true)
   }
 
   return (
@@ -107,7 +119,117 @@ export function FloatingActionButton({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Deed Mode Selection - Only show for HOUSE_LAND_MORTGAGE */}
+            {loanTypeInput === 'HOUSE_LAND_MORTGAGE' && (
+              <div className="space-y-2">
+                <Label>รูปแบบการยื่นโฉนด *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Single Deed Card */}
+                  <button
+                    type="button"
+                    onClick={() => setDeedMode('single')}
+                    className={cn(
+                      'relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200',
+                      'hover:border-primary/50 hover:bg-primary/5',
+                      deedMode === 'single'
+                        ? 'border-primary bg-primary/10 shadow-sm'
+                        : 'border-border bg-card'
+                    )}>
+                    {deedMode === 'single' && (
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                        <span className="text-primary-foreground text-xs">✓</span>
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        'w-12 h-12 rounded-lg flex items-center justify-center',
+                        deedMode === 'single'
+                          ? 'bg-primary/20'
+                          : 'bg-muted'
+                      )}>
+                      <FileText
+                        className={cn(
+                          'h-6 w-6',
+                          deedMode === 'single'
+                            ? 'text-primary'
+                            : 'text-muted-foreground'
+                        )}
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p
+                        className={cn(
+                          'font-medium text-sm',
+                          deedMode === 'single'
+                            ? 'text-primary'
+                            : 'text-foreground'
+                        )}>
+                        โฉนดเดี่ยว
+                      </p>
+                      <p className="text-xs text-muted-foreground">(1 ใบ)</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Sparkles className="h-3 w-3" />
+                      <span>AI วิเคราะห์รูป</span>
+                    </div>
+                  </button>
+
+                  {/* Multiple Deeds Card */}
+                  <button
+                    type="button"
+                    onClick={() => setDeedMode('multiple')}
+                    className={cn(
+                      'relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200',
+                      'hover:border-primary/50 hover:bg-primary/5',
+                      deedMode === 'multiple'
+                        ? 'border-primary bg-primary/10 shadow-sm'
+                        : 'border-border bg-card'
+                    )}>
+                    {deedMode === 'multiple' && (
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                        <span className="text-primary-foreground text-xs">✓</span>
+                      </div>
+                    )}
+                    <div
+                      className={cn(
+                        'w-12 h-12 rounded-lg flex items-center justify-center',
+                        deedMode === 'multiple'
+                          ? 'bg-primary/20'
+                          : 'bg-muted'
+                      )}>
+                      <Files
+                        className={cn(
+                          'h-6 w-6',
+                          deedMode === 'multiple'
+                            ? 'text-primary'
+                            : 'text-muted-foreground'
+                        )}
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p
+                        className={cn(
+                          'font-medium text-sm',
+                          deedMode === 'multiple'
+                            ? 'text-primary'
+                            : 'text-foreground'
+                        )}>
+                        โฉนดชุด
+                      </p>
+                      <p className="text-xs text-muted-foreground">(หลายใบ)</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <PenLine className="h-3 w-3" />
+                      <span>กรอกข้อมูลเอง</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <hr />
+
             {/* Owner Name Input */}
             <div className="space-y-2">
               <Label htmlFor="ownerName">
@@ -129,9 +251,6 @@ export function FloatingActionButton({
                   className="pl-10"
                 />
               </div>
-              {/* <p className="text-xs text-muted-foreground">
-                ข้อมูลนี้จะช่วยในการระบุและจัดการคำขอสินเชื่อ
-              </p> */}
             </div>
           </div>
           <DialogFooter className="flex gap-2">
@@ -153,7 +272,7 @@ export function FloatingActionButton({
       <div className="fixed bottom-24 right-4 z-40">
         <Button
           size="lg"
-          onClick={() => setShowDialog(true)}
+          onClick={handleOpenDialog}
           className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-shadow bg-primary hover:bg-primary/90">
           <Plus className="h-6 w-6" />
           <span className="sr-only">ขอสินเชื่อเพิ่ม</span>

@@ -5,8 +5,27 @@ import { useEffect, useState } from 'react'
 import { LoanAmountStep } from '@src/features/loan/components/loan-steps/loan-amount-step'
 import { PendingStep } from '@src/features/loan/components/loan-steps/pending-step'
 import { SupportingImagesStep } from '@src/features/loan/components/loan-steps/supporting-images-step'
+import { TitleDeedMultipleStep } from '@src/features/loan/components/loan-steps/title-deed-multiple-step'
 import { TitleDeedUploadStep } from '@src/features/loan/components/loan-steps/title-deed-upload-step'
 import { Progress } from '@src/shared/ui/progress'
+
+type DeedMode = 'single' | 'multiple'
+
+interface TitleDeedItem {
+  id: string
+  imageFile?: File
+  imageUrl?: string
+  imageKey?: string
+  provinceName: string
+  amphurName: string
+  parcelNo: string
+  landAreaRai: string
+  landAreaNgan: string
+  landAreaWa: string
+  // For UI select only
+  _provinceCode?: string
+  _amphurCode?: string
+}
 
 interface ApplicationData {
   customerId?: string
@@ -14,6 +33,8 @@ interface ApplicationData {
   customerName?: string
   ownerName?: string
   loanType?: string
+  deedMode?: DeedMode
+  // Single deed mode
   titleDeedImage?: File
   titleDeedData?: {
     ownerName: string
@@ -21,6 +42,8 @@ interface ApplicationData {
     area: string
     location: string
   }
+  // Multiple deeds mode
+  titleDeeds?: TitleDeedItem[]
   supportingImages: File[]
   loanAmount: number
   phoneNumber?: string
@@ -38,9 +61,11 @@ export function AgentLoanApplicationFlow() {
   // Load data from sessionStorage on mount
   useEffect(() => {
     const savedData = sessionStorage.getItem('loanApplicationData')
+    console.log('[AgentFlow] Loading from sessionStorage:', savedData)
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData)
+        console.log('[AgentFlow] Parsed data:', parsed)
         updateApplicationData(parsed)
         // Clear after loading
         sessionStorage.removeItem('loanApplicationData')
@@ -55,7 +80,16 @@ export function AgentLoanApplicationFlow() {
   const progress = (currentStep / totalSteps) * 100
 
   const updateApplicationData = (data: Partial<ApplicationData>) => {
-    setApplicationData((prev) => ({ ...prev, ...data }))
+    console.log('[AgentFlow] Updating applicationData with:', data)
+    setApplicationData((prev) => {
+      const newData = { ...prev, ...data }
+      console.log('[AgentFlow] New applicationData:', {
+        deedMode: newData.deedMode,
+        hasTitleDeeds: !!newData.titleDeeds,
+        titleDeedsLength: newData.titleDeeds?.length || 0,
+      })
+      return newData
+    })
   }
 
   const nextStep = () => {
@@ -71,8 +105,22 @@ export function AgentLoanApplicationFlow() {
   }
 
   const renderStep = () => {
+    const isMultipleMode = applicationData.deedMode === 'multiple'
+
     switch (currentStep) {
       case 1:
+        // Title deed upload - different component based on mode
+        if (isMultipleMode) {
+          return (
+            <TitleDeedMultipleStep
+              data={applicationData}
+              onUpdate={updateApplicationData}
+              onNext={nextStep}
+              onPrev={prevStep}
+              isFirstStep={true}
+            />
+          )
+        }
         return (
           <TitleDeedUploadStep
             data={applicationData}
@@ -109,9 +157,13 @@ export function AgentLoanApplicationFlow() {
   }
 
   const getStepTitle = () => {
+    const isMultipleMode = applicationData.deedMode === 'multiple'
+    
     switch (currentStep) {
       case 1:
-        return 'อัพโหลด | โฉนดที่ดิน'
+        return isMultipleMode
+          ? 'อัพโหลด | โฉนดที่ดิน (หลายใบ)'
+          : 'อัพโหลด | โฉนดที่ดิน'
       case 2:
         return 'อัพโหลด | รูปประกอบ (หากมี)'
       case 3:

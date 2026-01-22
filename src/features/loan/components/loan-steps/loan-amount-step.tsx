@@ -103,19 +103,39 @@ export function LoanAmountStep({
       console.log('[LoanAmount] Submitting loan application for agent...')
 
       // Prepare submission data
+      const isMultipleMode = data.deedMode === 'multiple'
+      
       const submissionData = {
         // Use default customer (phone 0000000000)
         phoneNumber: '0000000000',
         ownerName: data.ownerName || null,
         loanType: data.loanType || 'HOUSE_LAND_MORTGAGE',
+        
+        // Deed mode
+        deedMode: data.deedMode || 'single',
 
-        // Title deed information
+        // Title deed information (single mode)
         titleDeedImage: data.titleDeedImage?.name || null,
         titleDeedImageUrl: data.titleDeedImageUrl || null,
         titleDeedImageKey: data.titleDeedImageKey || null,
         titleDeedData: data.titleDeedData || null,
         titleDeedAnalysis: data.titleDeedAnalysis || null,
         titleDeedManualData: data.titleDeedManualData || null,
+
+        // Title deeds (multiple mode) - transform data for API
+        titleDeeds: isMultipleMode && data.titleDeeds?.length > 0
+          ? data.titleDeeds.map((deed: any) => ({
+              id: deed.id,
+              imageUrl: deed.imageUrl,
+              imageKey: deed.imageKey,
+              provinceName: deed.provinceName,
+              amphurName: deed.amphurName,
+              parcelNo: deed.parcelNo,
+              landAreaRai: deed.landAreaRai || '',
+              landAreaNgan: deed.landAreaNgan || '',
+              landAreaWa: deed.landAreaWa || '',
+            }))
+          : undefined,
 
         // Supporting images
         supportingImages:
@@ -136,12 +156,22 @@ export function LoanAmountStep({
         isAgentFlow: true,
       }
 
+      console.log('[LoanAmount] Raw data from parent:', {
+        deedMode: data.deedMode,
+        hasTitleDeeds: !!data.titleDeeds,
+        titleDeedsLength: data.titleDeeds?.length || 0,
+        titleDeeds: data.titleDeeds,
+      })
+      
       console.log('[LoanAmount] Submission data prepared:', {
         phoneNumber: submissionData.phoneNumber,
         ownerName: submissionData.ownerName,
+        deedMode: submissionData.deedMode,
         requestedAmount: submissionData.requestedLoanAmount,
         hasTitleDeedData: !!submissionData.titleDeedData,
         hasPropertyValuation: !!submissionData.propertyValuation,
+        titleDeedsCount: submissionData.titleDeeds?.length || 0,
+        titleDeeds: submissionData.titleDeeds,
       })
 
       // Update status to submitting

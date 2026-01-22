@@ -109,4 +109,65 @@ export const loanApi = {
   ): Promise<any> => {
     return api.patch(`/api/loans/${id}/status`, { status, reviewNotes })
   },
+
+  // ============================================================
+  // TITLE DEEDS (Multiple deeds support)
+  // ============================================================
+
+  /**
+   * Get title deeds for an application
+   */
+  getTitleDeeds: async (applicationId: string): Promise<any> => {
+    return api.get(`/api/loans/title-deeds?applicationId=${applicationId}`)
+  },
+
+  /**
+   * Create a new title deed
+   */
+  createTitleDeed: async (data: {
+    applicationId: string
+    imageUrl: string
+    imageKey?: string
+    deedNumber?: string
+    provinceCode?: string
+    provinceName?: string
+    amphurCode?: string
+    amphurName?: string
+    parcelNo?: string
+    landAreaText?: string
+    ownerName?: string
+    sortOrder?: number
+    isPrimary?: boolean
+  }): Promise<any> => {
+    return api.post('/api/loans/title-deeds', data)
+  },
+
+  /**
+   * Update a title deed
+   */
+  updateTitleDeed: async (
+    id: string,
+    data: {
+      imageUrl?: string
+      deedNumber?: string
+      provinceCode?: string
+      provinceName?: string
+      amphurCode?: string
+      amphurName?: string
+      parcelNo?: string
+      landAreaText?: string
+      ownerName?: string
+      sortOrder?: number
+      isPrimary?: boolean
+    }
+  ): Promise<any> => {
+    return api.put(`/api/loans/title-deeds/${id}`, data)
+  },
+
+  /**
+   * Delete a title deed
+   */
+  deleteTitleDeed: async (id: string): Promise<any> => {
+    return api.delete(`/api/loans/title-deeds/${id}`)
+  },
 }

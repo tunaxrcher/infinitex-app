@@ -15,8 +15,20 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
+    console.log('[API] Raw body received:', {
+      deedMode: body.deedMode,
+      hasTitleDeeds: !!body.titleDeeds,
+      titleDeedsLength: body.titleDeeds?.length || 0,
+    })
+
     // Validate request body
     const validatedData = loanApplicationSubmissionSchema.parse(body)
+
+    console.log('[API] After validation:', {
+      deedMode: validatedData.deedMode,
+      hasTitleDeeds: !!validatedData.titleDeeds,
+      titleDeedsLength: validatedData.titleDeeds?.length || 0,
+    })
 
     console.log('[API] Submission context:', {
       userId,
