@@ -57,23 +57,60 @@ export function AgentLoanApplicationFlow() {
     loanAmount: 0,
     loanType: 'HOUSE_LAND_MORTGAGE', // Default
   })
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // Load data from sessionStorage on mount
   useEffect(() => {
     const savedData = sessionStorage.getItem('loanApplicationData')
-    console.log('[AgentFlow] Loading from sessionStorage:', savedData)
+    const savedStep = sessionStorage.getItem('loanApplicationStep')
+    console.log('[AgentFlow] Loading from sessionStorage:', savedData, 'step:', savedStep)
+    
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData)
         console.log('[AgentFlow] Parsed data:', parsed)
-        updateApplicationData(parsed)
-        // Clear after loading
-        sessionStorage.removeItem('loanApplicationData')
+        setApplicationData((prev) => ({ ...prev, ...parsed }))
       } catch (error) {
         console.error('Failed to parse loan application data:', error)
       }
     }
+    
+    if (savedStep) {
+      const step = parseInt(savedStep, 10)
+      if (step >= 1 && step <= 4) {
+        setCurrentStep(step)
+      }
+    }
+    
+    setIsInitialized(true)
   }, [])
+
+  // Save to sessionStorage whenever data or step changes
+  useEffect(() => {
+    if (!isInitialized) return
+    
+    // Clear sessionStorage when reaching final step (pending)
+    if (currentStep === 4) {
+      sessionStorage.removeItem('loanApplicationData')
+      sessionStorage.removeItem('loanApplicationStep')
+      console.log('[AgentFlow] Cleared sessionStorage (reached final step)')
+      return
+    }
+    
+    // Save application data (excluding File objects which can't be serialized)
+    const dataToSave = {
+      ...applicationData,
+      // Exclude File objects
+      titleDeedImage: undefined,
+      supportingImages: [],
+      // Exclude imageFile from each title deed
+      titleDeeds: applicationData.titleDeeds?.map(({ imageFile, ...rest }) => rest),
+    }
+    sessionStorage.setItem('loanApplicationData', JSON.stringify(dataToSave))
+    sessionStorage.setItem('loanApplicationStep', currentStep.toString())
+    
+    console.log('[AgentFlow] Saved to sessionStorage:', { deedMode: applicationData.deedMode, currentStep })
+  }, [applicationData, currentStep, isInitialized])
 
   // Agent flow is now 4 steps (without ID Card, Customer Selection and Phone Verification)
   const totalSteps = 4
