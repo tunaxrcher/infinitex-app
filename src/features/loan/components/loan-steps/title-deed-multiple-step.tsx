@@ -9,6 +9,7 @@ import { loanApi } from '@src/features/loan/api'
 import { cn } from '@src/shared/lib/utils'
 import { Button } from '@src/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@src/shared/ui/card'
+import { Combobox } from '@src/shared/ui/combobox'
 import {
   Dialog,
   DialogContent,
@@ -19,13 +20,6 @@ import {
 import { Input } from '@src/shared/ui/input'
 import { Label } from '@src/shared/ui/label'
 import { Progress } from '@src/shared/ui/progress'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@src/shared/ui/select'
 import {
   Camera,
   Check,
@@ -540,7 +534,11 @@ export function TitleDeedMultipleStep({
               <Label>
                 จังหวัด <span className="text-destructive">*</span>
               </Label>
-              <Select
+              <Combobox
+                options={provinceData.map((province) => ({
+                  value: province.pvcode,
+                  label: province.pvnamethai,
+                }))}
                 value={formData.provinceCode}
                 onValueChange={(value) => {
                   setFormData({
@@ -548,18 +546,11 @@ export function TitleDeedMultipleStep({
                     provinceCode: value,
                     amphurCode: '',
                   })
-                }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="เลือกจังหวัด" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {provinceData.map((province) => (
-                    <SelectItem key={province.pvcode} value={province.pvcode}>
-                      {province.pvnamethai}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                }}
+                placeholder="เลือกจังหวัด"
+                searchPlaceholder="พิมพ์ชื่อจังหวัด..."
+                emptyText="ไม่พบจังหวัด"
+              />
             </div>
 
             {/* Amphur Select */}
@@ -567,29 +558,24 @@ export function TitleDeedMultipleStep({
               <Label>
                 อำเภอ/เขต <span className="text-destructive">*</span>
               </Label>
-              <Select
+              <Combobox
+                options={filteredAmphurs.map((amphur) => ({
+                  value: amphur.amcode,
+                  label: amphur.amnamethai,
+                }))}
                 value={formData.amphurCode}
                 onValueChange={(value) =>
                   setFormData({ ...formData, amphurCode: value })
                 }
-                disabled={!formData.provinceCode}>
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      formData.provinceCode
-                        ? 'เลือกอำเภอ/เขต'
-                        : 'กรุณาเลือกจังหวัดก่อน'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {filteredAmphurs.map((amphur) => (
-                    <SelectItem key={amphur.amcode} value={amphur.amcode}>
-                      {amphur.amnamethai}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                disabled={!formData.provinceCode}
+                placeholder={
+                  formData.provinceCode
+                    ? 'เลือกอำเภอ/เขต'
+                    : 'กรุณาเลือกจังหวัดก่อน'
+                }
+                searchPlaceholder="พิมพ์ชื่ออำเภอ..."
+                emptyText="ไม่พบอำเภอ"
+              />
             </div>
 
             {/* Parcel No */}

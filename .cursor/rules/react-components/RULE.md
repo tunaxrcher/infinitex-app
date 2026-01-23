@@ -236,6 +236,8 @@ import { LoanCard } from './loan-card'
 // 1. 'use client' directive
 
 // 1. 'use client' directive
+
+// 1. 'use client' directive
 ```
 
 ## Common UI Patterns
