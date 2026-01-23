@@ -274,15 +274,6 @@ model LoanApplication {
   // Total property value (sum of all title deeds)
   totalPropertyValue Decimal? @db.Decimal(15, 2)
 
-  // ========== DEPRECATED (will remove in round 2) ==========
-  titleDeedImage   String? @db.VarChar(500)
-  titleDeedData    Json?
-  propertyArea     String? @db.VarChar(100)
-  propertyLocation String? @db.Text
-  landNumber       String? @db.VarChar(100)
-  propertyType     String? @db.VarChar(100)
-  // =========================================================
-
   // Supporting documents
   supportingImages Json @default("[]") // Array of image URLs
 
