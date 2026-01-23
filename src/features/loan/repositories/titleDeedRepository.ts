@@ -2,7 +2,9 @@ import type { TitleDeed } from '@prisma/client'
 import { prisma } from '@src/shared/lib/db'
 import { BaseRepository } from '@src/shared/repositories/baseRepository'
 
-export class TitleDeedRepository extends BaseRepository<typeof prisma.titleDeed> {
+export class TitleDeedRepository extends BaseRepository<
+  typeof prisma.titleDeed
+> {
   constructor() {
     super(prisma.titleDeed)
   }
@@ -13,7 +15,11 @@ export class TitleDeedRepository extends BaseRepository<typeof prisma.titleDeed>
   async findByApplicationId(applicationId: string) {
     return this.model.findMany({
       where: { applicationId },
-      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [
+        { isPrimary: 'desc' },
+        { sortOrder: 'asc' },
+        { createdAt: 'asc' },
+      ],
     })
   }
 

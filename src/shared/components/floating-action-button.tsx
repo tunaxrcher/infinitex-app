@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/shared/ui/select'
-import { FileText, Files, MapPin, Plus, Sparkles, PenLine } from 'lucide-react'
+import { FileText, Files, MapPin, PenLine, Plus, Sparkles } from 'lucide-react'
 
 type DeedMode = 'single' | 'multiple'
 
@@ -138,15 +138,15 @@ export function FloatingActionButton({
                     )}>
                     {deedMode === 'single' && (
                       <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-primary-foreground text-xs">✓</span>
+                        <span className="text-primary-foreground text-xs">
+                          ✓
+                        </span>
                       </div>
                     )}
                     <div
                       className={cn(
                         'w-12 h-12 rounded-lg flex items-center justify-center',
-                        deedMode === 'single'
-                          ? 'bg-primary/20'
-                          : 'bg-muted'
+                        deedMode === 'single' ? 'bg-primary/20' : 'bg-muted'
                       )}>
                       <FileText
                         className={cn(
@@ -188,15 +188,15 @@ export function FloatingActionButton({
                     )}>
                     {deedMode === 'multiple' && (
                       <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                        <span className="text-primary-foreground text-xs">✓</span>
+                        <span className="text-primary-foreground text-xs">
+                          ✓
+                        </span>
                       </div>
                     )}
                     <div
                       className={cn(
                         'w-12 h-12 rounded-lg flex items-center justify-center',
-                        deedMode === 'multiple'
-                          ? 'bg-primary/20'
-                          : 'bg-muted'
+                        deedMode === 'multiple' ? 'bg-primary/20' : 'bg-muted'
                       )}>
                       <Files
                         className={cn(

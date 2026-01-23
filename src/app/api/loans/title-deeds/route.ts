@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const titleDeeds = await titleDeedRepository.findByApplicationId(applicationId)
+    const titleDeeds =
+      await titleDeedRepository.findByApplicationId(applicationId)
 
     return NextResponse.json({
       success: true,

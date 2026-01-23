@@ -104,13 +104,13 @@ export function LoanAmountStep({
 
       // Prepare submission data
       const isMultipleMode = data.deedMode === 'multiple'
-      
+
       const submissionData = {
         // Use default customer (phone 0000000000)
         phoneNumber: '0000000000',
         ownerName: data.ownerName || null,
         loanType: data.loanType || 'HOUSE_LAND_MORTGAGE',
-        
+
         // Deed mode
         deedMode: data.deedMode || 'single',
 
@@ -123,19 +123,20 @@ export function LoanAmountStep({
         titleDeedManualData: data.titleDeedManualData || null,
 
         // Title deeds (multiple mode) - transform data for API
-        titleDeeds: isMultipleMode && data.titleDeeds?.length > 0
-          ? data.titleDeeds.map((deed: any) => ({
-              id: deed.id,
-              imageUrl: deed.imageUrl,
-              imageKey: deed.imageKey,
-              provinceName: deed.provinceName,
-              amphurName: deed.amphurName,
-              parcelNo: deed.parcelNo,
-              landAreaRai: deed.landAreaRai || '',
-              landAreaNgan: deed.landAreaNgan || '',
-              landAreaWa: deed.landAreaWa || '',
-            }))
-          : undefined,
+        titleDeeds:
+          isMultipleMode && data.titleDeeds?.length > 0
+            ? data.titleDeeds.map((deed: any) => ({
+                id: deed.id,
+                imageUrl: deed.imageUrl,
+                imageKey: deed.imageKey,
+                provinceName: deed.provinceName,
+                amphurName: deed.amphurName,
+                parcelNo: deed.parcelNo,
+                landAreaRai: deed.landAreaRai || '',
+                landAreaNgan: deed.landAreaNgan || '',
+                landAreaWa: deed.landAreaWa || '',
+              }))
+            : undefined,
 
         // Supporting images
         supportingImages:
@@ -162,7 +163,7 @@ export function LoanAmountStep({
         titleDeedsLength: data.titleDeeds?.length || 0,
         titleDeeds: data.titleDeeds,
       })
-      
+
       console.log('[LoanAmount] Submission data prepared:', {
         phoneNumber: submissionData.phoneNumber,
         ownerName: submissionData.ownerName,

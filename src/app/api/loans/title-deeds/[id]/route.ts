@@ -83,15 +83,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (amphurCode !== undefined) updateData.amphurCode = amphurCode
     if (amphurName !== undefined) updateData.amphurName = amphurName
     if (parcelNo !== undefined) updateData.parcelNo = parcelNo
-    if (landAreaRai !== undefined) updateData.landAreaRai = parseFloat(landAreaRai)
-    if (landAreaNgan !== undefined) updateData.landAreaNgan = parseFloat(landAreaNgan)
+    if (landAreaRai !== undefined)
+      updateData.landAreaRai = parseFloat(landAreaRai)
+    if (landAreaNgan !== undefined)
+      updateData.landAreaNgan = parseFloat(landAreaNgan)
     if (landAreaWa !== undefined) updateData.landAreaWa = parseFloat(landAreaWa)
     if (landAreaText !== undefined) updateData.landAreaText = landAreaText
     if (ownerName !== undefined) updateData.ownerName = ownerName
     if (landType !== undefined) updateData.landType = landType
     if (analysisResult !== undefined) updateData.analysisResult = analysisResult
     if (valuationData !== undefined) updateData.valuationData = valuationData
-    if (estimatedValue !== undefined) updateData.estimatedValue = parseFloat(estimatedValue)
+    if (estimatedValue !== undefined)
+      updateData.estimatedValue = parseFloat(estimatedValue)
     if (latitude !== undefined) updateData.latitude = latitude
     if (longitude !== undefined) updateData.longitude = longitude
     if (linkMap !== undefined) updateData.linkMap = linkMap

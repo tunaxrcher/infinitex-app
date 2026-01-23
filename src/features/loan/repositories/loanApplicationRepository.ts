@@ -127,6 +127,7 @@ export class LoanApplicationRepository extends BaseRepository<
     titleDeeds?: Array<{
       imageUrl?: string
       imageKey?: string
+      deedNumber?: string
       provinceName?: string
       amphurName?: string
       parcelNo?: string
@@ -186,6 +187,7 @@ export class LoanApplicationRepository extends BaseRepository<
               create: titleDeeds.map((deed, index) => ({
                 imageUrl: deed.imageUrl,
                 imageKey: deed.imageKey,
+                deedNumber: deed.deedNumber,
                 provinceName: deed.provinceName,
                 amphurName: deed.amphurName,
                 parcelNo: deed.parcelNo,

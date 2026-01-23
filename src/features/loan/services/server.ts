@@ -132,7 +132,14 @@ export const loanService = {
     loanApplicationId: string,
     propertyInfo: any,
     propertyValuation: any,
-    titleDeedsData?: Array<{ imageUrl?: string; provinceName?: string; amphurName?: string; parcelNo?: string; latitude?: string; longitude?: string }>
+    titleDeedsData?: Array<{
+      imageUrl?: string
+      provinceName?: string
+      amphurName?: string
+      parcelNo?: string
+      latitude?: string
+      longitude?: string
+    }>
   ) {
     const isMultipleMode = data.deedMode === 'multiple'
     const deedsCount = titleDeedsData?.length || 0
@@ -148,16 +155,20 @@ export const loanService = {
 
     if (titleDeedsData && titleDeedsData.length > 0) {
       const firstDeed = titleDeedsData[0]
-      parcelNo = titleDeedsData.map(d => d.parcelNo).filter(Boolean).join(', ')
+      parcelNo = titleDeedsData
+        .map((d) => d.parcelNo)
+        .filter(Boolean)
+        .join(', ')
       amphur = firstDeed.amphurName
       province = firstDeed.provinceName
       titleDeedImageUrl = firstDeed.imageUrl
       latitude = firstDeed.latitude
       longitude = firstDeed.longitude
-      
+
       // Build notes with AI valuation
       if (propertyValuation?.estimatedValue) {
-        const deedCountText = deedsCount > 1 ? ` | โฉนดชุด ${deedsCount} ใบ` : ''
+        const deedCountText =
+          deedsCount > 1 ? ` | โฉนดชุด ${deedsCount} ใบ` : ''
         notes = `AI ประเมิน: ${propertyValuation.estimatedValue.toLocaleString()} บาท (${propertyValuation.confidence || 0}% confidence)${deedCountText}`
       } else if (deedsCount > 1) {
         notes = `โฉนดชุด ${deedsCount} ใบ`
@@ -237,18 +248,22 @@ export const loanService = {
 
     // Step 2: Prepare property information
     let propertyInfo: any = {}
-    
+
     if (isMultipleMode && data.titleDeeds && data.titleDeeds.length > 0) {
       // For multiple mode, use first deed as primary location info
       const primaryDeed = data.titleDeeds[0]
       // Format land area from rai/ngan/wa
       const landAreaParts = []
-      if (primaryDeed.landAreaRai) landAreaParts.push(`${primaryDeed.landAreaRai} ไร่`)
-      if (primaryDeed.landAreaNgan) landAreaParts.push(`${primaryDeed.landAreaNgan} งาน`)
-      if (primaryDeed.landAreaWa) landAreaParts.push(`${primaryDeed.landAreaWa} ตร.ว.`)
+      if (primaryDeed.landAreaRai)
+        landAreaParts.push(`${primaryDeed.landAreaRai} ไร่`)
+      if (primaryDeed.landAreaNgan)
+        landAreaParts.push(`${primaryDeed.landAreaNgan} งาน`)
+      if (primaryDeed.landAreaWa)
+        landAreaParts.push(`${primaryDeed.landAreaWa} ตร.ว.`)
 
       propertyInfo = {
-        propertyLocation: `${primaryDeed.amphurName || ''} ${primaryDeed.provinceName || ''}`.trim(),
+        propertyLocation:
+          `${primaryDeed.amphurName || ''} ${primaryDeed.provinceName || ''}`.trim(),
         landNumber: primaryDeed.parcelNo || '',
         ownerName: (data as any).ownerName || '',
         propertyArea: landAreaParts.join(' ') || '',
@@ -278,32 +293,37 @@ export const loanService = {
       titleDeedsLength: data.titleDeeds?.length || 0,
     })
 
-    let titleDeedsData: Array<{
-      imageUrl?: string
-      imageKey?: string
-      provinceName?: string
-      amphurName?: string
-      parcelNo?: string
-      landAreaText?: string
-      ownerName?: string
-      titleDeedData?: any
-      latitude?: string
-      longitude?: string
-      sortOrder: number
-      isPrimary: boolean
-    }> | undefined
+    let titleDeedsData:
+      | Array<{
+          imageUrl?: string
+          imageKey?: string
+          deedNumber?: string
+          provinceName?: string
+          amphurName?: string
+          parcelNo?: string
+          landAreaText?: string
+          ownerName?: string
+          titleDeedData?: any
+          latitude?: string
+          longitude?: string
+          sortOrder: number
+          isPrimary: boolean
+        }>
+      | undefined
 
     if (isMultipleMode && data.titleDeeds && data.titleDeeds.length > 0) {
       // Multiple mode - from titleDeeds array
       titleDeedsData = data.titleDeeds.map((deed, index) => ({
         imageUrl: deed.imageUrl,
         imageKey: deed.imageKey,
+        deedNumber: deed.parcelNo, // เลขโฉนดที่ผู้ใช้กรอก (UI ใช้ชื่อ parcelNo)
         provinceName: deed.provinceName,
         amphurName: deed.amphurName,
-        parcelNo: deed.parcelNo,
-        landAreaText: deed.landAreaRai || deed.landAreaNgan || deed.landAreaWa
-          ? `${deed.landAreaRai || 0} ไร่ ${deed.landAreaNgan || 0} งาน ${deed.landAreaWa || 0} ตร.ว.`
-          : undefined,
+        // multiple mode ไม่มี parcelNo จาก Landmaps API
+        landAreaText:
+          deed.landAreaRai || deed.landAreaNgan || deed.landAreaWa
+            ? `${deed.landAreaRai || 0} ไร่ ${deed.landAreaNgan || 0} งาน ${deed.landAreaWa || 0} ตร.ว.`
+            : undefined,
         sortOrder: index,
         isPrimary: index === 0,
       }))
@@ -311,24 +331,34 @@ export const loanService = {
       // Single mode - create TitleDeed from single deed data
       const deedInfo = data.titleDeedData?.result?.[0]
       const manualData = data.titleDeedManualData
-      
-      titleDeedsData = [{
-        imageUrl: data.titleDeedImageUrl || undefined,
-        imageKey: data.titleDeedImageKey || undefined,
-        provinceName: manualData?.pvName || deedInfo?.provname || undefined,
-        amphurName: manualData?.amName || deedInfo?.amphurname || undefined,
-        parcelNo: manualData?.parcelNo || deedInfo?.parcelno || undefined,
-        landAreaText: deedInfo ? `${deedInfo.rai || 0} ไร่ ${deedInfo.ngan || 0} งาน ${deedInfo.wa || 0} ตร.ว.` : undefined,
-        ownerName: (data as any).ownerName || deedInfo?.owner_name || undefined,
-        titleDeedData: data.titleDeedData || undefined,
-        latitude: deedInfo?.parcellat || undefined,
-        longitude: deedInfo?.parcellon || undefined,
-        sortOrder: 0,
-        isPrimary: true,
-      }]
+
+      titleDeedsData = [
+        {
+          imageUrl: data.titleDeedImageUrl || undefined,
+          imageKey: data.titleDeedImageKey || undefined,
+          deedNumber: manualData?.parcelNo || undefined, // เลขโฉนดที่ผู้ใช้กรอก
+          provinceName: manualData?.pvName || deedInfo?.provname || undefined,
+          amphurName: manualData?.amName || deedInfo?.amphurname || undefined,
+          parcelNo: deedInfo?.parcelno || undefined, // เลขระวางจาก LandMaps API
+          landAreaText: deedInfo
+            ? `${deedInfo.rai || 0} ไร่ ${deedInfo.ngan || 0} งาน ${deedInfo.wa || 0} ตร.ว.`
+            : undefined,
+          ownerName:
+            (data as any).ownerName || deedInfo?.owner_name || undefined,
+          titleDeedData: data.titleDeedData || undefined,
+          latitude: deedInfo?.parcellat || undefined,
+          longitude: deedInfo?.parcellon || undefined,
+          sortOrder: 0,
+          isPrimary: true,
+        },
+      ]
     }
 
-    console.log('[LoanService] titleDeedsData prepared:', titleDeedsData?.length || 0, 'deeds')
+    console.log(
+      '[LoanService] titleDeedsData prepared:',
+      titleDeedsData?.length || 0,
+      'deeds'
+    )
 
     // Step 5: Create loan application (all title deed info goes to titleDeeds relation)
     const loanApplication = await loanApplicationRepository.createWithFullData({
@@ -382,20 +412,20 @@ export const loanService = {
       // Multiple mode - use first title deed image + all deed images as supporting
       const firstDeedImageUrl = data.titleDeeds[0]?.imageUrl || null
       const allDeedImageUrls = data.titleDeeds
-        .map(d => d.imageUrl)
+        .map((d) => d.imageUrl)
         .filter((url): url is string => !!url)
       // Combine deed images (except first) with supporting images
       const allSupportingImages = [
         ...allDeedImageUrls.slice(1),
-        ...(data.supportingImages || [])
+        ...(data.supportingImages || []),
       ]
-      
+
       console.log('[LoanService] Running AI valuation for multiple mode:', {
         firstDeedImageUrl,
         allDeedImageUrls,
         allSupportingImages,
       })
-      
+
       propertyValuation = await this._runAgentFlowValuation(
         loanApplication.id,
         propertyValuation,
@@ -403,7 +433,7 @@ export const loanService = {
         null, // no titleDeedData for multiple mode
         allSupportingImages
       )
-      
+
       console.log('[LoanService] AI valuation result:', propertyValuation)
     } else {
       // Single mode - use existing logic
@@ -411,7 +441,7 @@ export const loanService = {
         titleDeedImageUrl: data.titleDeedImageUrl,
         hasTitleDeedData: !!data.titleDeedData,
       })
-      
+
       propertyValuation = await this._runAgentFlowValuation(
         loanApplication.id,
         propertyValuation,
@@ -419,7 +449,7 @@ export const loanService = {
         data.titleDeedData,
         data.supportingImages
       )
-      
+
       console.log('[LoanService] AI valuation result:', propertyValuation)
     }
 

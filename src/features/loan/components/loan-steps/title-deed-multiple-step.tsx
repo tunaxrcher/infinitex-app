@@ -111,7 +111,10 @@ export function TitleDeedMultipleStep({
         setUploadProgress(((i + 1) / files.length) * 100)
 
         try {
-          console.log(`[TitleDeedMultiple] Uploading file ${i + 1}/${files.length}:`, file.name)
+          console.log(
+            `[TitleDeedMultiple] Uploading file ${i + 1}/${files.length}:`,
+            file.name
+          )
 
           const result = await loanApi.uploadSupportingImage(file)
 
@@ -135,7 +138,10 @@ export function TitleDeedMultipleStep({
             successCount++
           }
         } catch (error) {
-          console.error(`[TitleDeedMultiple] Failed to upload ${file.name}:`, error)
+          console.error(
+            `[TitleDeedMultiple] Failed to upload ${file.name}:`,
+            error
+          )
         }
       }
 
@@ -204,7 +210,9 @@ export function TitleDeedMultipleStep({
     }
 
     // Get province and amphur names
-    const province = provinceData.find((p) => p.pvcode === formData.provinceCode)
+    const province = provinceData.find(
+      (p) => p.pvcode === formData.provinceCode
+    )
     const amphur = amphurData.find(
       (a) =>
         a.pvcode === formData.provinceCode && a.amcode === formData.amphurCode
@@ -248,7 +256,9 @@ export function TitleDeedMultipleStep({
     )
 
     if (invalidDeeds.length > 0) {
-      toast.error(`กรุณากรอกข้อมูลโฉนดให้ครบทุกใบ (เหลืออีก ${invalidDeeds.length} ใบ)`)
+      toast.error(
+        `กรุณากรอกข้อมูลโฉนดให้ครบทุกใบ (เหลืออีก ${invalidDeeds.length} ใบ)`
+      )
       return
     }
 
@@ -263,7 +273,8 @@ export function TitleDeedMultipleStep({
   const completedDeeds = titleDeeds.filter(
     (d) => d.provinceName && d.amphurName && d.parcelNo
   ).length
-  const canProceed = titleDeeds.length > 0 && completedDeeds === titleDeeds.length
+  const canProceed =
+    titleDeeds.length > 0 && completedDeeds === titleDeeds.length
 
   return (
     <div className="space-y-6">
@@ -292,15 +303,18 @@ export function TitleDeedMultipleStep({
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}>
-            
             {isUploading ? (
               // Upload Progress
               <div className="space-y-3">
                 <Loader2 className="h-8 w-8 text-primary mx-auto animate-spin" />
                 <p className="text-sm font-medium text-foreground">
-                  กำลังอัพโหลด {uploadingCount.current}/{uploadingCount.total} ไฟล์...
+                  กำลังอัพโหลด {uploadingCount.current}/{uploadingCount.total}{' '}
+                  ไฟล์...
                 </p>
-                <Progress value={uploadProgress} className="h-2 max-w-xs mx-auto" />
+                <Progress
+                  value={uploadProgress}
+                  className="h-2 max-w-xs mx-auto"
+                />
               </div>
             ) : (
               // Upload UI
@@ -411,7 +425,9 @@ export function TitleDeedMultipleStep({
 
                   {deed.provinceName && deed.amphurName && deed.parcelNo ? (
                     <div className="text-xs text-muted-foreground">
-                      <div>จ.{deed.provinceName} อ.{deed.amphurName}</div>
+                      <div>
+                        จ.{deed.provinceName} อ.{deed.amphurName}
+                      </div>
                       <div>เลขที่ {deed.parcelNo}</div>
                     </div>
                   ) : (
@@ -424,15 +440,25 @@ export function TitleDeedMultipleStep({
                 {/* Actions */}
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <Button
-                    variant={deed.provinceName && deed.amphurName && deed.parcelNo ? 'ghost' : 'default'}
+                    variant={
+                      deed.provinceName && deed.amphurName && deed.parcelNo
+                        ? 'ghost'
+                        : 'default'
+                    }
                     size="sm"
                     className={cn(
                       'h-8',
-                      !(deed.provinceName && deed.amphurName && deed.parcelNo) && 'animate-pulse'
+                      !(
+                        deed.provinceName &&
+                        deed.amphurName &&
+                        deed.parcelNo
+                      ) && 'animate-pulse'
                     )}
                     onClick={() => handleEditDeed(deed)}>
                     <Edit2 className="h-4 w-4 mr-1" />
-                    {deed.provinceName && deed.amphurName && deed.parcelNo ? 'แก้ไข' : 'กรอกข้อมูล'}
+                    {deed.provinceName && deed.amphurName && deed.parcelNo
+                      ? 'แก้ไข'
+                      : 'กรอกข้อมูล'}
                   </Button>
                   <Button
                     variant="ghost"
@@ -477,9 +503,9 @@ export function TitleDeedMultipleStep({
             ย้อนกลับ
           </Button>
         )}
-        <Button 
-          onClick={handleNextStep} 
-          disabled={!canProceed || isUploading} 
+        <Button
+          onClick={handleNextStep}
+          disabled={!canProceed || isUploading}
           className="flex-1">
           {titleDeeds.length > 0 && completedDeeds < titleDeeds.length
             ? `กรอกข้อมูลอีก ${titleDeeds.length - completedDeeds} ใบ`
@@ -592,7 +618,10 @@ export function TitleDeedMultipleStep({
                       placeholder="0"
                       value={formData.landAreaRai}
                       onChange={(e) =>
-                        setFormData({ ...formData, landAreaRai: e.target.value })
+                        setFormData({
+                          ...formData,
+                          landAreaRai: e.target.value,
+                        })
                       }
                       className="pr-10"
                     />
@@ -610,7 +639,10 @@ export function TitleDeedMultipleStep({
                       placeholder="0"
                       value={formData.landAreaNgan}
                       onChange={(e) =>
-                        setFormData({ ...formData, landAreaNgan: e.target.value })
+                        setFormData({
+                          ...formData,
+                          landAreaNgan: e.target.value,
+                        })
                       }
                       className="pr-10"
                     />

@@ -158,7 +158,7 @@ export function AgentLoanApplicationFlow() {
 
   const getStepTitle = () => {
     const isMultipleMode = applicationData.deedMode === 'multiple'
-    
+
     switch (currentStep) {
       case 1:
         return isMultipleMode
