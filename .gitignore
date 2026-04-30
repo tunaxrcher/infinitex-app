@@ -28,3 +28,5 @@ next-env.d.ts
 
 devtools/mysql_data_infinitex
 devtools/redis_data_infinitex
+
+#test
